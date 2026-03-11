@@ -1,0 +1,46 @@
+import { BellRing } from 'lucide-react'
+import { login } from './actions'
+
+export default function LoginPage() {
+    return (
+        <div className="flex min-h-screen flex-col items-center justify-center p-6 bg-[var(--color-background)]">
+            <div className="w-full max-w-sm flex flex-col items-center gap-6 rounded-2xl bg-[var(--color-surface)] p-8 shadow-xl border border-[var(--color-surface-hover)]">
+
+                <div className="flex flex-col items-center text-center gap-2">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[var(--color-primary-light)] text-white shadow-lg mb-2">
+                        <BellRing size={24} />
+                    </div>
+                    <h1 className="text-2xl font-bold text-[var(--color-text-main)]">Notify</h1>
+                    <p className="text-sm text-[var(--color-text-muted)]">Authenticate to access the Warden.</p>
+                </div>
+
+                <form className="w-full flex flex-col gap-4">
+                    <div className="flex flex-col gap-1.5">
+                        <label htmlFor="email" className="text-sm font-medium text-[var(--color-text-main)]">
+                            University Email
+                        </label>
+                        <input
+                            id="email"
+                            name="email"
+                            type="email"
+                            placeholder="student@university.edu"
+                            required
+                            className="rounded-lg border border-[var(--color-surface-hover)] bg-[var(--color-background)] px-4 py-2.5 text-sm text-[var(--color-text-main)] placeholder-[var(--color-text-muted)] focus:border-[var(--color-primary)] focus:outline-none focus:ring-1 focus:ring-[var(--color-primary)]"
+                        />
+                    </div>
+
+                    <button
+                        formAction={login}
+                        className="mt-2 w-full rounded-lg bg-[var(--color-primary)] px-4 py-2.5 text-sm font-semibold text-white shadow-md transition-colors hover:bg-[var(--color-primary-hover)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] focus:ring-offset-2 focus:ring-offset-[var(--color-background)]"
+                    >
+                        Send Magic Link
+                    </button>
+                </form>
+
+                <p className="text-center text-xs text-[var(--color-text-muted)]">
+                    Only strict university domains are accepted. Access is heavily monitored.
+                </p>
+            </div>
+        </div>
+    )
+}
