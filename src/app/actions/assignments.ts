@@ -4,7 +4,6 @@ import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 import { cookies } from 'next/headers'
 import { createClient } from '@/utils/supabase/server'
-import { scheduleDeadlineAlerts } from '@/trigger/deadline-alerts'
 
 // Validation Schema — includes new task_type, resource_url, location
 const CreateAssignmentSchema = z.object({
@@ -110,16 +109,8 @@ export async function createAssignment(formData: FormData) {
         user_id: user.id
     })
 
-    // Schedule background notifications
-    try {
-        await scheduleDeadlineAlerts.trigger({
-            assignmentId: newAssignment.id,
-            dueDate: validated.data.due_date,
-            title: validated.data.title
-        })
-    } catch (triggerError) {
-        console.error('Trigger.dev failed to schedule:', triggerError)
-    }
+    // Schedule future notifications via Vercel Cron (runs every hour automatically)
+    // No per-assignment scheduling needed
 
     revalidatePath('/')
     return { success: true }

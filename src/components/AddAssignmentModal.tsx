@@ -1,55 +1,56 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useState, useRef, useEffect, useTransition } from 'react'
 import {
-    Plus, X, Loader2, FileUp, Sparkles,
-    ChevronRight, ChevronLeft, BookOpen,
-    Link2, MapPin, Monitor, FileText, ClipboardList
+    Plus, X, Loader2, Sparkles, ChevronRight, ChevronLeft,
+    FileText, ClipboardList, Monitor, MapPin,
+    Link2, Calendar, BookOpen, CheckCircle2
 } from 'lucide-react'
 import { createAssignment } from '@/app/actions/assignments'
-import { extractAssignmentAction } from '@/app/actions/ai-assistant'
-import AIEnhanceButton from './AIEnhanceButton'
+import { extractAssignmentAction, enhanceFormAction } from '@/app/actions/ai-assistant'
 
-type ModalStep = 'initial' | 'scan' | 'form'
 type TaskType = 'assignment' | 'quiz' | 'online_test' | 'physical_test'
 
-const TASK_TYPES: { value: TaskType; label: string; icon: React.ElementType; description: string; accent: string }[] = [
-    {
-        value: 'assignment',
-        label: 'Assignment',
-        icon: FileText,
-        description: 'Written or submission-based task',
-        accent: 'var(--color-primary)',
-    },
-    {
-        value: 'quiz',
-        label: 'Quiz',
-        icon: ClipboardList,
-        description: 'Online quiz — enter access link',
-        accent: 'var(--color-warning)',
-    },
-    {
-        value: 'online_test',
-        label: 'Online Test',
-        icon: Monitor,
-        description: 'Formal online test — enter access link',
-        accent: 'var(--color-info)',
-    },
-    {
-        value: 'physical_test',
-        label: 'Physical Test',
-        icon: MapPin,
-        description: 'On-campus exam — enter location',
-        accent: 'var(--color-success)',
-    },
+const TYPES: { value: TaskType; label: string; icon: React.ElementType; color: string; bg: string; hint: string }[] = [
+    { value: 'assignment',    label: 'Assignment',    icon: FileText,      color: 'var(--color-primary)',  bg: 'var(--color-primary-soft)',  hint: 'Written task or submission' },
+    { value: 'quiz',          label: 'Quiz',          icon: ClipboardList, color: 'var(--color-warning)',  bg: 'var(--color-warning-soft)',  hint: 'Online quiz with access link' },
+    { value: 'online_test',   label: 'Online Test',   icon: Monitor,       color: 'var(--color-info)',     bg: 'var(--color-info-soft)',     hint: 'Formal test with access link' },
+    { value: 'physical_test', label: 'Physical Test', icon: MapPin,        color: 'var(--color-success)',  bg: 'var(--color-success-soft)', hint: 'On-campus exam with location' },
 ]
+
+const STEPS = ['Type', 'Details', 'Confirm'] as const
+type Step = 0 | 1 | 2
+
+function AITinyButton({ onClick, disabled }: { onClick: () => Promise<void>; disabled?: boolean }) {
+    const [loading, setLoading] = useState(false)
+    const handleClick = async () => {
+        if (loading || disabled) return
+        setLoading(true)
+        try { await onClick() } finally { setLoading(false) }
+    }
+    return (
+        <button
+            type="button"
+            onClick={handleClick}
+            disabled={disabled || loading}
+            title="AI enhance"
+            className="flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider transition-all disabled:opacity-30"
+            style={{ background: 'var(--color-primary-soft)', border: '1px solid var(--color-primary-border)', color: 'var(--color-primary)' }}
+        >
+            {loading ? <Loader2 size={9} className="animate-spin" /> : <Sparkles size={9} />}
+            AI
+        </button>
+    )
+}
 
 export default function AddAssignmentModal({ userId }: { userId: string }) {
     const [isOpen, setIsOpen] = useState(false)
-    const [step, setStep] = useState<ModalStep>('initial')
-    const [isExtracting, setIsExtracting] = useState(false)
+    const [step, setStep] = useState<Step>(0)
     const [isPending, startTransition] = useTransition()
+    const [isExtracting, setIsExtracting] = useState(false)
     const [error, setError] = useState<string | null>(null)
+    const [done, setDone] = useState(false)
+    const popoutRef = useRef<HTMLDivElement>(null)
 
     // Form state
     const [taskType, setTaskType] = useState<TaskType>('assignment')
@@ -60,45 +61,26 @@ export default function AddAssignmentModal({ userId }: { userId: string }) {
     const [resourceUrl, setResourceUrl] = useState('')
     const [location, setLocation] = useState('')
 
-    const handleFileScan = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0]
-        if (!file) return
-        setIsExtracting(true)
-        setError(null)
-        const formData = new FormData()
-        formData.append('file', file)
-        const result = await extractAssignmentAction(formData)
-        setIsExtracting(false)
-        if (result.success && result.data) {
-            const d = result.data
-            if (d.course_code) setCourseCode(d.course_code.toUpperCase())
-            if (d.title) setTitle(d.title)
-            if (d.description) setDescription(d.description)
-            if (d.due_date) setDueDate(new Date(d.due_date).toISOString().slice(0, 16))
-            setStep('form')
-        } else {
-            setError(result.error || 'Could not extract data.')
-        }
-    }
+    const selectedType = TYPES.find(t => t.value === taskType)!
+    const needsUrl = taskType === 'quiz' || taskType === 'online_test'
+    const needsLocation = taskType === 'physical_test'
 
-    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-        e.preventDefault()
-        setError(null)
-        const fd = new FormData(e.currentTarget)
-        startTransition(async () => {
-            const result = await createAssignment(fd)
-            if (result?.error) {
-                setError(result.error)
-            } else {
+    // Close on outside click
+    useEffect(() => {
+        const handler = (e: MouseEvent) => {
+            if (popoutRef.current && !popoutRef.current.contains(e.target as Node)) {
                 handleClose()
             }
-        })
-    }
+        }
+        if (isOpen) document.addEventListener('mousedown', handler)
+        return () => document.removeEventListener('mousedown', handler)
+    }, [isOpen])
 
     const handleClose = () => {
         setIsOpen(false)
-        setStep('initial')
+        setStep(0)
         setError(null)
+        setDone(false)
         setTaskType('assignment')
         setCourseCode('')
         setTitle('')
@@ -108,365 +90,405 @@ export default function AddAssignmentModal({ userId }: { userId: string }) {
         setLocation('')
     }
 
-    const selectedType = TASK_TYPES.find(t => t.value === taskType)!
+    const handleFileScan = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0]
+        if (!file) return
+        setIsExtracting(true)
+        setError(null)
+        const fd = new FormData()
+        fd.append('file', file)
+        const result = await extractAssignmentAction(fd)
+        setIsExtracting(false)
+        if (result.success && result.data) {
+            const d = result.data
+            if (d.course_code) setCourseCode(d.course_code.toUpperCase())
+            if (d.title) setTitle(d.title)
+            if (d.description) setDescription(d.description)
+            if (d.due_date) setDueDate(new Date(d.due_date).toISOString().slice(0, 16))
+            setStep(1)
+        } else {
+            setError(result.error || 'Could not extract data.')
+        }
+    }
 
-    if (!isOpen) {
-        return (
-            <button
-                onClick={() => setIsOpen(true)}
-                className="btn-primary flex items-center gap-2 h-9 px-4 rounded-xl text-[13px] font-bold"
-            >
-                <Plus size={15} strokeWidth={3} />
-                New Task
-            </button>
-        )
+    const canProceedFromDetails = courseCode.trim() && title.trim() && dueDate
+
+    const handleSubmit = () => {
+        setError(null)
+        startTransition(async () => {
+            const fd = new FormData()
+            fd.append('task_type', taskType)
+            fd.append('course_code', courseCode.trim().toUpperCase())
+            fd.append('title', title.trim())
+            fd.append('description', description.trim())
+            fd.append('due_date', dueDate)
+            if (resourceUrl.trim()) fd.append('resource_url', resourceUrl.trim())
+            if (location.trim()) fd.append('location', location.trim())
+
+            const result = await createAssignment(fd)
+            if (result?.error) {
+                setError(result.error)
+                setStep(1)
+            } else {
+                setDone(true)
+                setTimeout(handleClose, 1500)
+            }
+        })
     }
 
     return (
-        <div
-            className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center p-4 modal-overlay animate-fade-in"
-            onClick={(e) => { if (e.target === e.currentTarget) handleClose() }}
-        >
-            <div
-                className="w-full max-w-lg rounded-2xl animate-slide-up overflow-hidden"
-                style={{
-                    background: 'var(--color-surface)',
-                    border: '1px solid var(--color-border-hover)',
-                    boxShadow: 'var(--shadow-lg)',
-                }}
+        <div className="relative" ref={popoutRef}>
+            {/* Trigger button */}
+            <button
+                onClick={() => setIsOpen(v => !v)}
+                className="btn-primary flex items-center gap-2 h-9 px-4 rounded-xl text-[13px] font-bold"
             >
-                {/* Header */}
+                <Plus size={15} strokeWidth={3} />
+                <span className="hidden sm:inline">New Task</span>
+            </button>
+
+            {/* Popout */}
+            {isOpen && (
                 <div
-                    className="flex items-center justify-between px-6 py-4 border-b"
-                    style={{ borderColor: 'var(--color-border)' }}
+                    className="absolute right-0 top-full mt-3 z-[300] animate-scale-in"
+                    style={{ width: '340px' }}
                 >
-                    <div className="flex items-center gap-3">
-                        {step !== 'initial' && (
-                            <button
-                                onClick={() => setStep(step === 'form' ? 'initial' : 'initial')}
-                                className="btn-ghost h-8 w-8 rounded-lg flex items-center justify-center mr-1"
-                            >
-                                <ChevronLeft size={16} />
-                            </button>
-                        )}
-                        <div>
-                            <h2
-                                className="text-[15px] font-bold"
-                                style={{ fontFamily: 'var(--font-outfit), sans-serif' }}
-                            >
-                                {step === 'initial' ? 'New Task' : step === 'scan' ? 'AI Document Import' : 'Task Details'}
-                            </h2>
-                            {step === 'form' && (
-                                <p className="text-[12px]" style={{ color: 'var(--color-text-dim)' }}>
-                                    {selectedType.label} · Fill in the details below
-                                </p>
-                            )}
-                        </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                        {/* Step dots */}
-                        <div className="hidden sm:flex items-center gap-1.5 mr-3">
-                            {(['initial', 'form'] as ModalStep[]).map((s, i) => (
-                                <div
-                                    key={s}
-                                    className="h-1.5 rounded-full transition-all"
-                                    style={{
-                                        width: step === s ? '20px' : '6px',
-                                        background: step === s ? 'var(--color-primary)' : 'var(--color-border-hover)',
-                                    }}
-                                />
-                            ))}
-                        </div>
-                        <button
-                            onClick={handleClose}
-                            className="btn-ghost h-8 w-8 rounded-lg flex items-center justify-center"
+                    <div
+                        className="rounded-2xl overflow-hidden"
+                        style={{
+                            background: 'var(--color-surface)',
+                            border: '1px solid var(--color-border-hover)',
+                            boxShadow: 'var(--shadow-lg), 0 0 0 1px rgba(255,255,255,0.03)',
+                        }}
+                    >
+                        {/* Header */}
+                        <div
+                            className="flex items-center justify-between px-4 py-3 border-b"
+                            style={{ borderColor: 'var(--color-border)' }}
                         >
-                            <X size={16} />
-                        </button>
-                    </div>
-                </div>
-
-                {/* Body */}
-                <div className="p-6">
-                    {/* ── Step 1: Choose how to add ── */}
-                    {step === 'initial' && (
-                        <div className="space-y-3 animate-fade-up">
-                            <p className="text-[13px] mb-5" style={{ color: 'var(--color-text-muted)' }}>
-                                How would you like to add this task?
-                            </p>
-
-                            {/* AI Scan option */}
-                            <label
-                                className="card rounded-xl p-4 flex items-center gap-4 cursor-pointer transition-all hover:border-[var(--color-primary-border)]"
-                                style={{ borderColor: 'var(--color-border)' }}
-                            >
-                                <div
-                                    className="h-10 w-10 rounded-xl flex items-center justify-center shrink-0"
-                                    style={{ background: 'var(--color-primary-soft)' }}
-                                >
-                                    {isExtracting ? (
-                                        <Loader2 size={18} className="animate-spin" style={{ color: 'var(--color-primary)' }} />
-                                    ) : (
-                                        <Sparkles size={18} style={{ color: 'var(--color-primary)' }} />
-                                    )}
-                                </div>
-                                <div className="flex-1">
-                                    <p className="text-[14px] font-bold mb-0.5">AI Schedule Import</p>
-                                    <p className="text-[12px]" style={{ color: 'var(--color-text-muted)' }}>
-                                        Upload a PDF, image, or document — AI extracts the details
-                                    </p>
-                                </div>
-                                <ChevronRight size={16} style={{ color: 'var(--color-text-dim)' }} />
-                                <input
-                                    type="file"
-                                    accept="image/*,application/pdf"
-                                    onChange={handleFileScan}
-                                    className="sr-only"
-                                    disabled={isExtracting}
-                                />
-                            </label>
-
-                            {/* Manual option */}
+                            {/* Step back */}
                             <button
-                                onClick={() => setStep('form')}
-                                className="card rounded-xl p-4 flex items-center gap-4 w-full text-left"
+                                onClick={() => step > 0 ? setStep((step - 1) as Step) : handleClose()}
+                                className="btn-ghost h-7 w-7 rounded-lg flex items-center justify-center"
                             >
-                                <div
-                                    className="h-10 w-10 rounded-xl flex items-center justify-center shrink-0"
-                                    style={{ background: 'var(--color-surface-2)' }}
-                                >
-                                    <BookOpen size={18} style={{ color: 'var(--color-text-muted)' }} />
-                                </div>
-                                <div className="flex-1">
-                                    <p className="text-[14px] font-bold mb-0.5">Manual Setup</p>
-                                    <p className="text-[12px]" style={{ color: 'var(--color-text-muted)' }}>
-                                        Fill in the course, title, deadline and type yourself
-                                    </p>
-                                </div>
-                                <ChevronRight size={16} style={{ color: 'var(--color-text-dim)' }} />
+                                <ChevronLeft size={15} />
                             </button>
 
-                            {error && (
-                                <p className="text-[12px] text-center pt-1" style={{ color: 'var(--color-danger)' }}>{error}</p>
-                            )}
+                            {/* Step indicator */}
+                            <div className="flex items-center gap-1.5">
+                                {STEPS.map((label, i) => (
+                                    <div key={label} className="flex items-center gap-1.5">
+                                        <div className="flex flex-col items-center gap-0.5">
+                                            <div
+                                                className="rounded-full transition-all"
+                                                style={{
+                                                    width: step === i ? '20px' : '6px',
+                                                    height: '4px',
+                                                    background: step > i
+                                                        ? 'var(--color-success)'
+                                                        : step === i
+                                                        ? 'var(--color-primary)'
+                                                        : 'var(--color-border-hover)',
+                                                }}
+                                            />
+                                        </div>
+                                        {i < STEPS.length - 1 && (
+                                            <div className="h-px w-3" style={{ background: 'var(--color-border)' }} />
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+
+                            <button onClick={handleClose} className="btn-ghost h-7 w-7 rounded-lg flex items-center justify-center">
+                                <X size={14} />
+                            </button>
                         </div>
-                    )}
 
-                    {/* ── Step 2: The form ── */}
-                    {step === 'form' && (
-                        <form onSubmit={handleSubmit} className="space-y-5 animate-fade-up">
-                            <input type="hidden" name="task_type" value={taskType} />
+                        {/* Body */}
+                        <div className="p-4">
 
-                            {/* Task Type Selector */}
-                            <div>
-                                <label className="block text-[11px] font-bold uppercase tracking-[0.12em] mb-3" style={{ color: 'var(--color-text-muted)' }}>
-                                    Task Type
-                                </label>
-                                <div className="grid grid-cols-2 gap-2">
-                                    {TASK_TYPES.map((type) => (
-                                        <button
-                                            key={type.value}
-                                            type="button"
-                                            onClick={() => setTaskType(type.value)}
-                                            className="rounded-xl p-3 text-left border transition-all"
+                            {/* ── Step 0: Choose Type ── */}
+                            {step === 0 && (
+                                <div className="space-y-3 animate-fade-up">
+                                    <div className="mb-3">
+                                        <p className="text-[13px] font-bold mb-0.5">New Task</p>
+                                        <p className="text-[11px]" style={{ color: 'var(--color-text-dim)' }}>Select the task type to get started</p>
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-2">
+                                        {TYPES.map((type) => (
+                                            <button
+                                                key={type.value}
+                                                onClick={() => { setTaskType(type.value); setStep(1) }}
+                                                className="rounded-xl p-3 text-left border transition-all hover:scale-[1.02] active:scale-[0.98]"
+                                                style={{
+                                                    background: taskType === type.value ? type.bg : 'var(--color-surface-2)',
+                                                    borderColor: taskType === type.value ? `${type.color}44` : 'var(--color-border)',
+                                                }}
+                                            >
+                                                <div
+                                                    className="h-7 w-7 rounded-lg flex items-center justify-center mb-2"
+                                                    style={{ background: type.bg }}
+                                                >
+                                                    <type.icon size={14} style={{ color: type.color }} />
+                                                </div>
+                                                <p className="text-[12px] font-bold mb-0.5">{type.label}</p>
+                                                <p className="text-[10px] leading-snug" style={{ color: 'var(--color-text-dim)' }}>{type.hint}</p>
+                                            </button>
+                                        ))}
+                                    </div>
+
+                                    {/* AI scan shortcut */}
+                                    <label
+                                        className="flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all hover:border-[var(--color-primary-border)]"
+                                        style={{
+                                            background: 'var(--color-surface-2)',
+                                            borderColor: 'var(--color-border)',
+                                            borderStyle: 'dashed',
+                                        }}
+                                    >
+                                        <div
+                                            className="h-7 w-7 rounded-lg flex items-center justify-center shrink-0"
+                                            style={{ background: 'var(--color-primary-soft)' }}
+                                        >
+                                            {isExtracting
+                                                ? <Loader2 size={13} className="animate-spin" style={{ color: 'var(--color-primary)' }} />
+                                                : <Sparkles size={13} style={{ color: 'var(--color-primary)' }} />
+                                            }
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <p className="text-[12px] font-bold">AI Import</p>
+                                            <p className="text-[10px]" style={{ color: 'var(--color-text-dim)' }}>Upload PDF or image to auto-fill</p>
+                                        </div>
+                                        <ChevronRight size={13} style={{ color: 'var(--color-text-dim)' }} />
+                                        <input type="file" accept="image/*,application/pdf" onChange={handleFileScan} className="sr-only" disabled={isExtracting} />
+                                    </label>
+
+                                    {error && <p className="text-[11px] pt-1" style={{ color: 'var(--color-danger)' }}>{error}</p>}
+                                </div>
+                            )}
+
+                            {/* ── Step 1: Details ── */}
+                            {step === 1 && (
+                                <div className="space-y-3 animate-fade-up">
+                                    {/* Type chip */}
+                                    <div className="flex items-center gap-2 mb-1">
+                                        <div
+                                            className="badge"
                                             style={{
-                                                background: taskType === type.value ? `${type.accent}15` : 'var(--color-surface-2)',
-                                                borderColor: taskType === type.value ? type.accent + '55' : 'var(--color-border)',
-                                                boxShadow: taskType === type.value ? `0 0 12px -4px ${type.accent}` : 'none',
+                                                background: selectedType.bg,
+                                                color: selectedType.color,
+                                                border: `1px solid ${selectedType.color}33`,
+                                                fontSize: '10px',
                                             }}
                                         >
-                                            <div className="flex items-center gap-2 mb-1">
-                                                <type.icon
-                                                    size={14}
-                                                    style={{ color: taskType === type.value ? type.accent : 'var(--color-text-muted)' }}
-                                                />
-                                                <span
-                                                    className="text-[12px] font-bold"
-                                                    style={{ color: taskType === type.value ? type.accent : 'var(--color-text-main)' }}
-                                                >
-                                                    {type.label}
-                                                </span>
-                                            </div>
-                                            <p className="text-[10px] leading-tight" style={{ color: 'var(--color-text-dim)' }}>
-                                                {type.description}
-                                            </p>
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
+                                            <selectedType.icon size={9} />
+                                            {selectedType.label}
+                                        </div>
+                                        <p className="text-[12px] font-semibold">Task Details</p>
+                                    </div>
 
-                            {/* Course Code + AI Enhance */}
-                            <div>
-                                <div className="flex items-center justify-between mb-2">
-                                    <label className="text-[11px] font-bold uppercase tracking-[0.12em]" style={{ color: 'var(--color-text-muted)' }}>
-                                        Course Code
-                                    </label>
-                                    <AIEnhanceButton
-                                        variant="mini"
-                                        formData={{ course_code: courseCode, title }}
-                                        onEnhance={(d) => {
-                                            if (d.course_code) setCourseCode(d.course_code.toUpperCase())
-                                            if (d.title) setTitle(d.title)
-                                        }}
-                                    />
-                                </div>
-                                <input
-                                    name="course_code"
-                                    type="text"
-                                    value={courseCode}
-                                    onChange={(e) => setCourseCode(e.target.value.toUpperCase())}
-                                    placeholder="e.g. CSC 301"
-                                    required
-                                    className="input-field w-full h-11 px-4 text-[13px] font-semibold uppercase tracking-wide"
-                                />
-                            </div>
+                                    {/* Course Code */}
+                                    <div>
+                                        <div className="flex items-center justify-between mb-1">
+                                            <label className="text-[10px] font-bold uppercase tracking-[0.1em]" style={{ color: 'var(--color-text-muted)' }}>Course Code</label>
+                                            <AITinyButton
+                                                onClick={async () => {
+                                                    const r = await enhanceFormAction({ course_code: courseCode, title })
+                                                    if (r.success && r.data) {
+                                                        if (r.data.course_code) setCourseCode(r.data.course_code.toUpperCase())
+                                                        if (r.data.title) setTitle(r.data.title)
+                                                    }
+                                                }}
+                                                disabled={!courseCode && !title}
+                                            />
+                                        </div>
+                                        <input
+                                            type="text"
+                                            value={courseCode}
+                                            onChange={e => setCourseCode(e.target.value.toUpperCase())}
+                                            placeholder="e.g. CSC 301"
+                                            className="input-field w-full h-10 px-3 text-[13px] font-semibold uppercase tracking-wide"
+                                        />
+                                    </div>
 
-                            {/* Title */}
-                            <div>
-                                <div className="flex items-center justify-between mb-2">
-                                    <label className="text-[11px] font-bold uppercase tracking-[0.12em]" style={{ color: 'var(--color-text-muted)' }}>
-                                        Title
-                                    </label>
-                                    <AIEnhanceButton
-                                        variant="mini"
-                                        formData={{ course_code: courseCode, title, description }}
-                                        onEnhance={(d) => {
-                                            if (d.title) setTitle(d.title)
-                                            if (d.description) setDescription(d.description)
-                                        }}
-                                    />
-                                </div>
-                                <input
-                                    name="title"
-                                    type="text"
-                                    value={title}
-                                    onChange={(e) => setTitle(e.target.value)}
-                                    placeholder={
-                                        taskType === 'quiz' ? 'e.g. Chapter 5 Quiz'
-                                        : taskType === 'online_test' ? 'e.g. Midterm Exam'
-                                        : taskType === 'physical_test' ? 'e.g. Final Examination'
-                                        : 'e.g. Research Paper Draft'
-                                    }
-                                    required
-                                    className="input-field w-full h-11 px-4 text-[13px]"
-                                />
-                            </div>
+                                    {/* Title */}
+                                    <div>
+                                        <div className="flex items-center justify-between mb-1">
+                                            <label className="text-[10px] font-bold uppercase tracking-[0.1em]" style={{ color: 'var(--color-text-muted)' }}>Title</label>
+                                            <AITinyButton
+                                                onClick={async () => {
+                                                    const r = await enhanceFormAction({ course_code: courseCode, title, description })
+                                                    if (r.success && r.data) {
+                                                        if (r.data.title) setTitle(r.data.title)
+                                                        if (r.data.description) setDescription(r.data.description)
+                                                    }
+                                                }}
+                                                disabled={!courseCode && !title}
+                                            />
+                                        </div>
+                                        <input
+                                            type="text"
+                                            value={title}
+                                            onChange={e => setTitle(e.target.value)}
+                                            placeholder={
+                                                taskType === 'quiz' ? 'Chapter 5 Quiz' :
+                                                taskType === 'online_test' ? 'Midterm Exam' :
+                                                taskType === 'physical_test' ? 'Final Examination' :
+                                                'Research Paper Draft'
+                                            }
+                                            className="input-field w-full h-10 px-3 text-[13px]"
+                                        />
+                                    </div>
 
-                            {/* Due Date */}
-                            <div>
-                                <label className="block text-[11px] font-bold uppercase tracking-[0.12em] mb-2" style={{ color: 'var(--color-text-muted)' }}>
-                                    Due Date & Time
-                                </label>
-                                <input
-                                    name="due_date"
-                                    type="datetime-local"
-                                    value={dueDate}
-                                    onChange={(e) => setDueDate(e.target.value)}
-                                    required
-                                    className="input-field w-full h-11 px-4 text-[13px]"
-                                    style={{ colorScheme: 'dark' }}
-                                />
-                            </div>
+                                    {/* Due Date */}
+                                    <div>
+                                        <label className="block text-[10px] font-bold uppercase tracking-[0.1em] mb-1" style={{ color: 'var(--color-text-muted)' }}>
+                                            <span className="flex items-center gap-1"><Calendar size={10} /> Due Date & Time</span>
+                                        </label>
+                                        <input
+                                            type="datetime-local"
+                                            value={dueDate}
+                                            onChange={e => setDueDate(e.target.value)}
+                                            className="input-field w-full h-10 px-3 text-[13px]"
+                                            style={{ colorScheme: 'dark' }}
+                                        />
+                                    </div>
 
-                            {/* Conditional: Resource URL (quiz / online_test) */}
-                            {(taskType === 'quiz' || taskType === 'online_test') && (
-                                <div className="animate-fade-in">
-                                    <label className="block text-[11px] font-bold uppercase tracking-[0.12em] mb-2" style={{ color: 'var(--color-text-muted)' }}>
-                                        <span className="flex items-center gap-1.5">
-                                            <Link2 size={11} />
-                                            Access Link
-                                        </span>
-                                    </label>
-                                    <input
-                                        name="resource_url"
-                                        type="url"
-                                        value={resourceUrl}
-                                        onChange={(e) => setResourceUrl(e.target.value)}
-                                        placeholder="https://lms.university.ac.zw/quiz/..."
-                                        className="input-field w-full h-11 px-4 text-[13px]"
-                                    />
-                                </div>
-                            )}
-
-                            {/* Conditional: Location (physical_test) */}
-                            {taskType === 'physical_test' && (
-                                <div className="animate-fade-in">
-                                    <label className="block text-[11px] font-bold uppercase tracking-[0.12em] mb-2" style={{ color: 'var(--color-text-muted)' }}>
-                                        <span className="flex items-center gap-1.5">
-                                            <MapPin size={11} />
-                                            Campus Location
-                                        </span>
-                                    </label>
-                                    <input
-                                        name="location"
-                                        type="text"
-                                        value={location}
-                                        onChange={(e) => setLocation(e.target.value)}
-                                        placeholder="e.g. Block C, Hall 2, Row D"
-                                        className="input-field w-full h-11 px-4 text-[13px]"
-                                    />
-                                </div>
-                            )}
-
-                            {/* Description */}
-                            <div>
-                                <div className="flex items-center justify-between mb-2">
-                                    <label className="text-[11px] font-bold uppercase tracking-[0.12em]" style={{ color: 'var(--color-text-muted)' }}>
-                                        Notes <span style={{ color: 'var(--color-text-dim)' }}>(optional)</span>
-                                    </label>
-                                    <AIEnhanceButton
-                                        variant="mini"
-                                        formData={{ course_code: courseCode, title, description }}
-                                        onEnhance={(d) => {
-                                            if (d.description) setDescription(d.description)
-                                        }}
-                                    />
-                                </div>
-                                <textarea
-                                    name="description"
-                                    value={description}
-                                    onChange={(e) => setDescription(e.target.value)}
-                                    placeholder="Any notes or requirements..."
-                                    rows={3}
-                                    className="input-field w-full px-4 py-3 text-[13px] resize-none"
-                                    style={{ borderRadius: '10px' }}
-                                />
-                            </div>
-
-                            {error && (
-                                <div
-                                    className="p-3 rounded-xl text-[12px] font-semibold"
-                                    style={{ background: 'var(--color-danger-soft)', color: 'var(--color-danger)' }}
-                                >
-                                    {error}
-                                </div>
-                            )}
-
-                            {/* Actions */}
-                            <div className="flex gap-3 pt-1">
-                                <button
-                                    type="button"
-                                    onClick={handleClose}
-                                    className="btn-secondary flex-1 h-11 rounded-xl text-[13px] font-bold"
-                                >
-                                    Cancel
-                                </button>
-                                <button
-                                    type="submit"
-                                    disabled={isPending}
-                                    className="btn-primary flex-[2] h-11 rounded-xl text-[13px] font-bold flex items-center justify-center gap-2"
-                                >
-                                    {isPending ? (
-                                        <><Loader2 size={15} className="animate-spin" /> Saving...</>
-                                    ) : (
-                                        <>Save Task</>
+                                    {/* Conditional: Resource URL */}
+                                    {needsUrl && (
+                                        <div className="animate-fade-in">
+                                            <label className="block text-[10px] font-bold uppercase tracking-[0.1em] mb-1" style={{ color: 'var(--color-text-muted)' }}>
+                                                <span className="flex items-center gap-1"><Link2 size={10} /> Access Link</span>
+                                            </label>
+                                            <input
+                                                type="url"
+                                                value={resourceUrl}
+                                                onChange={e => setResourceUrl(e.target.value)}
+                                                placeholder="https://lms.university.ac.zw/..."
+                                                className="input-field w-full h-10 px-3 text-[12px]"
+                                            />
+                                        </div>
                                     )}
-                                </button>
-                            </div>
-                        </form>
-                    )}
+
+                                    {/* Conditional: Location */}
+                                    {needsLocation && (
+                                        <div className="animate-fade-in">
+                                            <label className="block text-[10px] font-bold uppercase tracking-[0.1em] mb-1" style={{ color: 'var(--color-text-muted)' }}>
+                                                <span className="flex items-center gap-1"><MapPin size={10} /> Campus Location</span>
+                                            </label>
+                                            <input
+                                                type="text"
+                                                value={location}
+                                                onChange={e => setLocation(e.target.value)}
+                                                placeholder="e.g. Block C, Hall 2"
+                                                className="input-field w-full h-10 px-3 text-[13px]"
+                                            />
+                                        </div>
+                                    )}
+
+                                    {/* Notes */}
+                                    <div>
+                                        <label className="block text-[10px] font-bold uppercase tracking-[0.1em] mb-1" style={{ color: 'var(--color-text-muted)' }}>
+                                            Notes <span style={{ color: 'var(--color-text-dim)', textTransform: 'none', letterSpacing: 0 }}>(optional)</span>
+                                        </label>
+                                        <textarea
+                                            value={description}
+                                            onChange={e => setDescription(e.target.value)}
+                                            placeholder="Any requirements or notes..."
+                                            rows={2}
+                                            className="input-field w-full px-3 py-2 text-[12px] resize-none"
+                                        />
+                                    </div>
+
+                                    {error && (
+                                        <p className="text-[11px]" style={{ color: 'var(--color-danger)' }}>{error}</p>
+                                    )}
+
+                                    <button
+                                        onClick={() => setStep(2)}
+                                        disabled={!canProceedFromDetails}
+                                        className="btn-primary w-full h-10 rounded-xl text-[13px] font-bold flex items-center justify-center gap-2"
+                                    >
+                                        Review <ChevronRight size={14} />
+                                    </button>
+                                </div>
+                            )}
+
+                            {/* ── Step 2: Confirm ── */}
+                            {step === 2 && (
+                                <div className="space-y-3 animate-fade-up">
+                                    {/* Done state */}
+                                    {done ? (
+                                        <div className="py-4 flex flex-col items-center gap-3">
+                                            <div
+                                                className="h-12 w-12 rounded-full flex items-center justify-center animate-scale-in"
+                                                style={{ background: 'var(--color-success-soft)' }}
+                                            >
+                                                <CheckCircle2 size={24} style={{ color: 'var(--color-success)' }} />
+                                            </div>
+                                            <p className="text-[13px] font-bold" style={{ color: 'var(--color-success)' }}>Task Added!</p>
+                                        </div>
+                                    ) : (
+                                        <>
+                                            <p className="text-[12px] font-bold mb-2">Confirm Task</p>
+
+                                            {/* Summary card */}
+                                            <div
+                                                className="rounded-xl p-3 space-y-2 text-[12px]"
+                                                style={{ background: 'var(--color-surface-2)', border: '1px solid var(--color-border)' }}
+                                            >
+                                                <SummaryRow label="Type">
+                                                    <span className="badge" style={{ background: selectedType.bg, color: selectedType.color, border: `1px solid ${selectedType.color}33`, fontSize: '10px' }}>
+                                                        <selectedType.icon size={9} /> {selectedType.label}
+                                                    </span>
+                                                </SummaryRow>
+                                                <SummaryRow label="Course">{courseCode}</SummaryRow>
+                                                <SummaryRow label="Title">{title}</SummaryRow>
+                                                <SummaryRow label="Due">{new Date(dueDate).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</SummaryRow>
+                                                {resourceUrl && <SummaryRow label="Link"><span className="truncate block max-w-[160px] text-[var(--color-info)]">{resourceUrl}</span></SummaryRow>}
+                                                {location && <SummaryRow label="Location">{location}</SummaryRow>}
+                                                {description && <SummaryRow label="Notes">{description}</SummaryRow>}
+                                            </div>
+
+                                            {error && (
+                                                <p className="text-[11px]" style={{ color: 'var(--color-danger)' }}>{error}</p>
+                                            )}
+
+                                            <div className="flex gap-2">
+                                                <button
+                                                    onClick={() => setStep(1)}
+                                                    className="btn-secondary flex-1 h-10 rounded-xl text-[12px] font-bold"
+                                                >
+                                                    Edit
+                                                </button>
+                                                <button
+                                                    onClick={handleSubmit}
+                                                    disabled={isPending}
+                                                    className="btn-primary flex-[2] h-10 rounded-xl text-[12px] font-bold flex items-center justify-center gap-2"
+                                                >
+                                                    {isPending ? <><Loader2 size={13} className="animate-spin" /> Saving...</> : 'Save Task'}
+                                                </button>
+                                            </div>
+                                        </>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                    </div>
                 </div>
-            </div>
+            )}
         </div>
     )
 }
+
+function SummaryRow({ label, children }: { label: string; children: React.ReactNode }) {
+    return (
+        <div className="flex items-start gap-2">
+            <span className="w-14 shrink-0 text-[10px] font-bold uppercase tracking-[0.08em]" style={{ color: 'var(--color-text-dim)', paddingTop: '1px' }}>{label}</span>
+            <span style={{ color: 'var(--color-text-main)' }}>{children}</span>
+        </div>
+    )
+}
+
+

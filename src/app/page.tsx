@@ -142,29 +142,34 @@ export default async function Home() {
   return (
     <div
       className="min-h-screen font-sans"
-      style={{ background: "var(--color-background)" }}
+      style={{ background: 'var(--color-bg)' }}
     >
       {/* ── Top Navigation ─────────────────────────────── */}
       <nav
-        className="glass sticky top-0 z-50 border-b"
-        style={{ borderColor: "var(--color-border)" }}
+        className="sticky top-0 z-50 border-b"
+        style={{
+          background: 'rgba(7,7,7,0.75)',
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+          borderColor: 'var(--color-border)',
+        }}
       >
         <div className="max-w-[1300px] mx-auto px-6 h-16 flex items-center justify-between">
           {/* Brand */}
           <div className="flex items-center gap-10">
             <div className="flex items-center gap-3">
               <div
-                className="h-8 w-8 rounded-lg flex items-center justify-center text-white"
+                className="h-8 w-8 rounded-lg flex items-center justify-center"
                 style={{
-                  background: "var(--color-primary)",
-                  boxShadow: "var(--shadow-glow-sm)",
+                  background: 'var(--color-surface-3)',
+                  border: '1px solid var(--color-border-hover)',
                 }}
               >
-                <Terminal size={16} strokeWidth={2.5} />
+                <Terminal size={15} strokeWidth={2.5} style={{ color: 'var(--color-text-main)' }} />
               </div>
               <span
                 className="text-base font-extrabold tracking-tight uppercase"
-                style={{ fontFamily: "var(--font-outfit), sans-serif" }}
+                style={{ fontFamily: 'var(--font-outfit), sans-serif', color: 'var(--color-text-main)' }}
               >
                 Notify
               </span>
@@ -173,7 +178,7 @@ export default async function Home() {
             <div className="hidden md:flex items-center gap-6 text-[13px] font-semibold">
               <div
                 className="flex items-center gap-2"
-                style={{ color: "var(--color-primary)" }}
+                style={{ color: 'var(--color-text-muted)' }}
               >
                 <LayoutDashboard size={14} />
                 Dashboard
@@ -254,32 +259,32 @@ export default async function Home() {
         </div>
 
         {/* ── Stats Grid ───────────────────────────────── */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 stagger">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {stats.map((stat, i) => (
             <div
               key={i}
-              className="stat-card rounded-2xl p-5 animate-fade-up"
-              style={{ borderColor: stat.border, animationDelay: `${i * 0.06}s`, opacity: 0 }}
+              className="stat-card animate-fade-up"
+              style={{ animationDelay: `${i * 0.06}s`, opacity: 0 }}
             >
               <div className="flex items-center justify-between mb-4">
                 <span
                   className="text-[11px] font-bold uppercase tracking-[0.15em]"
-                  style={{ color: "var(--color-text-muted)" }}
+                  style={{ color: 'var(--color-text-dim)' }}
                 >
                   {stat.label}
                 </span>
                 <div
-                  className="h-8 w-8 rounded-lg flex items-center justify-center"
+                  className="h-7 w-7 rounded-lg flex items-center justify-center"
                   style={{ background: stat.bg }}
                 >
-                  <stat.icon size={15} style={{ color: stat.color }} />
+                  <stat.icon size={13} style={{ color: stat.color }} />
                 </div>
               </div>
               <p
                 className="text-4xl font-black"
                 style={{
                   color: stat.color,
-                  fontFamily: "var(--font-outfit), sans-serif",
+                  fontFamily: 'var(--font-outfit), sans-serif',
                 }}
               >
                 {stat.value}
