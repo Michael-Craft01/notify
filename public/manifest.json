@@ -1,7 +1,7 @@
 {
   "name": "Notify",
   "short_name": "Notify",
-  "description": "The Deadline Warden for LogicHQ",
+  "description": "Professional schedule and deadline management.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0f172a",

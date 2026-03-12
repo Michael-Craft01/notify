@@ -13,7 +13,7 @@ export async function saveSubscription(subscription: any) {
     // --- Developer Bypass (Phase 4.5 Hotfix) ---
     if (!user) {
         const cookieStore = await cookies()
-        const mockUserEmail = (await cookieStore).get('warden-mock-user')?.value
+        const mockUserEmail = (await cookieStore).get('notify-mock-user')?.value
         if (mockUserEmail) {
             user = { id: '00000000-0000-0000-0000-000000000000', email: mockUserEmail } as any
         }

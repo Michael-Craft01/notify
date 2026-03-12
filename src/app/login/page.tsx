@@ -66,8 +66,8 @@ export default function LoginPage() {
                             <Command size={20} strokeWidth={2.5} />
                         </div>
                         <div className="space-y-1">
-                            <h1 className="text-xl font-bold tracking-tight text-white">Warden</h1>
-                            <p className="text-[13px] font-medium text-neutral-500 uppercase tracking-widest">Secure Access Protocol</p>
+                            <h1 className="text-xl font-bold tracking-tight text-white uppercase font-outfit">Notify</h1>
+                            <p className="text-[13px] font-medium text-neutral-500 uppercase tracking-widest">Professional Access</p>
                         </div>
                     </div>
 
@@ -79,7 +79,7 @@ export default function LoginPage() {
                             <p className="text-[12px] font-medium text-neutral-500">
                                 {step === 'options' && 'Select your preferred identity provider.'}
                                 {step === 'email' && 'Use your university or primary email.'}
-                                {step === 'otp' && 'Enter the 6-digit code to access terminal.'}
+                                {step === 'otp' && 'Enter the 6-digit code to sign in.'}
                             </p>
                         </div>
 
@@ -173,7 +173,7 @@ export default function LoginPage() {
                                         disabled={isLoading}
                                         className="w-full h-12 flex items-center justify-center rounded-lg bg-[var(--color-primary)] px-4 text-[13px] font-bold text-white transition-all hover:brightness-110 active:scale-95 disabled:opacity-50"
                                     >
-                                        {isLoading ? <Loader2 className="animate-spin" size={18} /> : 'Access Terminal'}
+                                        {isLoading ? <Loader2 className="animate-spin" size={18} /> : 'Sign In'}
                                     </button>
                                     <button
                                         type="button"

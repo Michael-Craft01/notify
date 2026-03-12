@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { Plus, X, Loader2, FileUp, Shield, Zap, ChevronRight, ChevronLeft, Keyboard, Sparkles } from 'lucide-react'
 import { createAssignment } from '@/app/actions/assignments'
-import { extractAssignmentAction } from '@/app/actions/oracle'
+import { extractAssignmentAction } from '@/app/actions/ai-assistant'
 import AIEnhanceButton from './AIEnhanceButton'
 
 type ModalStep = 'initial' | 'scan' | 'form'

@@ -50,8 +50,8 @@ export async function extractAssignmentAction(formData: FormData) {
         return { success: true, data: extractedData }
 
     } catch (error: any) {
-        console.error('Oracle Extraction Error:', error)
-        return { error: error.message || 'Failed to extract data from intel.' }
+        console.error('Assistant Extraction Error:', error)
+        return { error: error.message || 'Failed to extract data from document.' }
     }
 }
 
@@ -82,11 +82,11 @@ export async function enhanceFormAction(partialData: Record<string, string>) {
         const text = response.text()
 
         const jsonMatch = text.match(/\{[\s\S]*\}/)
-        if (!jsonMatch) throw new Error('Oracle failed to refine intel.')
+        if (!jsonMatch) throw new Error('AI Assistant failed to refine task.')
 
         return { success: true, data: JSON.parse(jsonMatch[0]) }
     } catch (error: any) {
-        console.error('Oracle Enhance Error:', error)
-        return { error: 'Oracle unavailable at this moment.' }
+        console.error('Assistant Enhance Error:', error)
+        return { error: 'Assistant unavailable at this moment.' }
     }
 }

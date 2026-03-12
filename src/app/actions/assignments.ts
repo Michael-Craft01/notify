@@ -20,10 +20,10 @@ export async function createAssignment(formData: FormData) {
     // 1. Verify User
     let { data: { user }, error: authError } = await supabase.auth.getUser()
 
-    // --- Developer Bypass (Phase 4.5 Hotfix) ---
+    // --- Developer Bypass ---
     if (!user) {
         const cookieStore = await cookies();
-        const mockUserEmail = (await cookieStore).get('warden-mock-user')?.value;
+        const mockUserEmail = (await cookieStore).get('notify-mock-user')?.value;
         if (mockUserEmail) {
             user = { id: '00000000-0000-0000-0000-000000000000', email: mockUserEmail } as any;
         }
@@ -104,10 +104,10 @@ export async function verifyAssignment(assignmentId: string) {
     // 1. Verify User
     let { data: { user } } = await supabase.auth.getUser()
 
-    // --- Developer Bypass (Phase 4.5 Hotfix) ---
+    // --- Developer Bypass ---
     if (!user) {
         const cookieStore = await cookies();
-        const mockUserEmail = (await cookieStore).get('warden-mock-user')?.value;
+        const mockUserEmail = (await cookieStore).get('notify-mock-user')?.value;
         if (mockUserEmail) {
             user = { id: '00000000-0000-0000-0000-000000000000', email: mockUserEmail } as any;
         }
@@ -142,10 +142,10 @@ export async function updateProgress(assignmentId: string, status: 'not_started'
     // 1. Verify User
     let { data: { user } } = await supabase.auth.getUser()
 
-    // --- Developer Bypass (Phase 4.5 Hotfix) ---
+    // --- Developer Bypass ---
     if (!user) {
         const cookieStore = await cookies();
-        const mockUserEmail = (await cookieStore).get('warden-mock-user')?.value;
+        const mockUserEmail = (await cookieStore).get('notify-mock-user')?.value;
         if (mockUserEmail) {
             user = { id: '00000000-0000-0000-0000-000000000000', email: mockUserEmail } as any;
         }

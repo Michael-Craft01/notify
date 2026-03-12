@@ -53,13 +53,13 @@ export async function verifyOTP(email: string, token: string) {
     const supabase = await createClient()
 
     // --- Developer Bypass (Phase 4.5 Hotfix) ---
-    const bypassCode = process.env.WARDEN_DEV_BYPASS
+    const bypassCode = process.env.NOTIFY_DEV_BYPASS
     if (bypassCode && token === bypassCode) {
-        console.warn('WARDEN DEBUG: Auth bypass triggered for:', email)
+        console.warn('NOTIFY DEBUG: Auth bypass triggered for:', email)
 
-        // We'll set a special "warden-mock-auth" cookie that the middleware will respect
+        // We'll set a special "notify-mock-auth" cookie that the middleware will respect
         const cookieStore = await cookies()
-        cookieStore.set('warden-mock-user', email, {
+        cookieStore.set('notify-mock-user', email, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
             maxAge: 60 * 60 * 24 // 24 hours
@@ -70,7 +70,7 @@ export async function verifyOTP(email: string, token: string) {
         await supabase.from('users').upsert({
             id: mockId,
             email: email,
-            full_name: 'Warden Developer'
+            full_name: 'Notify Developer'
         }, { onConflict: 'id' })
 
         revalidatePath('/', 'layout')

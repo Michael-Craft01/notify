@@ -36,7 +36,7 @@ export async function updateSession(request: NextRequest) {
     } = await supabase.auth.getUser()
 
     // --- Developer Bypass (Phase 4.5 Hotfix) ---
-    const mockUserEmail = request.cookies.get('warden-mock-user')?.value
+    const mockUserEmail = request.cookies.get('notify-mock-user')?.value
     const isLocal = request.nextUrl.hostname === 'localhost' || request.nextUrl.hostname === '127.0.0.1'
 
     // Create a mock user object with a VALID UUID to avoid PG errors

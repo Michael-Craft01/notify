@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { Sparkles, Loader2, Zap } from 'lucide-react'
-import { enhanceFormAction } from '@/app/actions/oracle'
+import { enhanceFormAction } from '@/app/actions/ai-assistant'
 
 interface AIEnhanceButtonProps {
     formData: Record<string, string>

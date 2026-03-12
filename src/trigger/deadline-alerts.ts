@@ -49,7 +49,7 @@ export const scheduleDeadlineAlerts = task({
         const wait48 = t48 - Date.now();
         if (wait48 > 0) {
             await wait.for({ seconds: wait48 / 1000 });
-            await sendPushToCohort("The Strategist", `48h remaining for ${title}. Log your progress!`);
+            await sendPushToCohort("Schedule Insight", `48h remaining for ${title}. Update your progress.`);
         }
 
         // 2. T-Minus 24h (The Reminder)
@@ -57,7 +57,7 @@ export const scheduleDeadlineAlerts = task({
         const wait24 = t24 - Date.now();
         if (wait24 > 0) {
             await wait.for({ seconds: wait24 / 1000 });
-            await sendPushToCohort("The Reminder", `24h left for ${title}. 74% of peers are in progress.`);
+            await sendPushToCohort("Deadline Reminder", `24h left for ${title}. Peers are active on this task.`);
         }
 
         // 3. T-Minus 6h (The Panic Button)
@@ -65,7 +65,7 @@ export const scheduleDeadlineAlerts = task({
         const wait6 = t6 - Date.now();
         if (wait6 > 0) {
             await wait.for({ seconds: wait6 / 1000 });
-            await sendPushToCohort("THE PANIC BUTTON", `6h REMAINING for ${title}. MOVE NOW.`);
+            await sendPushToCohort("Final Notice", `6h REMAINING for ${title}. Priority completion required.`);
         }
     },
 });

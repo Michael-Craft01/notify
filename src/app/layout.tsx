@@ -6,7 +6,7 @@ const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 const outfit = Outfit({ subsets: ["latin"], variable: "--font-outfit" });
 
 export const metadata: Metadata = {
-  title: "Notify | Intelligent Schedule Warden",
+  title: "Notify | Intelligent Schedule Assistant",
   description: "Professional schedule management and deadline tracking.",
   manifest: "/manifest.json",
 };

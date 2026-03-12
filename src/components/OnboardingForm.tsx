@@ -11,8 +11,8 @@ export default function OnboardingForm() {
         <form action="/auth/complete-profile" method="POST" className="w-full flex flex-col gap-6 relative z-10">
             <div className="flex items-center justify-between bg-white/[0.03] border border-white/5 rounded-xl px-4 py-3 mb-2">
                 <div className="space-y-0.5 text-left">
-                    <h4 className="text-[11px] font-bold text-white uppercase tracking-wider">Identity Prep</h4>
-                    <p className="text-[9px] text-neutral-500 font-medium">Refine details with AI</p>
+                    <h4 className="text-[11px] font-bold text-white uppercase tracking-wider">Profile Setup</h4>
+                    <p className="text-[9px] text-neutral-500 font-medium">Auto-fill via AI</p>
                 </div>
                 <AIEnhanceButton
                     label="Enhance"
@@ -43,7 +43,7 @@ export default function OnboardingForm() {
                     type="text"
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
-                    placeholder="e.g. Liam Warden"
+                    placeholder="e.g. Liam Carter"
                     required
                     className="w-full h-12 rounded-lg border border-white/10 bg-black/40 px-4 text-[13px] text-white placeholder-neutral-700 focus:border-[var(--color-primary)] focus:outline-none transition-all font-semibold"
                 />
@@ -80,7 +80,7 @@ export default function OnboardingForm() {
                 type="submit"
                 className="mt-2 w-full h-14 flex items-center justify-center rounded-lg bg-[var(--color-primary)] px-4 text-[14px] font-bold text-white transition-all hover:brightness-110 active:scale-[0.98] shadow-[0_4px_15px_rgba(249,115,22,0.2)]"
             >
-                Enter Network
+                Complete Setup
             </button>
         </form>
     )
