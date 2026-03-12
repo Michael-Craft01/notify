@@ -6,89 +6,116 @@ import { cookies } from 'next/headers'
 import { createClient } from '@/utils/supabase/server'
 import { scheduleDeadlineAlerts } from '@/trigger/deadline-alerts'
 
-// Validation Schema
+// Validation Schema — includes new task_type, resource_url, location
 const CreateAssignmentSchema = z.object({
     course_code: z.string().min(2, "Course code is too short").max(20),
     title: z.string().min(3, "Title must be at least 3 characters").max(100),
     description: z.string().max(500).optional(),
     due_date: z.string().datetime(),
+    task_type: z.enum(['assignment', 'quiz', 'online_test', 'physical_test']).default('assignment'),
+    resource_url: z.string().url().optional().or(z.literal('')),
+    location: z.string().max(200).optional(),
 })
 
-export async function createAssignment(formData: FormData) {
+async function getAuthUser() {
     const supabase = await createClient()
+    let { data: { user } } = await supabase.auth.getUser()
 
-    // 1. Verify User
-    let { data: { user }, error: authError } = await supabase.auth.getUser()
-
-    // --- Developer Bypass ---
     if (!user) {
-        const cookieStore = await cookies();
-        const mockUserEmail = (await cookieStore).get('notify-mock-user')?.value;
+        const cookieStore = await cookies()
+        const mockUserEmail = cookieStore.get('notify-mock-user')?.value
         if (mockUserEmail) {
-            user = { id: '00000000-0000-0000-0000-000000000000', email: mockUserEmail } as any;
+            user = { id: '00000000-0000-0000-0000-000000000000', email: mockUserEmail } as any
         }
     }
 
+    return { supabase, user }
+}
+
+export async function createAssignment(formData: FormData) {
+    const { supabase, user } = await getAuthUser()
+
     if (!user) {
-        return { error: 'Unauthorized: You must be logged in to log assignments.' }
+        return { error: 'Unauthorized: You must be logged in.' }
     }
 
-    // 2. Validate Data
     const dueDateRaw = formData.get('due_date') as string
     const rawData = {
         course_code: formData.get('course_code'),
         title: formData.get('title'),
-        description: formData.get('description'),
-        due_date: new Date(dueDateRaw).toISOString(), // Captures date + time exactly
+        description: formData.get('description') || undefined,
+        due_date: new Date(dueDateRaw).toISOString(),
+        task_type: formData.get('task_type') || 'assignment',
+        resource_url: formData.get('resource_url') || undefined,
+        location: formData.get('location') || undefined,
     }
 
-    const validatedFields = CreateAssignmentSchema.safeParse(rawData)
+    const validated = CreateAssignmentSchema.safeParse(rawData)
 
-    if (!validatedFields.success) {
-        console.error("Zod Validation Error:", JSON.stringify(validatedFields.error.format(), null, 2))
-        return { error: `Validation Failed: ${validatedFields.error.issues[0].message}` }
+    if (!validated.success) {
+        return { error: `Validation Failed: ${validated.error.issues[0].message}` }
     }
 
-    // 3. Insert into Supabase
+    const insertData: Record<string, any> = {
+        course_code: validated.data.course_code.toUpperCase(),
+        title: validated.data.title,
+        description: validated.data.description,
+        due_date: validated.data.due_date,
+        created_by: user.id,
+        difficulty_score: 5,
+        task_type: validated.data.task_type,
+    }
+
+    // Only include fields if they exist in DB — graceful fallback
+    if (validated.data.resource_url) insertData.resource_url = validated.data.resource_url
+    if (validated.data.location) insertData.location = validated.data.location
+
     const { data: assignments, error: insertError } = await supabase
         .from('assignments')
-        .insert({
-            course_code: validatedFields.data.course_code.toUpperCase(),
-            title: validatedFields.data.title,
-            description: validatedFields.data.description,
-            due_date: validatedFields.data.due_date,
-            created_by: user.id,
-            difficulty_score: 5,
-        })
+        .insert(insertData)
         .select()
 
     if (insertError || !assignments || assignments.length === 0) {
         console.error("Insert Error:", insertError)
-        return { error: 'Failed to create assignment in the database.' }
+        // If the columns don't exist yet, retry without them
+        if (insertError?.code === '42703') {
+            const { data: fallback, error: fallbackError } = await supabase
+                .from('assignments')
+                .insert({
+                    course_code: insertData.course_code,
+                    title: insertData.title,
+                    description: insertData.description,
+                    due_date: insertData.due_date,
+                    created_by: user.id,
+                    difficulty_score: 5,
+                })
+                .select()
+
+            if (fallbackError || !fallback?.length) {
+                return { error: 'Failed to create task.' }
+            }
+
+            // Skip trigger on fallback path
+            revalidatePath('/')
+            return { success: true }
+        }
+        return { error: 'Failed to create task in the database.' }
     }
 
     const newAssignment = assignments[0]
 
-    // 4. Auto-Verify for Creator (Phase 8)
-    // This triggers the DB function and sets status to 'verified' since threshold is now 1
-    const { error: verifyError } = await supabase
-        .from('verifications')
-        .insert({
-            assignment_id: newAssignment.id,
-            user_id: user.id
-        })
+    // Auto-verify creator
+    await supabase.from('verifications').insert({
+        assignment_id: newAssignment.id,
+        user_id: user.id
+    })
 
-    if (verifyError) {
-        console.error('Auto-verification failed:', verifyError)
-        // We don't return error here because the assignment was still created
-    }
-
-    // 5. Trigger Background Notification Matrix (Phase 4)
+    // Schedule background notifications
     try {
         await scheduleDeadlineAlerts.trigger({
             assignmentId: newAssignment.id,
-            dueDate: validatedFields.data.due_date,
-            title: validatedFields.data.title
+            dueDate: validated.data.due_date,
+            title: validated.data.title
         })
     } catch (triggerError) {
         console.error('Trigger.dev failed to schedule:', triggerError)
@@ -99,36 +126,16 @@ export async function createAssignment(formData: FormData) {
 }
 
 export async function verifyAssignment(assignmentId: string) {
-    const supabase = await createClient()
+    const { supabase, user } = await getAuthUser()
 
-    // 1. Verify User
-    let { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { error: 'Unauthorized' }
 
-    // --- Developer Bypass ---
-    if (!user) {
-        const cookieStore = await cookies();
-        const mockUserEmail = (await cookieStore).get('notify-mock-user')?.value;
-        if (mockUserEmail) {
-            user = { id: '00000000-0000-0000-0000-000000000000', email: mockUserEmail } as any;
-        }
-    }
-
-    if (!user) {
-        return { error: 'Unauthorized' }
-    }
-
-    // 2. Insert Verification
     const { error } = await supabase
         .from('verifications')
-        .insert({
-            assignment_id: assignmentId,
-            user_id: user.id,
-        })
+        .insert({ assignment_id: assignmentId, user_id: user.id })
 
     if (error) {
-        if (error.code === '23505') {
-            return { error: 'You have already verified this assignment.' }
-        }
+        if (error.code === '23505') return { error: 'Already verified.' }
         return { error: 'Failed to record verification.' }
     }
 
@@ -137,31 +144,16 @@ export async function verifyAssignment(assignmentId: string) {
 }
 
 export async function updateProgress(assignmentId: string, status: 'not_started' | 'in_progress' | 'finished') {
-    const supabase = await createClient()
+    const { supabase, user } = await getAuthUser()
 
-    // 1. Verify User
-    let { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { error: 'Unauthorized' }
 
-    // --- Developer Bypass ---
-    if (!user) {
-        const cookieStore = await cookies();
-        const mockUserEmail = (await cookieStore).get('notify-mock-user')?.value;
-        if (mockUserEmail) {
-            user = { id: '00000000-0000-0000-0000-000000000000', email: mockUserEmail } as any;
-        }
-    }
-
-    if (!user) {
-        return { error: 'Unauthorized' }
-    }
-
-    // 2. Upsert Progress
     const { error } = await supabase
         .from('user_progress')
         .upsert({
             user_id: user.id,
             assignment_id: assignmentId,
-            status: status,
+            status,
             updated_at: new Date().toISOString()
         }, {
             onConflict: 'user_id, assignment_id'

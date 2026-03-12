@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { BellRing, Loader2, ArrowLeft, Mail, Shield, Zap, Globe, Lock, Command } from 'lucide-react'
+import { BellRing, Loader2, ArrowLeft, Mail, Shield, Zap, Globe, Lock, Terminal } from 'lucide-react'
 import { sendOTP, verifyOTP, signInWithOAuth } from './actions'
 import { useRouter, useSearchParams } from 'next/navigation'
 
@@ -63,7 +63,7 @@ export default function LoginPage() {
                 <div className="w-full max-w-sm space-y-10 relative z-10 animate-fade-in">
                     <div className="flex flex-col items-center gap-4 text-center">
                         <div className="h-10 w-10 rounded-xl bg-[var(--color-primary)] flex items-center justify-center text-black shadow-[0_0_20px_rgba(249,115,22,0.3)]">
-                            <Command size={20} strokeWidth={2.5} />
+                            <Terminal size={20} strokeWidth={2.5} />
                         </div>
                         <div className="space-y-1">
                             <h1 className="text-xl font-bold tracking-tight text-white uppercase font-outfit">Notify</h1>

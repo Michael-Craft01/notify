@@ -1,69 +1,67 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Bell, BellOff, Loader2, ShieldCheck, ShieldAlert } from 'lucide-react'
+import { Bell, BellOff, Loader2, AlertCircle, CheckCircle2 } from 'lucide-react'
 import { saveSubscription } from '@/app/actions/notifications'
 
 export default function NotificationToggle() {
     const [isSubscribed, setIsSubscribed] = useState(false)
     const [isLoading, setIsLoading] = useState(true)
     const [permission, setPermission] = useState<NotificationPermission>('default')
+    const [showTooltip, setShowTooltip] = useState(false)
 
     useEffect(() => {
-        const checkSubscription = async () => {
+        const check = async () => {
             if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
                 setIsLoading(false)
                 return
             }
             setPermission(Notification.permission)
-            const registration = await navigator.serviceWorker.ready
-            const subscription = await registration.pushManager.getSubscription()
-            setIsSubscribed(!!subscription)
+            const reg = await navigator.serviceWorker.ready
+            const sub = await reg.pushManager.getSubscription()
+            setIsSubscribed(!!sub)
             setIsLoading(false)
         }
-        checkSubscription()
+        check()
     }, [])
 
     const subscribe = async () => {
         setIsLoading(true)
         try {
-            const registration = await navigator.serviceWorker.ready
+            const reg = await navigator.serviceWorker.ready
             const result = await Notification.requestPermission()
             setPermission(result)
+
             if (result !== 'granted') {
-                alert('Notifications were blocked. Please enable them in your browser settings.')
+                alert('Enable notifications in your browser settings to receive deadline alerts.')
                 setIsLoading(false)
                 return
             }
 
-            const urlBase64ToUint8Array = (base64String: string) => {
-                const padding = '='.repeat((4 - base64String.length % 4) % 4);
-                const base64 = (base64String + padding).replace(/\-/g, '+').replace(/_/g, '/');
-                const rawData = window.atob(base64);
-                const outputArray = new Uint8Array(rawData.length);
-                for (let i = 0; i < rawData.length; ++i) {
-                    outputArray[i] = rawData.charCodeAt(i);
-                }
-                return outputArray;
-            };
+            const urlBase64ToUint8Array = (base64: string) => {
+                const padding = '='.repeat((4 - base64.length % 4) % 4)
+                const b64 = (base64 + padding).replace(/-/g, '+').replace(/_/g, '/')
+                const raw = window.atob(b64)
+                return new Uint8Array([...raw].map(c => c.charCodeAt(0)))
+            }
 
-            const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
-            if (!vapidPublicKey) throw new Error('VAPID public key not found');
+            const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
+            if (!vapidKey) throw new Error('VAPID key missing')
 
-            const subscription = await registration.pushManager.subscribe({
+            const sub = await reg.pushManager.subscribe({
                 userVisibleOnly: true,
-                applicationServerKey: urlBase64ToUint8Array(vapidPublicKey)
+                applicationServerKey: urlBase64ToUint8Array(vapidKey),
             })
 
-            const saveResult = await saveSubscription(JSON.parse(JSON.stringify(subscription)))
-            if (saveResult.error) {
-                alert(saveResult.error)
+            const res = await saveSubscription(JSON.parse(JSON.stringify(sub)))
+            if (res.error) {
+                alert(res.error)
             } else {
                 setIsSubscribed(true)
             }
-        } catch (error) {
-            console.error('Push registration failed:', error)
-            alert('Could not enable notifications. Try again later.')
+        } catch (err) {
+            console.error('Push registration failed:', err)
+            alert('Could not enable notifications. Please try again.')
         } finally {
             setIsLoading(false)
         }
@@ -72,40 +70,103 @@ export default function NotificationToggle() {
     const unsubscribe = async () => {
         setIsLoading(true)
         try {
-            const registration = await navigator.serviceWorker.ready
-            const subscription = await registration.pushManager.getSubscription()
-            if (subscription) {
-                await subscription.unsubscribe()
-                setIsSubscribed(false)
-            }
-        } catch (error) {
-            console.error('Unsubscribe failed:', error)
+            const reg = await navigator.serviceWorker.ready
+            const sub = await reg.pushManager.getSubscription()
+            if (sub) await sub.unsubscribe()
+            setIsSubscribed(false)
+        } catch (err) {
+            console.error('Unsubscribe failed:', err)
         } finally {
             setIsLoading(false)
         }
     }
 
-    if (isLoading) return <div className="h-8 w-8 rounded-lg bg-neutral-900 border border-white/5 flex items-center justify-center"><Loader2 className="animate-spin text-neutral-500" size={12} /></div>
+    if (isLoading) {
+        return (
+            <div
+                className="h-9 w-9 rounded-xl flex items-center justify-center border"
+                style={{ background: 'var(--color-surface-2)', borderColor: 'var(--color-border)' }}
+            >
+                <Loader2 size={14} className="animate-spin" style={{ color: 'var(--color-text-dim)' }} />
+            </div>
+        )
+    }
 
     if (permission === 'denied') {
         return (
-            <div className="flex items-center gap-2 h-8 px-3 rounded-lg bg-red-500/10 border border-red-500/20 text-[10px] font-bold text-red-500 uppercase tracking-wider">
-                <ShieldAlert size={12} /> Blocked
+            <div
+                className="relative"
+                onMouseEnter={() => setShowTooltip(true)}
+                onMouseLeave={() => setShowTooltip(false)}
+            >
+                <div
+                    className="flex items-center gap-2 h-9 px-3 rounded-xl border text-[11px] font-bold uppercase tracking-wide cursor-not-allowed"
+                    style={{
+                        background: 'var(--color-danger-soft)',
+                        borderColor: 'hsla(4,86%,58%,0.25)',
+                        color: 'var(--color-danger)',
+                    }}
+                >
+                    <AlertCircle size={13} />
+                    <span className="hidden sm:inline">Blocked</span>
+                </div>
+                {showTooltip && (
+                    <div
+                        className="absolute right-0 top-full mt-2 w-52 p-3 rounded-xl text-[11px] leading-relaxed z-50"
+                        style={{
+                            background: 'var(--color-surface-3)',
+                            border: '1px solid var(--color-border-hover)',
+                            boxShadow: 'var(--shadow-md)',
+                            color: 'var(--color-text-muted)',
+                        }}
+                    >
+                        Notifications are blocked. Open browser settings to re-enable them.
+                    </div>
+                )}
             </div>
         )
     }
 
     return (
-        <button
-            onClick={isSubscribed ? unsubscribe : subscribe}
-            disabled={isLoading}
-            className={`flex items-center gap-2 h-8 px-3 rounded-lg text-[11px] font-bold transition-all border ${isSubscribed
-                ? 'bg-neutral-900/40 border-white/10 text-neutral-400 hover:text-red-500 hover:border-red-500/30'
-                : 'bg-white/5 border-white/10 text-white/60 hover:bg-white hover:text-black active:scale-95'
-                }`}
+        <div
+            className="relative"
+            onMouseEnter={() => setShowTooltip(true)}
+            onMouseLeave={() => setShowTooltip(false)}
         >
-            {isSubscribed ? <ShieldCheck size={12} /> : <Bell size={12} />}
-            <span>{isSubscribed ? 'Alerts Active' : 'Enable Alerts'}</span>
-        </button>
+            <button
+                onClick={isSubscribed ? unsubscribe : subscribe}
+                disabled={isLoading}
+                className="flex items-center gap-2 h-9 px-3 rounded-xl border text-[11px] font-bold transition-all uppercase tracking-wide"
+                style={{
+                    background: isSubscribed ? 'var(--color-success-soft)' : 'var(--color-surface-2)',
+                    borderColor: isSubscribed ? 'hsla(142,70%,45%,0.3)' : 'var(--color-border)',
+                    color: isSubscribed ? 'var(--color-success)' : 'var(--color-text-muted)',
+                }}
+            >
+                {isSubscribed
+                    ? <CheckCircle2 size={13} />
+                    : <Bell size={13} />
+                }
+                <span className="hidden sm:inline">
+                    {isSubscribed ? 'Alerts On' : 'Alerts Off'}
+                </span>
+            </button>
+
+            {showTooltip && (
+                <div
+                    className="absolute right-0 top-full mt-2 w-52 p-3 rounded-xl text-[11px] leading-relaxed z-50"
+                    style={{
+                        background: 'var(--color-surface-3)',
+                        border: '1px solid var(--color-border-hover)',
+                        boxShadow: 'var(--shadow-md)',
+                        color: 'var(--color-text-muted)',
+                    }}
+                >
+                    {isSubscribed
+                        ? 'Receiving deadline alerts: 48h, 24h, and 6h before due dates. Click to disable.'
+                        : 'Enable push notifications to receive deadline alerts even when the app is closed.'}
+                </div>
+            )}
+        </div>
     )
 }

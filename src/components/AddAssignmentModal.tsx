@@ -1,321 +1,470 @@
 'use client'
 
-import { useState } from 'react'
-import { Plus, X, Loader2, FileUp, Shield, Zap, ChevronRight, ChevronLeft, Keyboard, Sparkles } from 'lucide-react'
+import { useState, useTransition } from 'react'
+import {
+    Plus, X, Loader2, FileUp, Sparkles,
+    ChevronRight, ChevronLeft, BookOpen,
+    Link2, MapPin, Monitor, FileText, ClipboardList
+} from 'lucide-react'
 import { createAssignment } from '@/app/actions/assignments'
 import { extractAssignmentAction } from '@/app/actions/ai-assistant'
 import AIEnhanceButton from './AIEnhanceButton'
 
 type ModalStep = 'initial' | 'scan' | 'form'
+type TaskType = 'assignment' | 'quiz' | 'online_test' | 'physical_test'
+
+const TASK_TYPES: { value: TaskType; label: string; icon: React.ElementType; description: string; accent: string }[] = [
+    {
+        value: 'assignment',
+        label: 'Assignment',
+        icon: FileText,
+        description: 'Written or submission-based task',
+        accent: 'var(--color-primary)',
+    },
+    {
+        value: 'quiz',
+        label: 'Quiz',
+        icon: ClipboardList,
+        description: 'Online quiz — enter access link',
+        accent: 'var(--color-warning)',
+    },
+    {
+        value: 'online_test',
+        label: 'Online Test',
+        icon: Monitor,
+        description: 'Formal online test — enter access link',
+        accent: 'var(--color-info)',
+    },
+    {
+        value: 'physical_test',
+        label: 'Physical Test',
+        icon: MapPin,
+        description: 'On-campus exam — enter location',
+        accent: 'var(--color-success)',
+    },
+]
 
 export default function AddAssignmentModal({ userId }: { userId: string }) {
     const [isOpen, setIsOpen] = useState(false)
     const [step, setStep] = useState<ModalStep>('initial')
-    const [isPending, setIsPending] = useState(false)
     const [isExtracting, setIsExtracting] = useState(false)
+    const [isPending, startTransition] = useTransition()
+    const [error, setError] = useState<string | null>(null)
 
-    // Form States
+    // Form state
+    const [taskType, setTaskType] = useState<TaskType>('assignment')
     const [courseCode, setCourseCode] = useState('')
     const [title, setTitle] = useState('')
     const [description, setDescription] = useState('')
     const [dueDate, setDueDate] = useState('')
+    const [resourceUrl, setResourceUrl] = useState('')
+    const [location, setLocation] = useState('')
 
     const handleFileScan = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0]
         if (!file) return
-
         setIsExtracting(true)
+        setError(null)
         const formData = new FormData()
         formData.append('file', file)
-
         const result = await extractAssignmentAction(formData)
         setIsExtracting(false)
-
         if (result.success && result.data) {
-            const data = result.data
-            if (data.course_code) setCourseCode(data.course_code.toUpperCase())
-            if (data.title) setTitle(data.title)
-            if (data.description) setDescription(data.description)
-            if (data.due_date) {
-                const date = new Date(data.due_date)
-                setDueDate(date.toISOString().slice(0, 16))
-            }
-            setStep('form') // Move to review form
-        } else if (result.error) {
-            alert(result.error)
+            const d = result.data
+            if (d.course_code) setCourseCode(d.course_code.toUpperCase())
+            if (d.title) setTitle(d.title)
+            if (d.description) setDescription(d.description)
+            if (d.due_date) setDueDate(new Date(d.due_date).toISOString().slice(0, 16))
+            setStep('form')
+        } else {
+            setError(result.error || 'Could not extract data.')
         }
     }
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault()
-        setIsPending(true)
-        const formData = new FormData(e.currentTarget)
-        const result = await createAssignment(formData)
-        setIsPending(false)
-        if (result?.error) {
-            alert(result.error)
-        } else {
-            handleClose()
-        }
+        setError(null)
+        const fd = new FormData(e.currentTarget)
+        startTransition(async () => {
+            const result = await createAssignment(fd)
+            if (result?.error) {
+                setError(result.error)
+            } else {
+                handleClose()
+            }
+        })
     }
 
     const handleClose = () => {
+        setIsOpen(false)
+        setStep('initial')
+        setError(null)
+        setTaskType('assignment')
         setCourseCode('')
         setTitle('')
         setDescription('')
         setDueDate('')
-        setStep('initial')
-        setIsOpen(false)
+        setResourceUrl('')
+        setLocation('')
     }
+
+    const selectedType = TASK_TYPES.find(t => t.value === taskType)!
 
     if (!isOpen) {
         return (
             <button
                 onClick={() => setIsOpen(true)}
-                className="flex items-center gap-2 rounded-lg bg-white px-4 py-2.5 text-[13px] font-bold text-black transition-all hover:bg-neutral-200 active:scale-95 shadow-lg"
+                className="btn-primary flex items-center gap-2 h-9 px-4 rounded-xl text-[13px] font-bold"
             >
-                <Plus size={16} strokeWidth={3} />
-                <span>New Task</span>
+                <Plus size={15} strokeWidth={3} />
+                New Task
             </button>
         )
     }
 
     return (
-        <div className="fixed inset-0 z-[500] flex items-start justify-center p-4 pt-[10vh]">
-            <div className="absolute inset-0 bg-black/80 backdrop-blur-md animate-fade-in" onClick={handleClose} />
-
-            <div className="relative w-full max-w-lg bg-[#0b0b0b] border border-white/10 rounded-2xl shadow-2xl overflow-hidden transition-all duration-300 animate-slide-down">
+        <div
+            className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center p-4 modal-overlay animate-fade-in"
+            onClick={(e) => { if (e.target === e.currentTarget) handleClose() }}
+        >
+            <div
+                className="w-full max-w-lg rounded-2xl animate-slide-up overflow-hidden"
+                style={{
+                    background: 'var(--color-surface)',
+                    border: '1px solid var(--color-border-hover)',
+                    boxShadow: 'var(--shadow-lg)',
+                }}
+            >
                 {/* Header */}
-                <div className="flex items-center justify-between p-6 border-b border-white/5 bg-neutral-900/30">
+                <div
+                    className="flex items-center justify-between px-6 py-4 border-b"
+                    style={{ borderColor: 'var(--color-border)' }}
+                >
                     <div className="flex items-center gap-3">
                         {step !== 'initial' && (
                             <button
-                                onClick={() => setStep(step === 'form' && courseCode === '' ? 'initial' : step === 'form' ? 'scan' : 'initial')}
-                                className="p-1 text-neutral-500 hover:text-white transition-colors"
+                                onClick={() => setStep(step === 'form' ? 'initial' : 'initial')}
+                                className="btn-ghost h-8 w-8 rounded-lg flex items-center justify-center mr-1"
                             >
-                                <ChevronLeft size={20} />
+                                <ChevronLeft size={16} />
                             </button>
                         )}
-                        <h2 className="text-[11px] font-black text-white uppercase tracking-[0.2em] font-outfit">
-                            {step === 'initial' && 'Task Configuration'}
-                            {step === 'scan' && 'Document Import'}
-                            {step === 'form' && 'Finalize Schedule'}
-                        </h2>
+                        <div>
+                            <h2
+                                className="text-[15px] font-bold"
+                                style={{ fontFamily: 'var(--font-outfit), sans-serif' }}
+                            >
+                                {step === 'initial' ? 'New Task' : step === 'scan' ? 'AI Document Import' : 'Task Details'}
+                            </h2>
+                            {step === 'form' && (
+                                <p className="text-[12px]" style={{ color: 'var(--color-text-dim)' }}>
+                                    {selectedType.label} · Fill in the details below
+                                </p>
+                            )}
+                        </div>
                     </div>
-                    <button onClick={handleClose} className="p-1 text-neutral-500 hover:text-white transition-colors">
-                        <X size={20} />
-                    </button>
+                    <div className="flex items-center gap-2">
+                        {/* Step dots */}
+                        <div className="hidden sm:flex items-center gap-1.5 mr-3">
+                            {(['initial', 'form'] as ModalStep[]).map((s, i) => (
+                                <div
+                                    key={s}
+                                    className="h-1.5 rounded-full transition-all"
+                                    style={{
+                                        width: step === s ? '20px' : '6px',
+                                        background: step === s ? 'var(--color-primary)' : 'var(--color-border-hover)',
+                                    }}
+                                />
+                            ))}
+                        </div>
+                        <button
+                            onClick={handleClose}
+                            className="btn-ghost h-8 w-8 rounded-lg flex items-center justify-center"
+                        >
+                            <X size={16} />
+                        </button>
+                    </div>
                 </div>
 
-                {/* Content Carousel */}
-                <div className="p-10">
+                {/* Body */}
+                <div className="p-6">
+                    {/* ── Step 1: Choose how to add ── */}
                     {step === 'initial' && (
-                        <div className="space-y-8 text-center py-4">
-                            <div className="space-y-2">
-                                <h3 className="text-xl font-bold text-white font-outfit">Add New Task</h3>
-                                <p className="text-[13px] text-neutral-500 font-medium">Select your preferred method for record entry.</p>
-                            </div>
+                        <div className="space-y-3 animate-fade-up">
+                            <p className="text-[13px] mb-5" style={{ color: 'var(--color-text-muted)' }}>
+                                How would you like to add this task?
+                            </p>
 
-                            <div className="grid grid-cols-1 gap-4">
-                                <button
-                                    onClick={() => setStep('scan')}
-                                    className="group flex items-center gap-5 p-6 rounded-2xl border border-white/5 bg-white/[0.02] hover:bg-white/[0.05] hover:border-[var(--color-primary)]/30 transition-all text-left shadow-sm"
+                            {/* AI Scan option */}
+                            <label
+                                className="card rounded-xl p-4 flex items-center gap-4 cursor-pointer transition-all hover:border-[var(--color-primary-border)]"
+                                style={{ borderColor: 'var(--color-border)' }}
+                            >
+                                <div
+                                    className="h-10 w-10 rounded-xl flex items-center justify-center shrink-0"
+                                    style={{ background: 'var(--color-primary-soft)' }}
                                 >
-                                    <div className="h-12 w-12 rounded-xl bg-[var(--color-primary-soft)] flex items-center justify-center text-[var(--color-primary)]">
-                                        <Sparkles size={24} />
-                                    </div>
-                                    <div className="flex-1">
-                                        <h4 className="text-sm font-bold text-white mb-0.5">AI Schedule Import</h4>
-                                        <p className="text-[12px] text-neutral-500 font-medium">Extract details from images or PDF files</p>
-                                    </div>
-                                    <ChevronRight size={18} className="text-neutral-700 group-hover:text-white transition-colors" />
-                                </button>
-
-                                <button
-                                    onClick={() => setStep('form')}
-                                    className="group flex items-center gap-5 p-6 rounded-2xl border border-white/5 bg-white/[0.02] hover:bg-white/[0.05] hover:border-white/20 transition-all text-left shadow-sm"
-                                >
-                                    <div className="h-12 w-12 rounded-xl bg-white/5 flex items-center justify-center text-neutral-400">
-                                        <Keyboard size={24} />
-                                    </div>
-                                    <div className="flex-1">
-                                        <h4 className="text-sm font-bold text-white mb-0.5">Manual Setup</h4>
-                                        <p className="text-[12px] text-neutral-500 font-medium">Enter task details manually</p>
-                                    </div>
-                                    <ChevronRight size={18} className="text-neutral-700 group-hover:text-white transition-colors" />
-                                </button>
-                            </div>
-                        </div>
-                    )}
-
-                    {step === 'scan' && (
-                        <div className="space-y-8 py-4">
-                            <div className="text-center space-y-3">
-                                <div className="mx-auto h-12 w-12 rounded-2xl bg-[var(--color-primary-soft)] flex items-center justify-center text-[var(--color-primary)]">
-                                    <FileUp size={28} />
+                                    {isExtracting ? (
+                                        <Loader2 size={18} className="animate-spin" style={{ color: 'var(--color-primary)' }} />
+                                    ) : (
+                                        <Sparkles size={18} style={{ color: 'var(--color-primary)' }} />
+                                    )}
                                 </div>
-                                <h3 className="text-xl font-bold text-white font-outfit">Document Parser</h3>
-                                <p className="text-[13px] text-neutral-500 font-medium tracking-wide">Upload your schedule for automated processing.</p>
-                            </div>
-
-                            <div className="relative group">
+                                <div className="flex-1">
+                                    <p className="text-[14px] font-bold mb-0.5">AI Schedule Import</p>
+                                    <p className="text-[12px]" style={{ color: 'var(--color-text-muted)' }}>
+                                        Upload a PDF, image, or document — AI extracts the details
+                                    </p>
+                                </div>
+                                <ChevronRight size={16} style={{ color: 'var(--color-text-dim)' }} />
                                 <input
                                     type="file"
                                     accept="image/*,application/pdf"
                                     onChange={handleFileScan}
-                                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                                    className="sr-only"
                                     disabled={isExtracting}
                                 />
-                                <div className={`h-52 rounded-2xl border-2 border-dashed transition-all flex flex-col items-center justify-center text-center p-8 gap-5 ${isExtracting ? 'border-[var(--color-primary)] bg-[var(--color-primary-soft)] animate-pulse' :
-                                    'border-white/10 bg-white/[0.02] group-hover:border-[var(--color-primary)]/30 group-hover:bg-white/[0.04]'
-                                    }`}>
-                                    {isExtracting ? (
-                                        <>
-                                            <Loader2 className="animate-spin text-[var(--color-primary)]" size={36} />
-                                            <span className="text-[11px] font-black text-[var(--color-primary)] uppercase tracking-[0.2em]">Processing...</span>
-                                        </>
-                                    ) : (
-                                        <>
-                                            <div className="h-14 w-14 rounded-2xl bg-white/5 flex items-center justify-center text-neutral-500 group-hover:text-white transition-all shadow-inner">
-                                                <Plus size={28} />
-                                            </div>
-                                            <div className="space-y-2">
-                                                <span className="text-[14px] font-bold text-neutral-200">Click to upload file</span>
-                                                <p className="text-[11px] text-neutral-600 font-semibold uppercase tracking-widest">Supports PDF and Images</p>
-                                            </div>
-                                        </>
-                                    )}
+                            </label>
+
+                            {/* Manual option */}
+                            <button
+                                onClick={() => setStep('form')}
+                                className="card rounded-xl p-4 flex items-center gap-4 w-full text-left"
+                            >
+                                <div
+                                    className="h-10 w-10 rounded-xl flex items-center justify-center shrink-0"
+                                    style={{ background: 'var(--color-surface-2)' }}
+                                >
+                                    <BookOpen size={18} style={{ color: 'var(--color-text-muted)' }} />
                                 </div>
-                            </div>
+                                <div className="flex-1">
+                                    <p className="text-[14px] font-bold mb-0.5">Manual Setup</p>
+                                    <p className="text-[12px]" style={{ color: 'var(--color-text-muted)' }}>
+                                        Fill in the course, title, deadline and type yourself
+                                    </p>
+                                </div>
+                                <ChevronRight size={16} style={{ color: 'var(--color-text-dim)' }} />
+                            </button>
+
+                            {error && (
+                                <p className="text-[12px] text-center pt-1" style={{ color: 'var(--color-danger)' }}>{error}</p>
+                            )}
                         </div>
                     )}
 
+                    {/* ── Step 2: The form ── */}
                     {step === 'form' && (
-                        <form onSubmit={handleSubmit} className="space-y-8">
-                            <div className="flex items-center justify-between bg-white/[0.04] border border-white/10 rounded-2xl px-5 py-4 mb-8 ring-1 ring-white/5 shadow-premium">
-                                <div className="space-y-1">
-                                    <h4 className="text-[11px] font-black text-white uppercase tracking-[0.2em] flex items-center gap-2">
-                                        <Sparkles size={14} className="text-[var(--color-primary)]" />
-                                        AI Assistant
-                                    </h4>
-                                    <p className="text-[11px] text-neutral-500 font-bold uppercase tracking-widest">Enhanced Data entry</p>
+                        <form onSubmit={handleSubmit} className="space-y-5 animate-fade-up">
+                            <input type="hidden" name="task_type" value={taskType} />
+
+                            {/* Task Type Selector */}
+                            <div>
+                                <label className="block text-[11px] font-bold uppercase tracking-[0.12em] mb-3" style={{ color: 'var(--color-text-muted)' }}>
+                                    Task Type
+                                </label>
+                                <div className="grid grid-cols-2 gap-2">
+                                    {TASK_TYPES.map((type) => (
+                                        <button
+                                            key={type.value}
+                                            type="button"
+                                            onClick={() => setTaskType(type.value)}
+                                            className="rounded-xl p-3 text-left border transition-all"
+                                            style={{
+                                                background: taskType === type.value ? `${type.accent}15` : 'var(--color-surface-2)',
+                                                borderColor: taskType === type.value ? type.accent + '55' : 'var(--color-border)',
+                                                boxShadow: taskType === type.value ? `0 0 12px -4px ${type.accent}` : 'none',
+                                            }}
+                                        >
+                                            <div className="flex items-center gap-2 mb-1">
+                                                <type.icon
+                                                    size={14}
+                                                    style={{ color: taskType === type.value ? type.accent : 'var(--color-text-muted)' }}
+                                                />
+                                                <span
+                                                    className="text-[12px] font-bold"
+                                                    style={{ color: taskType === type.value ? type.accent : 'var(--color-text-main)' }}
+                                                >
+                                                    {type.label}
+                                                </span>
+                                            </div>
+                                            <p className="text-[10px] leading-tight" style={{ color: 'var(--color-text-dim)' }}>
+                                                {type.description}
+                                            </p>
+                                        </button>
+                                    ))}
                                 </div>
-                                <AIEnhanceButton
-                                    label="Enhance with AI"
-                                    formData={{ course_code: courseCode, title, description }}
-                                    onEnhance={(data) => {
-                                        if (data.title) setTitle(data.title)
-                                        if (data.description) setDescription(data.description)
-                                    }}
+                            </div>
+
+                            {/* Course Code + AI Enhance */}
+                            <div>
+                                <div className="flex items-center justify-between mb-2">
+                                    <label className="text-[11px] font-bold uppercase tracking-[0.12em]" style={{ color: 'var(--color-text-muted)' }}>
+                                        Course Code
+                                    </label>
+                                    <AIEnhanceButton
+                                        variant="mini"
+                                        formData={{ course_code: courseCode, title }}
+                                        onEnhance={(d) => {
+                                            if (d.course_code) setCourseCode(d.course_code.toUpperCase())
+                                            if (d.title) setTitle(d.title)
+                                        }}
+                                    />
+                                </div>
+                                <input
+                                    name="course_code"
+                                    type="text"
+                                    value={courseCode}
+                                    onChange={(e) => setCourseCode(e.target.value.toUpperCase())}
+                                    placeholder="e.g. CSC 301"
+                                    required
+                                    className="input-field w-full h-11 px-4 text-[13px] font-semibold uppercase tracking-wide"
                                 />
                             </div>
 
-                            <div className="grid grid-cols-2 gap-5">
-                                <div className="space-y-2.5 text-left">
-                                    <div className="flex items-center justify-between px-1">
-                                        <label className="text-[10px] font-black text-neutral-500 uppercase tracking-[0.2em]">Course Code</label>
-                                        <AIEnhanceButton
-                                            variant="mini"
-                                            formData={{ course_code: courseCode }}
-                                            onEnhance={(data) => {
-                                                if (data.course_code) setCourseCode(data.course_code.toUpperCase())
-                                                if (data.title) setTitle(data.title)
-                                                if (data.description) setDescription(data.description)
-                                            }}
-                                        />
-                                    </div>
-                                    <input
-                                        name="course_code"
-                                        value={courseCode}
-                                        onChange={(e) => setCourseCode(e.target.value.toUpperCase())}
-                                        placeholder="CS-101"
-                                        required
-                                        className="w-full rounded-xl border border-white/10 bg-black/60 px-5 py-3 text-[14px] text-white focus:border-[var(--color-primary)] focus:outline-none transition-all font-bold uppercase tracking-tight shadow-inner"
-                                    />
-                                </div>
-                                <div className="space-y-2.5 text-left">
-                                    <div className="flex items-center justify-between px-1">
-                                        <label className="text-[10px] font-black text-neutral-500 uppercase tracking-[0.2em]">Due Date</label>
-                                        <AIEnhanceButton
-                                            variant="mini"
-                                            label="AI Detect"
-                                            formData={{ due_date: dueDate, title, course_code: courseCode }}
-                                            onEnhance={(data) => {
-                                                if (data.due_date) setDueDate(data.due_date)
-                                            }}
-                                        />
-                                    </div>
-                                    <input
-                                        name="due_date"
-                                        type="datetime-local"
-                                        value={dueDate}
-                                        onChange={(e) => setDueDate(e.target.value)}
-                                        required
-                                        className="w-full rounded-xl border border-white/10 bg-black/60 px-5 py-3 text-[14px] text-white focus:border-[var(--color-primary)] focus:outline-none transition-all [color-scheme:dark] font-bold shadow-inner"
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="space-y-2.5 text-left">
-                                <div className="flex items-center justify-between px-1">
-                                    <label className="text-[10px] font-black text-neutral-500 uppercase tracking-[0.2em]">Task Title</label>
+                            {/* Title */}
+                            <div>
+                                <div className="flex items-center justify-between mb-2">
+                                    <label className="text-[11px] font-bold uppercase tracking-[0.12em]" style={{ color: 'var(--color-text-muted)' }}>
+                                        Title
+                                    </label>
                                     <AIEnhanceButton
                                         variant="mini"
-                                        formData={{ title, course_code: courseCode }}
-                                        onEnhance={(data) => {
-                                            if (data.title) setTitle(data.title)
-                                            if (data.description) setDescription(data.description)
+                                        formData={{ course_code: courseCode, title, description }}
+                                        onEnhance={(d) => {
+                                            if (d.title) setTitle(d.title)
+                                            if (d.description) setDescription(d.description)
                                         }}
                                     />
                                 </div>
                                 <input
                                     name="title"
+                                    type="text"
                                     value={title}
                                     onChange={(e) => setTitle(e.target.value)}
-                                    placeholder="Task Title"
+                                    placeholder={
+                                        taskType === 'quiz' ? 'e.g. Chapter 5 Quiz'
+                                        : taskType === 'online_test' ? 'e.g. Midterm Exam'
+                                        : taskType === 'physical_test' ? 'e.g. Final Examination'
+                                        : 'e.g. Research Paper Draft'
+                                    }
                                     required
-                                    className="w-full rounded-xl border border-white/10 bg-black/60 px-5 py-3 text-[14px] text-white focus:border-[var(--color-primary)] focus:outline-none transition-all font-bold tracking-tight shadow-inner"
+                                    className="input-field w-full h-11 px-4 text-[13px]"
                                 />
                             </div>
 
-                            <div className="space-y-2.5 text-left">
-                                <div className="flex items-center justify-between px-1">
-                                    <label className="text-[10px] font-black text-neutral-500 uppercase tracking-[0.2em]">Additional Context</label>
+                            {/* Due Date */}
+                            <div>
+                                <label className="block text-[11px] font-bold uppercase tracking-[0.12em] mb-2" style={{ color: 'var(--color-text-muted)' }}>
+                                    Due Date & Time
+                                </label>
+                                <input
+                                    name="due_date"
+                                    type="datetime-local"
+                                    value={dueDate}
+                                    onChange={(e) => setDueDate(e.target.value)}
+                                    required
+                                    className="input-field w-full h-11 px-4 text-[13px]"
+                                    style={{ colorScheme: 'dark' }}
+                                />
+                            </div>
+
+                            {/* Conditional: Resource URL (quiz / online_test) */}
+                            {(taskType === 'quiz' || taskType === 'online_test') && (
+                                <div className="animate-fade-in">
+                                    <label className="block text-[11px] font-bold uppercase tracking-[0.12em] mb-2" style={{ color: 'var(--color-text-muted)' }}>
+                                        <span className="flex items-center gap-1.5">
+                                            <Link2 size={11} />
+                                            Access Link
+                                        </span>
+                                    </label>
+                                    <input
+                                        name="resource_url"
+                                        type="url"
+                                        value={resourceUrl}
+                                        onChange={(e) => setResourceUrl(e.target.value)}
+                                        placeholder="https://lms.university.ac.zw/quiz/..."
+                                        className="input-field w-full h-11 px-4 text-[13px]"
+                                    />
+                                </div>
+                            )}
+
+                            {/* Conditional: Location (physical_test) */}
+                            {taskType === 'physical_test' && (
+                                <div className="animate-fade-in">
+                                    <label className="block text-[11px] font-bold uppercase tracking-[0.12em] mb-2" style={{ color: 'var(--color-text-muted)' }}>
+                                        <span className="flex items-center gap-1.5">
+                                            <MapPin size={11} />
+                                            Campus Location
+                                        </span>
+                                    </label>
+                                    <input
+                                        name="location"
+                                        type="text"
+                                        value={location}
+                                        onChange={(e) => setLocation(e.target.value)}
+                                        placeholder="e.g. Block C, Hall 2, Row D"
+                                        className="input-field w-full h-11 px-4 text-[13px]"
+                                    />
+                                </div>
+                            )}
+
+                            {/* Description */}
+                            <div>
+                                <div className="flex items-center justify-between mb-2">
+                                    <label className="text-[11px] font-bold uppercase tracking-[0.12em]" style={{ color: 'var(--color-text-muted)' }}>
+                                        Notes <span style={{ color: 'var(--color-text-dim)' }}>(optional)</span>
+                                    </label>
                                     <AIEnhanceButton
                                         variant="mini"
-                                        formData={{ description, title, course_code: courseCode }}
-                                        onEnhance={(data) => {
-                                            if (data.description) setDescription(data.description)
+                                        formData={{ course_code: courseCode, title, description }}
+                                        onEnhance={(d) => {
+                                            if (d.description) setDescription(d.description)
                                         }}
                                     />
                                 </div>
                                 <textarea
                                     name="description"
-                                    rows={4}
                                     value={description}
                                     onChange={(e) => setDescription(e.target.value)}
-                                    placeholder="Note specific requirements or details..."
-                                    className="w-full rounded-xl border border-white/10 bg-black/60 px-5 py-3 text-[14px] text-neutral-400 focus:border-[var(--color-primary)] focus:outline-none transition-all resize-none font-medium shadow-inner"
+                                    placeholder="Any notes or requirements..."
+                                    rows={3}
+                                    className="input-field w-full px-4 py-3 text-[13px] resize-none"
+                                    style={{ borderRadius: '10px' }}
                                 />
                             </div>
 
-                            <button
-                                type="submit"
-                                disabled={isPending}
-                                className="w-full h-14 flex items-center justify-center gap-3 rounded-xl bg-[var(--color-primary)] text-white text-sm font-black uppercase tracking-[0.2em] transition-all hover:brightness-110 active:scale-[0.98] shadow-glow"
-                            >
-                                {isPending ? <Loader2 className="animate-spin" size={20} /> : <Zap size={18} fill="currentColor" />}
-                                Save Task
-                            </button>
+                            {error && (
+                                <div
+                                    className="p-3 rounded-xl text-[12px] font-semibold"
+                                    style={{ background: 'var(--color-danger-soft)', color: 'var(--color-danger)' }}
+                                >
+                                    {error}
+                                </div>
+                            )}
+
+                            {/* Actions */}
+                            <div className="flex gap-3 pt-1">
+                                <button
+                                    type="button"
+                                    onClick={handleClose}
+                                    className="btn-secondary flex-1 h-11 rounded-xl text-[13px] font-bold"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={isPending}
+                                    className="btn-primary flex-[2] h-11 rounded-xl text-[13px] font-bold flex items-center justify-center gap-2"
+                                >
+                                    {isPending ? (
+                                        <><Loader2 size={15} className="animate-spin" /> Saving...</>
+                                    ) : (
+                                        <>Save Task</>
+                                    )}
+                                </button>
+                            </div>
                         </form>
                     )}
-                </div>
-
-                {/* Footer Progress */}
-                <div className="px-8 pb-6 flex items-center justify-center gap-2">
-                    <div className={`h-1 rounded-full transition-all duration-300 ${step === 'initial' ? 'w-8 bg-[var(--color-primary)]' : 'w-2 bg-white/10'}`} />
-                    <div className={`h-1 rounded-full transition-all duration-300 ${step === 'scan' ? 'w-8 bg-[var(--color-primary)]' : 'w-2 bg-white/10'}`} />
-                    <div className={`h-1 rounded-full transition-all duration-300 ${step === 'form' ? 'w-8 bg-[var(--color-primary)]' : 'w-2 bg-white/10'}`} />
                 </div>
             </div>
         </div>

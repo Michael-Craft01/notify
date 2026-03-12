@@ -174,7 +174,7 @@ GRANT SELECT ON public.assignment_pulse_stats TO authenticated;
 -- Add hint for PostgREST to recognize the relationship
 COMMENT ON VIEW public.assignment_pulse_stats IS E'@foreignKey (assignment_id) references assignments (id)';
 -- 6. User Subscriptions (Web Push)
-CREATE TABLE public.user_subscriptions (
+CREATE TABLE IF NOT EXISTS public.user_subscriptions (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
   user_id UUID REFERENCES public.users(id) ON DELETE CASCADE,
   subscription JSONB NOT NULL,
@@ -185,17 +185,21 @@ CREATE TABLE public.user_subscriptions (
 
 ALTER TABLE public.user_subscriptions ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Users can create their own subscriptions" 
-ON public.user_subscriptions FOR INSERT 
-TO authenticated 
-WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users can create their own subscriptions"
+ON public.user_subscriptions FOR INSERT TO authenticated WITH CHECK (auth.uid() = user_id);
 
-CREATE POLICY "Users can read their own subscriptions" 
-ON public.user_subscriptions FOR SELECT 
-TO authenticated 
-USING (auth.uid() = user_id);
+CREATE POLICY "Users can read their own subscriptions"
+ON public.user_subscriptions FOR SELECT TO authenticated USING (auth.uid() = user_id);
 
-CREATE POLICY "Users can delete their own subscriptions" 
-ON public.user_subscriptions FOR DELETE 
-TO authenticated 
-USING (auth.uid() = user_id);
+CREATE POLICY "Users can delete their own subscriptions"
+ON public.user_subscriptions FOR DELETE TO authenticated USING (auth.uid() = user_id);
+
+-- 7. Task Type Migration (run in Supabase SQL Editor if not already applied)
+-- Adds task_type, resource_url, and location columns to assignments
+CREATE TYPE IF NOT EXISTS task_type_enum AS ENUM ('assignment', 'quiz', 'online_test', 'physical_test');
+
+ALTER TABLE public.assignments
+  ADD COLUMN IF NOT EXISTS task_type task_type_enum DEFAULT 'assignment',
+  ADD COLUMN IF NOT EXISTS resource_url TEXT,
+  ADD COLUMN IF NOT EXISTS location TEXT;
+
