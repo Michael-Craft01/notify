@@ -2,20 +2,14 @@
 
 import { useState, useTransition } from 'react'
 import {
-    Clock, CheckCircle2, Play, Zap, ChevronDown, ChevronUp,
-    AlertTriangle, Loader2, Users, Link2, MapPin,
-    FileText, ClipboardList, Monitor, ExternalLink
+    Clock, CheckCircle2, ChevronDown, ChevronUp,
+    Loader2, Link2, MapPin, FileText, ClipboardList,
+    Monitor, ExternalLink, Play
 } from 'lucide-react'
 import { updateProgress } from '@/app/actions/assignments'
 
 type ProgressStatus = 'not_started' | 'in_progress' | 'finished'
 type TaskType = 'assignment' | 'quiz' | 'online_test' | 'physical_test'
-
-type PulseData = {
-    finished_percentage: number
-    involvement_percentage: number
-    total_cohort?: number
-}
 
 type AssignmentProps = {
     assignment: {
@@ -24,56 +18,34 @@ type AssignmentProps = {
         title: string
         description: string | null
         due_date: string
-        status: 'pending' | 'verified'
         task_type?: TaskType
         resource_url?: string | null
         location?: string | null
         users: { full_name: string }
     }
-    pulse: PulseData
+    pulse: { finished_percentage: number; involvement_percentage: number }
     userStatus: ProgressStatus
     currentUserId: string
 }
 
-const STATUS_CONFIG = {
-    not_started: { label: 'Not Started', color: 'var(--color-text-dim)', bg: 'var(--color-surface-2)', border: 'var(--color-border)' },
-    in_progress:  { label: 'In Progress', color: 'var(--color-warning)', bg: 'var(--color-warning-soft)', border: 'hsla(38,95%,58%,0.25)' },
-    finished:     { label: 'Completed',   color: 'var(--color-success)', bg: 'var(--color-success-soft)', border: 'hsla(142,70%,45%,0.25)' },
+const TYPE_ICONS: Record<TaskType, React.ElementType> = {
+    assignment:    FileText,
+    quiz:          ClipboardList,
+    online_test:   Monitor,
+    physical_test: MapPin,
 }
 
-const TASK_TYPE_CONFIG: Record<TaskType, { label: string; icon: React.ElementType; color: string; bg: string }> = {
-    assignment:    { label: 'Assignment',   icon: FileText,      color: 'var(--color-primary)',  bg: 'var(--color-primary-soft)' },
-    quiz:          { label: 'Quiz',         icon: ClipboardList, color: 'var(--color-warning)',  bg: 'var(--color-warning-soft)' },
-    online_test:   { label: 'Online Test',  icon: Monitor,       color: 'var(--color-info)',     bg: 'var(--color-info-soft)' },
-    physical_test: { label: 'Physical Test',icon: MapPin,        color: 'var(--color-success)',  bg: 'var(--color-success-soft)' },
-}
-
-export default function AssignmentCard({ assignment, pulse, userStatus: initialStatus, currentUserId }: AssignmentProps) {
-    const [userStatus, setUserStatus] = useState<ProgressStatus>(initialStatus)
+export default function AssignmentCard({ assignment, pulse, userStatus: init }: AssignmentProps) {
+    const [status, setStatus] = useState<ProgressStatus>(init)
     const [expanded, setExpanded] = useState(false)
     const [isPending, startTransition] = useTransition()
 
-    const dueDate = new Date(assignment.due_date)
-    const hoursLeft = (dueDate.getTime() - Date.now()) / 3600000
+    const due      = new Date(assignment.due_date)
+    const hoursLeft = (due.getTime() - Date.now()) / 3600000
     const isOverdue = hoursLeft <= 0
-    const isUrgent = hoursLeft > 0 && hoursLeft < 48
-    const isFinished = userStatus === 'finished'
+    const isDone    = status === 'finished'
 
-    const taskType = assignment.task_type || 'assignment'
-    const typeConf = TASK_TYPE_CONFIG[taskType]
-    const statusConf = STATUS_CONFIG[userStatus]
-
-    const handleStatusUpdate = (newStatus: ProgressStatus) => {
-        startTransition(async () => {
-            const prev = userStatus
-            setUserStatus(newStatus)
-            const result = await updateProgress(assignment.id, newStatus as 'in_progress' | 'finished')
-            if (result?.error) {
-                setUserStatus(prev)
-                alert(result.error)
-            }
-        })
-    }
+    const TypeIcon = TYPE_ICONS[assignment.task_type || 'assignment']
 
     const timeLabel = (() => {
         if (isOverdue) return `${Math.abs(Math.ceil(hoursLeft / 24))}d overdue`
@@ -82,288 +54,200 @@ export default function AssignmentCard({ assignment, pulse, userStatus: initialS
         return `${Math.ceil(hoursLeft / 24)}d left`
     })()
 
-    const hasExpandable = assignment.description || assignment.resource_url || assignment.location
+    const handleStatus = (next: ProgressStatus) => {
+        startTransition(async () => {
+            const prev = status
+            setStatus(next)
+            const res = await updateProgress(assignment.id, next as any)
+            if (res?.error) setStatus(prev)
+        })
+    }
 
-    // Border style based on urgency
-    const cardBorderColor = isFinished
-        ? 'hsla(142,70%,45%,0.15)'
-        : isOverdue
-        ? 'hsla(4,86%,58%,0.3)'
-        : isUrgent
-        ? 'hsla(38,95%,58%,0.3)'
-        : 'var(--color-border)'
+    const pctDone = Math.round(pulse.finished_percentage)
 
     return (
         <div
-            className="rounded-2xl overflow-hidden transition-all"
+            className="card"
             style={{
-                background: 'var(--color-surface)',
-                border: `1px solid ${cardBorderColor}`,
-                opacity: isFinished ? 0.6 : 1,
+                borderRadius: 14,
+                padding: '18px 20px',
+                opacity: isDone ? 0.55 : 1,
+                transition: 'opacity 0.3s',
             }}
         >
-            {/* Urgency stripe at top */}
-            {(isOverdue || isUrgent) && !isFinished && (
-                <div
-                    className="h-0.5"
-                    style={{
-                        background: isOverdue
-                            ? 'linear-gradient(90deg, var(--color-danger) 0%, transparent 80%)'
-                            : 'linear-gradient(90deg, var(--color-warning) 0%, transparent 80%)',
-                    }}
-                />
-            )}
+            {/* ── Top row ─────────────────────────────────────────────────── */}
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14 }}>
 
-            <div className="px-5 py-4">
-                {/* ── Row 1: Type badge | Course | Title | Urgency badge | Expand ── */}
-                <div className="flex items-start gap-3">
-                    {/* Type icon pill */}
-                    <div
-                        className="shrink-0 h-8 w-8 rounded-lg flex items-center justify-center mt-0.5"
-                        style={{ background: typeConf.bg }}
-                        title={typeConf.label}
-                    >
-                        <typeConf.icon size={15} style={{ color: typeConf.color }} />
+                {/* Type icon */}
+                <div style={{
+                    width: 36, height: 36, borderRadius: 10, flexShrink: 0, marginTop: 1,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    background: 'var(--color-surface-2)',
+                    border: '1px solid var(--color-border)',
+                }}>
+                    <TypeIcon size={15} color="var(--color-text-muted)" />
+                </div>
+
+                {/* Title + course */}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4, flexWrap: 'wrap' }}>
+                        <span style={{
+                            fontSize: 9, fontWeight: 800, letterSpacing: '0.14em', textTransform: 'uppercase',
+                            color: 'var(--color-text-dim)',
+                        }}>
+                            {assignment.course_code}
+                        </span>
+                        {/* Urgency indicator */}
+                        {!isDone && (
+                            <span style={{
+                                fontSize: 9, fontWeight: 700, letterSpacing: '0.08em',
+                                paddingLeft: 6, paddingRight: 6, paddingTop: 2, paddingBottom: 2,
+                                borderRadius: 99,
+                                background: isOverdue
+                                    ? 'rgba(249,115,22,0.12)'
+                                    : hoursLeft < 6
+                                    ? 'rgba(249,115,22,0.08)'
+                                    : 'transparent',
+                                color: isOverdue || hoursLeft < 6
+                                    ? '#FB923C'
+                                    : 'var(--color-text-dim)',
+                                border: isOverdue || hoursLeft < 6
+                                    ? '1px solid rgba(249,115,22,0.25)'
+                                    : '1px solid transparent',
+                            }}>
+                                {timeLabel}
+                            </span>
+                        )}
+                        {isDone && (
+                            <span style={{
+                                fontSize: 9, fontWeight: 700, letterSpacing: '0.08em',
+                                color: 'var(--color-text-dim)',
+                            }}>Completed</span>
+                        )}
                     </div>
 
-                    <div className="flex-1 min-w-0">
-                        {/* Title row */}
-                        <div className="flex items-center gap-2 flex-wrap mb-1">
-                            <span
-                                className="course-tag text-[10px] px-2 py-0.5 rounded-md border shrink-0"
-                                style={{
-                                    background: 'var(--color-surface-2)',
-                                    borderColor: 'var(--color-border)',
-                                    color: 'var(--color-text-muted)',
-                                }}
-                            >
-                                {assignment.course_code}
-                            </span>
-                            <h3
-                                className="text-[15px] font-bold truncate flex-1"
-                                style={{
-                                    color: isFinished ? 'var(--color-text-dim)'
-                                        : isOverdue ? 'var(--color-danger)'
-                                        : 'var(--color-text-main)',
-                                    textDecoration: isFinished ? 'line-through' : 'none',
-                                    fontFamily: 'var(--font-outfit), sans-serif',
-                                }}
-                            >
-                                {assignment.title}
-                            </h3>
-                            {isOverdue && !isFinished && (
-                                <span className="badge shrink-0" style={{ background: 'var(--color-danger-soft)', color: 'var(--color-danger)', border: '1px solid hsla(4,86%,58%,0.25)', fontSize: '10px' }}>
-                                    <AlertTriangle size={9} /> Overdue
-                                </span>
-                            )}
-                            {isUrgent && !isOverdue && !isFinished && (
-                                <span className="badge shrink-0" style={{ background: 'var(--color-warning-soft)', color: 'var(--color-warning)', border: '1px solid hsla(38,95%,58%,0.2)', fontSize: '10px' }}>
-                                    Urgent
-                                </span>
-                            )}
+                    <p style={{
+                        fontFamily: 'var(--font-outfit)',
+                        fontSize: 15, fontWeight: 700,
+                        color: isDone ? 'var(--color-text-dim)' : 'var(--color-text-main)',
+                        letterSpacing: '-0.01em',
+                        textDecoration: isDone ? 'line-through' : 'none',
+                        whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                    }}>
+                        {assignment.title}
+                    </p>
+
+                    <p style={{ fontSize: 11, color: 'var(--color-text-dim)', marginTop: 3 }}>
+                        {due.toLocaleDateString([], { month: 'short', day: 'numeric' })} · {due.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        {assignment.users?.full_name && <> · Posted by {assignment.users.full_name}</>}
+                    </p>
+                </div>
+
+                {/* Right: actions + expand */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                    {/* Quick link */}
+                    {assignment.resource_url && (
+                        <a
+                            href={assignment.resource_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{
+                                height: 32, width: 32, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                background: 'var(--color-surface-2)', border: '1px solid var(--color-border)',
+                                color: 'var(--color-text-muted)', textDecoration: 'none', transition: 'border-color 0.15s',
+                            }}
+                            title="Open resource"
+                        >
+                            <ExternalLink size={13} />
+                        </a>
+                    )}
+
+                    {/* Status button */}
+                    {!isDone && (
+                        <button
+                            onClick={() => handleStatus(status === 'not_started' ? 'in_progress' : 'finished')}
+                            disabled={isPending}
+                            className="btn-primary"
+                            style={{ height: 32, paddingLeft: 14, paddingRight: 14, borderRadius: 8, fontSize: 11, whiteSpace: 'nowrap' }}
+                        >
+                            {isPending ? <Loader2 size={11} style={{ display: 'inline', animation: 'spin 1s linear infinite' }} /> :
+                             status === 'not_started' ? 'Begin' : 'Mark Done'}
+                        </button>
+                    )}
+
+                    {isDone && (
+                        <div style={{ height: 32, width: 32, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--color-surface-2)', border: '1px solid var(--color-border)' }}>
+                            <CheckCircle2 size={14} color="var(--color-text-muted)" />
                         </div>
-
-                        {/* Meta row */}
-                        <div className="flex items-center gap-3 flex-wrap">
-                            <span
-                                className="flex items-center gap-1.5 text-[12px] font-medium"
-                                style={{ color: isOverdue && !isFinished ? 'var(--color-danger)' : isUrgent && !isFinished ? 'var(--color-warning)' : 'var(--color-text-muted)' }}
-                            >
-                                <Clock size={11} />
-                                {dueDate.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })} · {dueDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                <span
-                                    className="px-1.5 py-0.5 rounded-full text-[10px] font-bold ml-1"
-                                    style={{
-                                        background: isOverdue && !isFinished ? 'var(--color-danger-soft)' : isUrgent && !isFinished ? 'var(--color-warning-soft)' : 'var(--color-surface-2)',
-                                        color: isOverdue && !isFinished ? 'var(--color-danger)' : isUrgent && !isFinished ? 'var(--color-warning)' : 'var(--color-text-dim)',
-                                    }}
-                                >
-                                    {timeLabel}
-                                </span>
-                            </span>
-
-                            {/* Type label */}
-                            <span
-                                className="badge shrink-0"
-                                style={{
-                                    background: typeConf.bg,
-                                    color: typeConf.color,
-                                    border: `1px solid ${typeConf.color}33`,
-                                    fontSize: '10px',
-                                    padding: '2px 8px',
-                                }}
-                            >
-                                {typeConf.label}
-                            </span>
-
-                            {/* Creator */}
-                            {assignment.users?.full_name && (
-                                <span className="text-[11px] hidden sm:block" style={{ color: 'var(--color-text-dim)' }}>
-                                    by {assignment.users.full_name}
-                                </span>
-                            )}
-                        </div>
-                    </div>
+                    )}
 
                     {/* Expand toggle */}
-                    {hasExpandable && (
-                        <button
-                            onClick={() => setExpanded(!expanded)}
-                            className="btn-ghost shrink-0 h-8 w-8 rounded-lg flex items-center justify-center mt-0.5"
+                    <button
+                        onClick={() => setExpanded(v => !v)}
+                        className="btn-ghost"
+                        style={{ height: 32, width: 32, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                    >
+                        {expanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                    </button>
+                </div>
+            </div>
+
+            {/* ── Cohort progress bar ─────────────────────────────────────── */}
+            {pctDone > 0 && (
+                <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--color-border)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6, alignItems: 'center' }}>
+                        <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--color-text-dim)', letterSpacing: '0.08em' }}>
+                            Cohort progress
+                        </span>
+                        <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--color-text-muted)' }}>
+                            {pctDone}%
+                        </span>
+                    </div>
+                    <div className="progress-bar">
+                        <div className="progress-fill" style={{ width: `${pctDone}%` }} />
+                    </div>
+                </div>
+            )}
+
+            {/* ── Expanded detail ─────────────────────────────────────────── */}
+            {expanded && (
+                <div style={{
+                    marginTop: 14, paddingTop: 14,
+                    borderTop: '1px solid var(--color-border)',
+                    display: 'flex', flexDirection: 'column', gap: 10,
+                }} className="animate-fade-up">
+                    {assignment.description && (
+                        <p style={{ fontSize: 12, color: 'var(--color-text-muted)', lineHeight: 1.6 }}>
+                            {assignment.description}
+                        </p>
+                    )}
+                    {assignment.resource_url && (
+                        <a
+                            href={assignment.resource_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11, color: 'var(--color-text-muted)', textDecoration: 'none' }}
                         >
-                            {expanded ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
+                            <Link2 size={11} /> {assignment.resource_url}
+                        </a>
+                    )}
+                    {assignment.location && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: 'var(--color-text-muted)' }}>
+                            <MapPin size={11} /> {assignment.location}
+                        </div>
+                    )}
+                    {!isDone && status === 'in_progress' && (
+                        <button
+                            onClick={() => handleStatus('finished')}
+                            disabled={isPending}
+                            className="btn-secondary"
+                            style={{ alignSelf: 'flex-start', height: 30, paddingLeft: 12, paddingRight: 12, borderRadius: 8, fontSize: 11 }}
+                        >
+                            {isPending ? 'Saving…' : '✓ Mark as Completed'}
                         </button>
                     )}
                 </div>
-
-                {/* ── Expanded Details ── */}
-                {expanded && (
-                    <div
-                        className="mt-4 pt-4 border-t space-y-3 animate-fade-in"
-                        style={{ borderColor: 'var(--color-border)' }}
-                    >
-                        {/* Description */}
-                        {assignment.description && (
-                            <p className="text-[13px] leading-relaxed" style={{ color: 'var(--color-text-muted)' }}>
-                                {assignment.description}
-                            </p>
-                        )}
-
-                        {/* Resource URL */}
-                        {assignment.resource_url && (
-                            <a
-                                href={assignment.resource_url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="flex items-center gap-2 text-[13px] font-semibold transition-colors"
-                                style={{ color: typeConf.color }}
-                            >
-                                <Link2 size={13} />
-                                <span className="truncate">{assignment.resource_url}</span>
-                                <ExternalLink size={11} className="shrink-0" />
-                            </a>
-                        )}
-
-                        {/* Location */}
-                        {assignment.location && (
-                            <div className="flex items-center gap-2 text-[13px] font-semibold" style={{ color: 'var(--color-success)' }}>
-                                <MapPin size={13} />
-                                {assignment.location}
-                            </div>
-                        )}
-                    </div>
-                )}
-
-                {/* ── Row 2: Pulse + Actions ── */}
-                <div
-                    className="flex items-end justify-between gap-4 mt-4 pt-4 border-t flex-wrap"
-                    style={{ borderColor: 'var(--color-border)' }}
-                >
-                    {/* Cohort Pulse */}
-                    <div className="space-y-1.5 flex-1 min-w-[140px]">
-                        <div className="flex items-center justify-between">
-                            <span className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-[0.1em]" style={{ color: 'var(--color-text-dim)' }}>
-                                <Users size={10} />
-                                Cohort
-                            </span>
-                            <span className="text-[10px] font-bold" style={{ color: 'var(--color-text-muted)' }}>
-                                <span style={{ color: 'var(--color-success)' }}>{pulse.finished_percentage}%</span> done ·{' '}
-                                <span style={{ color: 'var(--color-warning)' }}>{pulse.involvement_percentage}%</span> active
-                            </span>
-                        </div>
-                        <div className="progress-bar" style={{ height: '5px', position: 'relative' }}>
-                            {/* active layer (behind) */}
-                            <div
-                                style={{
-                                    position: 'absolute', top: 0, left: 0,
-                                    width: `${pulse.involvement_percentage}%`,
-                                    height: '100%',
-                                    background: 'var(--color-warning)',
-                                    opacity: 0.35,
-                                    borderRadius: '99px',
-                                    transition: 'width 0.6s cubic-bezier(0.4,0,0.2,1)',
-                                }}
-                            />
-                            {/* finished layer (on top) */}
-                            <div
-                                style={{
-                                    position: 'absolute', top: 0, left: 0,
-                                    width: `${pulse.finished_percentage}%`,
-                                    height: '100%',
-                                    background: 'var(--color-success)',
-                                    borderRadius: '99px',
-                                    boxShadow: '0 0 6px -2px var(--color-success)',
-                                    transition: 'width 0.6s cubic-bezier(0.4,0,0.2,1)',
-                                }}
-                            />
-                        </div>
-                    </div>
-
-                    {/* Status + CTA */}
-                    <div className="flex items-center gap-2 shrink-0">
-                        {/* Status badge */}
-                        <div
-                            className="badge"
-                            style={{
-                                background: statusConf.bg,
-                                color: statusConf.color,
-                                border: `1px solid ${statusConf.border}`,
-                                fontSize: '10px',
-                            }}
-                        >
-                            {isPending ? <Loader2 size={9} className="animate-spin" />
-                                : isFinished ? <CheckCircle2 size={9} />
-                                : userStatus === 'in_progress' ? <Zap size={9} />
-                                : null}
-                            {statusConf.label}
-                        </div>
-
-                        {/* Action buttons — only show for non-finished */}
-                        {!isFinished && (
-                            <>
-                                {/* Quick link button for quiz/online_test */}
-                                {(taskType === 'quiz' || taskType === 'online_test') && assignment.resource_url && (
-                                    <a
-                                        href={assignment.resource_url}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="flex items-center gap-1.5 h-8 px-3 rounded-xl text-[11px] font-bold border transition-all"
-                                        style={{
-                                            background: typeConf.bg,
-                                            borderColor: `${typeConf.color}44`,
-                                            color: typeConf.color,
-                                        }}
-                                    >
-                                        <ExternalLink size={12} />
-                                        Open
-                                    </a>
-                                )}
-
-                                {userStatus === 'not_started' && (
-                                    <button
-                                        onClick={() => handleStatusUpdate('in_progress')}
-                                        disabled={isPending}
-                                        className="btn-secondary flex items-center gap-1.5 h-8 px-3 rounded-xl text-[11px] font-bold"
-                                    >
-                                        <Play size={11} fill="currentColor" />
-                                        Begin
-                                    </button>
-                                )}
-                                {userStatus === 'in_progress' && (
-                                    <button
-                                        onClick={() => handleStatusUpdate('finished')}
-                                        disabled={isPending}
-                                        className="btn-primary flex items-center gap-1.5 h-8 px-3 rounded-xl text-[11px] font-bold"
-                                    >
-                                        <CheckCircle2 size={11} />
-                                        Done
-                                    </button>
-                                )}
-                            </>
-                        )}
-                    </div>
-                </div>
-            </div>
+            )}
         </div>
     )
 }
