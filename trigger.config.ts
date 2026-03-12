@@ -2,9 +2,10 @@ import type { TriggerConfig } from "@trigger.dev/sdk/v3";
 
 export const config: TriggerConfig = {
     project: "notify-warden", // Replace with your actual project ID from Trigger.dev dashboard
+    maxDuration: 300, // 5 minutes max for notification logic
     logLevel: "log",
     retries: {
-        enabled: true,
+        enabledInDev: true,
         default: {
             maxAttempts: 3,
             minTimeoutInMs: 1000,

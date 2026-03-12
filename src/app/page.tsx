@@ -46,7 +46,7 @@ export default async function Home() {
         </div>
         <div className="flex items-center gap-3">
           <NotificationToggle />
-          <AddAssignmentModal />
+          <AddAssignmentModal userId={user.id} />
         </div>
       </header>
 
@@ -86,7 +86,7 @@ export default async function Home() {
 
       {/* Manual logging action at bottom for accessibility */}
       <div className="flex justify-center mt-4">
-        <AddAssignmentModal />
+        <AddAssignmentModal userId={user.id} />
       </div>
     </div>
   );
