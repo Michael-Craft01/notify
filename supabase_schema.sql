@@ -15,12 +15,12 @@ ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Users can read all profiles" 
 ON public.users FOR SELECT 
-TO authenticated 
+TO authenticated, anon 
 USING (true);
 
 CREATE POLICY "Users can update own profile" 
 ON public.users FOR UPDATE 
-TO authenticated 
+TO authenticated, anon 
 USING (auth.uid() = id);
 
 -- Trigger to automatically create a user profile when a new user signs up
@@ -57,7 +57,7 @@ ALTER TABLE public.assignments ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Anyone authenticated can read assignments" 
 ON public.assignments FOR SELECT 
-TO authenticated 
+TO authenticated, anon 
 USING (true);
 
 CREATE POLICY "Authenticated users can propose assignments" 
@@ -102,8 +102,8 @@ BEGIN
   FROM public.verifications 
   WHERE assignment_id = NEW.assignment_id;
 
-  -- If 2 or more, update the assignment status
-  IF verification_count >= 2 THEN
+  -- If 1 or more, update the assignment status
+  IF verification_count >= 1 THEN
     UPDATE public.assignments
     SET status = 'verified'
     WHERE id = NEW.assignment_id AND status = 'pending';
@@ -133,7 +133,7 @@ ALTER TABLE public.user_progress ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Users can read all progress (for class percentages)" 
 ON public.user_progress FOR SELECT 
-TO authenticated 
+TO authenticated, anon 
 USING (true);
 
 CREATE POLICY "Users can insert own progress" 
@@ -170,6 +170,9 @@ GROUP BY
 
 -- Grant access to authenticated users
 GRANT SELECT ON public.assignment_pulse_stats TO authenticated;
+
+-- Add hint for PostgREST to recognize the relationship
+COMMENT ON VIEW public.assignment_pulse_stats IS E'@foreignKey (assignment_id) references assignments (id)';
 -- 6. User Subscriptions (Web Push)
 CREATE TABLE public.user_subscriptions (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,

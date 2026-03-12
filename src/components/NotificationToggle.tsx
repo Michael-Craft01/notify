@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Bell, BellOff, Loader2 } from 'lucide-react'
+import { Bell, BellOff, Loader2, ShieldCheck, ShieldAlert } from 'lucide-react'
 import { saveSubscription } from '@/app/actions/notifications'
 
 export default function NotificationToggle() {
@@ -10,21 +10,17 @@ export default function NotificationToggle() {
     const [permission, setPermission] = useState<NotificationPermission>('default')
 
     useEffect(() => {
-        // Check current subscription and permission
         const checkSubscription = async () => {
             if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
                 setIsLoading(false)
                 return
             }
-
             setPermission(Notification.permission)
-
             const registration = await navigator.serviceWorker.ready
             const subscription = await registration.pushManager.getSubscription()
             setIsSubscribed(!!subscription)
             setIsLoading(false)
         }
-
         checkSubscription()
     }, [])
 
@@ -32,8 +28,6 @@ export default function NotificationToggle() {
         setIsLoading(true)
         try {
             const registration = await navigator.serviceWorker.ready
-
-            // 1. Request Permission
             const result = await Notification.requestPermission()
             setPermission(result)
             if (result !== 'granted') {
@@ -42,13 +36,25 @@ export default function NotificationToggle() {
                 return
             }
 
-            // 2. Register with Browser Push Server
+            const urlBase64ToUint8Array = (base64String: string) => {
+                const padding = '='.repeat((4 - base64String.length % 4) % 4);
+                const base64 = (base64String + padding).replace(/\-/g, '+').replace(/_/g, '/');
+                const rawData = window.atob(base64);
+                const outputArray = new Uint8Array(rawData.length);
+                for (let i = 0; i < rawData.length; ++i) {
+                    outputArray[i] = rawData.charCodeAt(i);
+                }
+                return outputArray;
+            };
+
+            const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+            if (!vapidPublicKey) throw new Error('VAPID public key not found');
+
             const subscription = await registration.pushManager.subscribe({
                 userVisibleOnly: true,
-                applicationServerKey: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
+                applicationServerKey: urlBase64ToUint8Array(vapidPublicKey)
             })
 
-            // 3. Save to Supabase
             const saveResult = await saveSubscription(JSON.parse(JSON.stringify(subscription)))
             if (saveResult.error) {
                 alert(saveResult.error)
@@ -70,7 +76,6 @@ export default function NotificationToggle() {
             const subscription = await registration.pushManager.getSubscription()
             if (subscription) {
                 await subscription.unsubscribe()
-                // In a production app, you'd also delete this from the DB here
                 setIsSubscribed(false)
             }
         } catch (error) {
@@ -80,12 +85,12 @@ export default function NotificationToggle() {
         }
     }
 
-    if (isLoading) return <Loader2 className="animate-spin text-[var(--color-primary)]" size={20} />
+    if (isLoading) return <div className="h-8 w-8 rounded-lg bg-neutral-900 border border-white/5 flex items-center justify-center"><Loader2 className="animate-spin text-neutral-500" size={12} /></div>
 
     if (permission === 'denied') {
         return (
-            <div className="flex items-center gap-2 text-xs text-red-500 font-medium">
-                <BellOff size={14} /> Notifications Blocked
+            <div className="flex items-center gap-2 h-8 px-3 rounded-lg bg-red-500/10 border border-red-500/20 text-[10px] font-bold text-red-500 uppercase tracking-wider">
+                <ShieldAlert size={12} /> Blocked
             </div>
         )
     }
@@ -94,13 +99,13 @@ export default function NotificationToggle() {
         <button
             onClick={isSubscribed ? unsubscribe : subscribe}
             disabled={isLoading}
-            className={`flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-bold transition-all duration-300 ${isSubscribed
-                    ? 'bg-[var(--color-surface-hover)] text-white hover:bg-red-500/10 hover:text-red-500 border border-transparent hover:border-red-500/20'
-                    : 'bg-[var(--color-primary)] text-white hover:bg-[var(--color-primary-hover)] shadow-sm'
+            className={`flex items-center gap-2 h-8 px-3 rounded-lg text-[11px] font-bold transition-all border ${isSubscribed
+                ? 'bg-neutral-900/40 border-white/10 text-neutral-400 hover:text-red-500 hover:border-red-500/30'
+                : 'bg-white/5 border-white/10 text-white/60 hover:bg-white hover:text-black active:scale-95'
                 }`}
         >
-            <Bell size={14} />
-            {isSubscribed ? 'Notifications On' : 'Enable Warden Alert'}
+            {isSubscribed ? <ShieldCheck size={12} /> : <Bell size={12} />}
+            <span>{isSubscribed ? 'Alerts Active' : 'Enable Alerts'}</span>
         </button>
     )
 }

@@ -25,7 +25,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${inter.className} min-h-screen bg-[var(--color-background)] text-[var(--color-text-main)] antialiased`}>
-        <div className="mx-auto max-w-md min-h-screen bg-[var(--color-surface)] shadow-xl sm:border-x sm:border-[var(--color-surface-hover)]">
+        <div className="min-h-screen">
           {children}
         </div>
       </body>

@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
+import { cookies } from 'next/headers'
 import { createClient } from '@/utils/supabase/server'
 
 export async function sendOTP(email: string) {
@@ -25,8 +26,56 @@ export async function sendOTP(email: string) {
     return { success: true }
 }
 
-export async function verifyOTP(email: string, token: string) {
+export async function signInWithOAuth(provider: 'google' | 'spotify') {
     const supabase = await createClient()
+
+    const { data, error } = await supabase.auth.signInWithOAuth({
+        provider,
+        options: {
+            redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/confirm`,
+        },
+    })
+
+    if (error) {
+        console.error(`${provider} Sign In Error:`, error)
+        return { error: error.message }
+    }
+
+    if (data.url) {
+        redirect(data.url)
+    }
+
+    return { success: true }
+}
+
+export async function verifyOTP(email: string, token: string) {
+
+    const supabase = await createClient()
+
+    // --- Developer Bypass (Phase 4.5 Hotfix) ---
+    const bypassCode = process.env.WARDEN_DEV_BYPASS
+    if (bypassCode && token === bypassCode) {
+        console.warn('WARDEN DEBUG: Auth bypass triggered for:', email)
+
+        // We'll set a special "warden-mock-auth" cookie that the middleware will respect
+        const cookieStore = await cookies()
+        cookieStore.set('warden-mock-user', email, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            maxAge: 60 * 60 * 24 // 24 hours
+        })
+
+        // Ensure mock user exists in public.users to avoid FK errors
+        const mockId = '00000000-0000-0000-0000-000000000000'
+        await supabase.from('users').upsert({
+            id: mockId,
+            email: email,
+            full_name: 'Warden Developer'
+        }, { onConflict: 'id' })
+
+        revalidatePath('/', 'layout')
+        return { success: true }
+    }
 
     const { error } = await supabase.auth.verifyOtp({
         email,

@@ -9,10 +9,10 @@ webpush.setVapidDetails(
     process.env.VAPID_PRIVATE_KEY!
 );
 
-// Setup Supabase (Service Role for backend access)
+// Setup Supabase (Service Role recommended for background jobs)
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.DATABASE_ANON_KEY! // Use service role if possible for background jobs
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
 interface DeadlinePayload {

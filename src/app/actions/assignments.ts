@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
+import { cookies } from 'next/headers'
 import { createClient } from '@/utils/supabase/server'
 import { scheduleDeadlineAlerts } from '@/trigger/deadline-alerts'
 
@@ -17,23 +18,35 @@ export async function createAssignment(formData: FormData) {
     const supabase = await createClient()
 
     // 1. Verify User
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
+    let { data: { user }, error: authError } = await supabase.auth.getUser()
+
+    // --- Developer Bypass (Phase 4.5 Hotfix) ---
+    if (!user) {
+        const cookieStore = await cookies();
+        const mockUserEmail = (await cookieStore).get('warden-mock-user')?.value;
+        if (mockUserEmail) {
+            user = { id: '00000000-0000-0000-0000-000000000000', email: mockUserEmail } as any;
+        }
+    }
+
+    if (!user) {
         return { error: 'Unauthorized: You must be logged in to log assignments.' }
     }
 
     // 2. Validate Data
+    const dueDateRaw = formData.get('due_date') as string
     const rawData = {
         course_code: formData.get('course_code'),
         title: formData.get('title'),
         description: formData.get('description'),
-        due_date: new Date(formData.get('due_date') as string).toISOString(),
+        due_date: new Date(dueDateRaw).toISOString(), // Captures date + time exactly
     }
 
     const validatedFields = CreateAssignmentSchema.safeParse(rawData)
 
     if (!validatedFields.success) {
-        return { error: 'Invalid fields. Please check your submission.' }
+        console.error("Zod Validation Error:", JSON.stringify(validatedFields.error.format(), null, 2))
+        return { error: `Validation Failed: ${validatedFields.error.issues[0].message}` }
     }
 
     // 3. Insert into Supabase
@@ -49,22 +62,36 @@ export async function createAssignment(formData: FormData) {
         })
         .select()
 
-    if (insertError || !assignments) {
-        console.error(insertError)
+    if (insertError || !assignments || assignments.length === 0) {
+        console.error("Insert Error:", insertError)
         return { error: 'Failed to create assignment in the database.' }
     }
 
-    // 4. Trigger Background Notification Matrix (Phase 4)
-    // We only trigger for the creator here; Phase 4 logic will eventually target the cohort.
+    const newAssignment = assignments[0]
+
+    // 4. Auto-Verify for Creator (Phase 8)
+    // This triggers the DB function and sets status to 'verified' since threshold is now 1
+    const { error: verifyError } = await supabase
+        .from('verifications')
+        .insert({
+            assignment_id: newAssignment.id,
+            user_id: user.id
+        })
+
+    if (verifyError) {
+        console.error('Auto-verification failed:', verifyError)
+        // We don't return error here because the assignment was still created
+    }
+
+    // 5. Trigger Background Notification Matrix (Phase 4)
     try {
         await scheduleDeadlineAlerts.trigger({
-            assignmentId: assignments[0].id,
+            assignmentId: newAssignment.id,
             dueDate: validatedFields.data.due_date,
             title: validatedFields.data.title
         })
     } catch (triggerError) {
         console.error('Trigger.dev failed to schedule:', triggerError)
-        // We don't return error here because the assignment was successfully created in DB
     }
 
     revalidatePath('/')
@@ -75,12 +102,22 @@ export async function verifyAssignment(assignmentId: string) {
     const supabase = await createClient()
 
     // 1. Verify User
-    const { data: { user } } = await supabase.auth.getUser()
+    let { data: { user } } = await supabase.auth.getUser()
+
+    // --- Developer Bypass (Phase 4.5 Hotfix) ---
+    if (!user) {
+        const cookieStore = await cookies();
+        const mockUserEmail = (await cookieStore).get('warden-mock-user')?.value;
+        if (mockUserEmail) {
+            user = { id: '00000000-0000-0000-0000-000000000000', email: mockUserEmail } as any;
+        }
+    }
+
     if (!user) {
         return { error: 'Unauthorized' }
     }
 
-    // 2. Insert Verification (PostgreSQL Trigger handles the 'verified' status upgrade)
+    // 2. Insert Verification
     const { error } = await supabase
         .from('verifications')
         .insert({
@@ -89,7 +126,6 @@ export async function verifyAssignment(assignmentId: string) {
         })
 
     if (error) {
-        // Check for unique constraint violation (User already verified)
         if (error.code === '23505') {
             return { error: 'You have already verified this assignment.' }
         }
@@ -104,12 +140,22 @@ export async function updateProgress(assignmentId: string, status: 'not_started'
     const supabase = await createClient()
 
     // 1. Verify User
-    const { data: { user } } = await supabase.auth.getUser()
+    let { data: { user } } = await supabase.auth.getUser()
+
+    // --- Developer Bypass (Phase 4.5 Hotfix) ---
+    if (!user) {
+        const cookieStore = await cookies();
+        const mockUserEmail = (await cookieStore).get('warden-mock-user')?.value;
+        if (mockUserEmail) {
+            user = { id: '00000000-0000-0000-0000-000000000000', email: mockUserEmail } as any;
+        }
+    }
+
     if (!user) {
         return { error: 'Unauthorized' }
     }
 
-    // 2. Upsert Progress (using unique constraint on user_id + assignment_id)
+    // 2. Upsert Progress
     const { error } = await supabase
         .from('user_progress')
         .upsert({
