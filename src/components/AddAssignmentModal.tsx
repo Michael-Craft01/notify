@@ -72,10 +72,10 @@ export default function AddAssignmentModal({ userId }: { userId: string }) {
         return (
             <button
                 onClick={() => setIsOpen(true)}
-                className="flex items-center gap-2 rounded-lg bg-white px-3.5 py-2 text-[13px] font-semibold text-black transition-all hover:bg-neutral-200 active:scale-95 shadow-sm"
+                className="flex items-center gap-2 rounded-lg bg-white px-4 py-2.5 text-[13px] font-bold text-black transition-all hover:bg-neutral-200 active:scale-95 shadow-lg"
             >
-                <Plus size={16} strokeWidth={2.5} />
-                <span>New Directive</span>
+                <Plus size={16} strokeWidth={3} />
+                <span>New Task</span>
             </button>
         )
     }
@@ -86,61 +86,61 @@ export default function AddAssignmentModal({ userId }: { userId: string }) {
 
             <div className="relative w-full max-w-lg bg-[#0b0b0b] border border-white/10 rounded-2xl shadow-2xl overflow-hidden transition-all duration-300 animate-slide-down">
                 {/* Header */}
-                <div className="flex items-center justify-between p-5 border-b border-white/5 bg-neutral-900/30">
-                    <div className="flex items-center gap-2">
+                <div className="flex items-center justify-between p-6 border-b border-white/5 bg-neutral-900/30">
+                    <div className="flex items-center gap-3">
                         {step !== 'initial' && (
                             <button
                                 onClick={() => setStep(step === 'form' && courseCode === '' ? 'initial' : step === 'form' ? 'scan' : 'initial')}
                                 className="p-1 text-neutral-500 hover:text-white transition-colors"
                             >
-                                <ChevronLeft size={18} />
+                                <ChevronLeft size={20} />
                             </button>
                         )}
-                        <h2 className="text-[13px] font-bold text-white uppercase tracking-wider">
-                            {step === 'initial' && 'Deployment Sequence'}
-                            {step === 'scan' && 'Scan Intelligence'}
-                            {step === 'form' && 'Finalize Directive'}
+                        <h2 className="text-[11px] font-black text-white uppercase tracking-[0.2em] font-outfit">
+                            {step === 'initial' && 'Task Configuration'}
+                            {step === 'scan' && 'Document Import'}
+                            {step === 'form' && 'Finalize Schedule'}
                         </h2>
                     </div>
                     <button onClick={handleClose} className="p-1 text-neutral-500 hover:text-white transition-colors">
-                        <X size={18} />
+                        <X size={20} />
                     </button>
                 </div>
 
                 {/* Content Carousel */}
-                <div className="p-8">
+                <div className="p-10">
                     {step === 'initial' && (
-                        <div className="space-y-6 text-center py-4">
+                        <div className="space-y-8 text-center py-4">
                             <div className="space-y-2">
-                                <h3 className="text-lg font-bold text-white">Choose Vector</h3>
-                                <p className="text-sm text-neutral-500">How would you like to log this mission data?</p>
+                                <h3 className="text-xl font-bold text-white font-outfit">Add New Task</h3>
+                                <p className="text-[13px] text-neutral-500 font-medium">Select your preferred method for record entry.</p>
                             </div>
 
                             <div className="grid grid-cols-1 gap-4">
                                 <button
                                     onClick={() => setStep('scan')}
-                                    className="group flex items-center gap-4 p-5 rounded-xl border border-white/5 bg-white/[0.02] hover:bg-white/[0.05] hover:border-[var(--color-primary)]/30 transition-all text-left"
+                                    className="group flex items-center gap-5 p-6 rounded-2xl border border-white/5 bg-white/[0.02] hover:bg-white/[0.05] hover:border-[var(--color-primary)]/30 transition-all text-left shadow-sm"
                                 >
-                                    <div className="h-12 w-12 rounded-xl bg-[var(--color-primary)]/10 flex items-center justify-center text-[var(--color-primary)]">
+                                    <div className="h-12 w-12 rounded-xl bg-[var(--color-primary-soft)] flex items-center justify-center text-[var(--color-primary)]">
                                         <Sparkles size={24} />
                                     </div>
                                     <div className="flex-1">
-                                        <h4 className="text-sm font-bold text-white">AI Oracle Scan</h4>
-                                        <p className="text-[12px] text-neutral-500">Extract intel from image or PDF</p>
+                                        <h4 className="text-sm font-bold text-white mb-0.5">AI Schedule Import</h4>
+                                        <p className="text-[12px] text-neutral-500 font-medium">Extract details from images or PDF files</p>
                                     </div>
                                     <ChevronRight size={18} className="text-neutral-700 group-hover:text-white transition-colors" />
                                 </button>
 
                                 <button
                                     onClick={() => setStep('form')}
-                                    className="group flex items-center gap-4 p-5 rounded-xl border border-white/5 bg-white/[0.02] hover:bg-white/[0.05] hover:border-white/20 transition-all text-left"
+                                    className="group flex items-center gap-5 p-6 rounded-2xl border border-white/5 bg-white/[0.02] hover:bg-white/[0.05] hover:border-white/20 transition-all text-left shadow-sm"
                                 >
                                     <div className="h-12 w-12 rounded-xl bg-white/5 flex items-center justify-center text-neutral-400">
                                         <Keyboard size={24} />
                                     </div>
                                     <div className="flex-1">
-                                        <h4 className="text-sm font-bold text-white">Manual Entry</h4>
-                                        <p className="text-[12px] text-neutral-500">Input mission parameters directly</p>
+                                        <h4 className="text-sm font-bold text-white mb-0.5">Manual Setup</h4>
+                                        <p className="text-[12px] text-neutral-500 font-medium">Enter task details manually</p>
                                     </div>
                                     <ChevronRight size={18} className="text-neutral-700 group-hover:text-white transition-colors" />
                                 </button>
@@ -149,11 +149,13 @@ export default function AddAssignmentModal({ userId }: { userId: string }) {
                     )}
 
                     {step === 'scan' && (
-                        <div className="space-y-6 py-4">
-                            <div className="text-center space-y-2">
-                                <Shield className="mx-auto text-[var(--color-primary)]" size={32} />
-                                <h3 className="text-lg font-bold text-white tracking-tight">Intelligence Scan</h3>
-                                <p className="text-sm text-neutral-500">The Oracle will decrypt your mission docs.</p>
+                        <div className="space-y-8 py-4">
+                            <div className="text-center space-y-3">
+                                <div className="mx-auto h-12 w-12 rounded-2xl bg-[var(--color-primary-soft)] flex items-center justify-center text-[var(--color-primary)]">
+                                    <FileUp size={28} />
+                                </div>
+                                <h3 className="text-xl font-bold text-white font-outfit">Document Parser</h3>
+                                <p className="text-[13px] text-neutral-500 font-medium tracking-wide">Upload your schedule for automated processing.</p>
                             </div>
 
                             <div className="relative group">
@@ -164,22 +166,22 @@ export default function AddAssignmentModal({ userId }: { userId: string }) {
                                     className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                                     disabled={isExtracting}
                                 />
-                                <div className={`h-48 rounded-xl border-2 border-dashed transition-all flex flex-col items-center justify-center text-center p-6 gap-4 ${isExtracting ? 'border-[var(--color-primary)] bg-[var(--color-primary)]/5 animate-pulse' :
-                                    'border-white/10 bg-white/[0.02] group-hover:border-[var(--color-primary)]/30 group-hover:bg-[var(--color-primary)]/5'
+                                <div className={`h-52 rounded-2xl border-2 border-dashed transition-all flex flex-col items-center justify-center text-center p-8 gap-5 ${isExtracting ? 'border-[var(--color-primary)] bg-[var(--color-primary-soft)] animate-pulse' :
+                                    'border-white/10 bg-white/[0.02] group-hover:border-[var(--color-primary)]/30 group-hover:bg-white/[0.04]'
                                     }`}>
                                     {isExtracting ? (
                                         <>
-                                            <Loader2 className="animate-spin text-[var(--color-primary)]" size={32} />
-                                            <span className="text-[13px] font-bold text-[var(--color-primary)] uppercase tracking-widest">Decrypting Intel...</span>
+                                            <Loader2 className="animate-spin text-[var(--color-primary)]" size={36} />
+                                            <span className="text-[11px] font-black text-[var(--color-primary)] uppercase tracking-[0.2em]">Processing...</span>
                                         </>
                                     ) : (
                                         <>
-                                            <div className="h-12 w-12 rounded-2xl bg-white/5 flex items-center justify-center text-neutral-500 group-hover:text-[var(--color-primary)] transition-all">
-                                                <FileUp size={24} />
+                                            <div className="h-14 w-14 rounded-2xl bg-white/5 flex items-center justify-center text-neutral-500 group-hover:text-white transition-all shadow-inner">
+                                                <Plus size={28} />
                                             </div>
-                                            <div className="space-y-1">
-                                                <span className="text-[14px] font-bold text-neutral-300">Target mission file</span>
-                                                <p className="text-[12px] text-neutral-600 font-medium italic">Drop Image or PDF here</p>
+                                            <div className="space-y-2">
+                                                <span className="text-[14px] font-bold text-neutral-200">Click to upload file</span>
+                                                <p className="text-[11px] text-neutral-600 font-semibold uppercase tracking-widest">Supports PDF and Images</p>
                                             </div>
                                         </>
                                     )}
@@ -189,17 +191,17 @@ export default function AddAssignmentModal({ userId }: { userId: string }) {
                     )}
 
                     {step === 'form' && (
-                        <form onSubmit={handleSubmit} className="space-y-6">
-                            <div className="flex items-center justify-between bg-white/[0.04] border border-white/10 rounded-xl px-4 py-3.5 mb-6 ring-1 ring-[var(--color-primary)]/20 shadow-[0_0_20px_rgba(249,115,22,0.1)]">
-                                <div className="space-y-0.5">
-                                    <h4 className="text-[12px] font-black text-white uppercase tracking-wider flex items-center gap-1.5">
-                                        <Sparkles size={12} className="text-[var(--color-primary)] animation-pulse" />
-                                        Oracle Assistant
+                        <form onSubmit={handleSubmit} className="space-y-8">
+                            <div className="flex items-center justify-between bg-white/[0.04] border border-white/10 rounded-2xl px-5 py-4 mb-8 ring-1 ring-white/5 shadow-premium">
+                                <div className="space-y-1">
+                                    <h4 className="text-[11px] font-black text-white uppercase tracking-[0.2em] flex items-center gap-2">
+                                        <Sparkles size={14} className="text-[var(--color-primary)]" />
+                                        AI Assistant
                                     </h4>
-                                    <p className="text-[10px] text-neutral-500 font-semibold uppercase tracking-widest">Auto-complete directive</p>
+                                    <p className="text-[11px] text-neutral-500 font-bold uppercase tracking-widest">Enhanced Data entry</p>
                                 </div>
                                 <AIEnhanceButton
-                                    label="Ignite AI"
+                                    label="Enhance with AI"
                                     formData={{ course_code: courseCode, title, description }}
                                     onEnhance={(data) => {
                                         if (data.title) setTitle(data.title)
@@ -208,10 +210,10 @@ export default function AddAssignmentModal({ userId }: { userId: string }) {
                                 />
                             </div>
 
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-1.5 text-left">
+                            <div className="grid grid-cols-2 gap-5">
+                                <div className="space-y-2.5 text-left">
                                     <div className="flex items-center justify-between px-1">
-                                        <label className="text-[11px] font-bold text-neutral-500 uppercase tracking-wider">Directive Code</label>
+                                        <label className="text-[10px] font-black text-neutral-500 uppercase tracking-[0.2em]">Course Code</label>
                                         <AIEnhanceButton
                                             variant="mini"
                                             formData={{ course_code: courseCode }}
@@ -226,17 +228,17 @@ export default function AddAssignmentModal({ userId }: { userId: string }) {
                                         name="course_code"
                                         value={courseCode}
                                         onChange={(e) => setCourseCode(e.target.value.toUpperCase())}
-                                        placeholder="CS 101"
+                                        placeholder="CS-101"
                                         required
-                                        className="w-full rounded-lg border border-white/10 bg-black/40 px-4 py-2.5 text-[13px] text-white focus:border-[var(--color-primary)] focus:outline-none transition-all font-semibold uppercase"
+                                        className="w-full rounded-xl border border-white/10 bg-black/60 px-5 py-3 text-[14px] text-white focus:border-[var(--color-primary)] focus:outline-none transition-all font-bold uppercase tracking-tight shadow-inner"
                                     />
                                 </div>
-                                <div className="space-y-1.5 text-left">
+                                <div className="space-y-2.5 text-left">
                                     <div className="flex items-center justify-between px-1">
-                                        <label className="text-[11px] font-bold text-neutral-500 uppercase tracking-wider">Deadline</label>
+                                        <label className="text-[10px] font-black text-neutral-500 uppercase tracking-[0.2em]">Due Date</label>
                                         <AIEnhanceButton
                                             variant="mini"
-                                            label="AI Time"
+                                            label="AI Detect"
                                             formData={{ due_date: dueDate, title, course_code: courseCode }}
                                             onEnhance={(data) => {
                                                 if (data.due_date) setDueDate(data.due_date)
@@ -249,14 +251,14 @@ export default function AddAssignmentModal({ userId }: { userId: string }) {
                                         value={dueDate}
                                         onChange={(e) => setDueDate(e.target.value)}
                                         required
-                                        className="w-full rounded-lg border border-white/10 bg-black/40 px-4 py-2.5 text-[13px] text-white focus:border-[var(--color-primary)] focus:outline-none transition-all [color-scheme:dark] font-semibold"
+                                        className="w-full rounded-xl border border-white/10 bg-black/60 px-5 py-3 text-[14px] text-white focus:border-[var(--color-primary)] focus:outline-none transition-all [color-scheme:dark] font-bold shadow-inner"
                                     />
                                 </div>
                             </div>
 
-                            <div className="space-y-1.5 text-left">
+                            <div className="space-y-2.5 text-left">
                                 <div className="flex items-center justify-between px-1">
-                                    <label className="text-[11px] font-bold text-neutral-500 uppercase tracking-wider">Objective Title</label>
+                                    <label className="text-[10px] font-black text-neutral-500 uppercase tracking-[0.2em]">Task Title</label>
                                     <AIEnhanceButton
                                         variant="mini"
                                         formData={{ title, course_code: courseCode }}
@@ -270,15 +272,15 @@ export default function AddAssignmentModal({ userId }: { userId: string }) {
                                     name="title"
                                     value={title}
                                     onChange={(e) => setTitle(e.target.value)}
-                                    placeholder="Mission Objective"
+                                    placeholder="Task Title"
                                     required
-                                    className="w-full rounded-lg border border-white/10 bg-black/40 px-4 py-2.5 text-[13px] text-white focus:border-[var(--color-primary)] focus:outline-none transition-all font-semibold"
+                                    className="w-full rounded-xl border border-white/10 bg-black/60 px-5 py-3 text-[14px] text-white focus:border-[var(--color-primary)] focus:outline-none transition-all font-bold tracking-tight shadow-inner"
                                 />
                             </div>
 
-                            <div className="space-y-1.5 text-left">
+                            <div className="space-y-2.5 text-left">
                                 <div className="flex items-center justify-between px-1">
-                                    <label className="text-[11px] font-bold text-neutral-500 uppercase tracking-wider">Full Parameters</label>
+                                    <label className="text-[10px] font-black text-neutral-500 uppercase tracking-[0.2em]">Additional Context</label>
                                     <AIEnhanceButton
                                         variant="mini"
                                         formData={{ description, title, course_code: courseCode }}
@@ -289,21 +291,21 @@ export default function AddAssignmentModal({ userId }: { userId: string }) {
                                 </div>
                                 <textarea
                                     name="description"
-                                    rows={3}
+                                    rows={4}
                                     value={description}
                                     onChange={(e) => setDescription(e.target.value)}
-                                    placeholder="Additional tactical intel..."
-                                    className="w-full rounded-lg border border-white/10 bg-black/40 px-4 py-2.5 text-[13px] text-white focus:border-[var(--color-primary)] focus:outline-none transition-all resize-none font-medium text-neutral-400"
+                                    placeholder="Note specific requirements or details..."
+                                    className="w-full rounded-xl border border-white/10 bg-black/60 px-5 py-3 text-[14px] text-neutral-400 focus:border-[var(--color-primary)] focus:outline-none transition-all resize-none font-medium shadow-inner"
                                 />
                             </div>
 
                             <button
                                 type="submit"
                                 disabled={isPending}
-                                className="w-full h-12 flex items-center justify-center gap-2 rounded-lg bg-[var(--color-primary)] py-3 text-[13px] font-bold text-white transition-all hover:brightness-110 active:scale-[0.98] shadow-lg shadow-[var(--color-primary)]/10"
+                                className="w-full h-14 flex items-center justify-center gap-3 rounded-xl bg-[var(--color-primary)] text-white text-sm font-black uppercase tracking-[0.2em] transition-all hover:brightness-110 active:scale-[0.98] shadow-glow"
                             >
-                                {isPending ? <Loader2 className="animate-spin" size={16} /> : <Zap size={16} fill="currentColor" />}
-                                Deploy Directive
+                                {isPending ? <Loader2 className="animate-spin" size={20} /> : <Zap size={18} fill="currentColor" />}
+                                Save Task
                             </button>
                         </form>
                     )}

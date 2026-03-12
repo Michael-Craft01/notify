@@ -1,12 +1,13 @@
 import type { Metadata, Viewport } from "next";
-import { Inter } from "next/font/google";
+import { Inter, Outfit } from "next/font/google";
 import "./globals.css";
 
-const inter = Inter({ subsets: ["latin"] });
+const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
+const outfit = Outfit({ subsets: ["latin"], variable: "--font-outfit" });
 
 export const metadata: Metadata = {
-  title: "Notify | Deadline Warden",
-  description: "Eliminate Assignment Amnesia",
+  title: "Notify | Intelligent Schedule Warden",
+  description: "Professional schedule management and deadline tracking.",
   manifest: "/manifest.json",
 };
 
@@ -23,8 +24,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body className={`${inter.className} min-h-screen bg-[var(--color-background)] text-[var(--color-text-main)] antialiased`}>
+    <html lang="en" className="dark">
+      <body className={`${inter.variable} ${outfit.variable} font-sans min-h-screen bg-[var(--color-background)] text-[var(--color-text-main)] antialiased`}>
         <div className="min-h-screen">
           {children}
         </div>

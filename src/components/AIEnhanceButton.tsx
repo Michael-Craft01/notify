@@ -15,9 +15,9 @@ interface AIEnhanceButtonProps {
 export default function AIEnhanceButton({
     formData,
     onEnhance,
-    label = "NotifyAI",
+    label = "AI Assistant",
     variant = 'standard',
-    tooltip = "Ask Oracle to complete this field"
+    tooltip = "Use AI to refine this field"
 }: AIEnhanceButtonProps) {
     const [isPending, setIsPending] = useState(false)
 

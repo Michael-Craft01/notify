@@ -56,108 +56,94 @@ export default function AssignmentCard({ assignment, currentUserId }: Assignment
     }
 
     return (
-        <div className={`premium-card group relative flex flex-col md:flex-row md:items-center rounded-xl px-6 py-4 gap-6 transition-all animate-fade-in ${isPending ? 'opacity-60 bg-neutral-900/40' : ''
+        <div className={`premium-card group relative flex flex-col md:flex-row md:items-center rounded-2xl px-8 py-5 gap-8 transition-all animate-fade-in border border-white/5 bg-white/[0.02] hover:bg-white/[0.04] hover:shadow-premium ${userStatus === 'finished' ? 'opacity-60 grayscale-[0.5]' : ''
             }`}>
             {/* Left: Metadata & Identity */}
-            <div className="flex flex-col md:flex-row md:items-center gap-4 md:flex-1">
-                <div className="flex items-center gap-3 shrink-0">
-                    <div className={`h-8 w-16 rounded-md flex items-center justify-center text-[11px] font-bold tracking-tight border ${isUrgent ? 'bg-[var(--color-primary)]/10 border-[var(--color-primary)]/20 text-[var(--color-primary)]' : 'bg-white/5 border-white/10 text-neutral-400'
+            <div className="flex flex-col md:flex-row md:items-center gap-6 md:flex-1">
+                <div className="flex items-center gap-4 shrink-0">
+                    <div className={`h-9 w-20 rounded-lg flex items-center justify-center text-[11px] font-black tracking-[0.1em] border shadow-sm ${isUrgent ? 'bg-[var(--color-primary-soft)] border-[var(--color-primary)]/30 text-[var(--color-primary)]' : 'bg-white/5 border-white/10 text-neutral-500'
                         }`}>
                         {assignment.course_code}
                     </div>
-                    {isPending && (
-                        <div className="h-5 w-5 rounded-full bg-neutral-800 flex items-center justify-center animate-pulse">
-                            <Clock size={10} className="text-neutral-500" />
-                        </div>
-                    )}
                 </div>
 
                 <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-0.5">
-                        <h3 className={`text-[15px] font-bold text-neutral-100 truncate ${isOverdue ? 'opacity-40 line-through' : ''}`}>
+                    <div className="flex items-center gap-3 mb-1.5">
+                        <h3 className={`text-[17px] font-bold text-white font-outfit tracking-tight truncate ${isOverdue && userStatus !== 'finished' ? 'text-red-500/50' : ''} ${userStatus === 'finished' ? 'line-through text-neutral-500' : ''}`}>
                             {assignment.title}
                         </h3>
-                        {isUrgent && <Zap size={12} className="text-[var(--color-primary)] fill-current" />}
+                        {isUrgent && userStatus !== 'finished' && <div className="h-2 w-2 rounded-full bg-[var(--color-primary)] shadow-glow animate-pulse" />}
                     </div>
-                    <div className="flex items-center gap-3 text-[12px] font-medium text-neutral-500">
-                        <span className="flex items-center gap-1.5 shrink-0">
-                            <Clock size={13} strokeWidth={2.5} />
-                            {dateString}, {timeString}
+                    <div className="flex items-center gap-4 text-[13px] font-semibold text-neutral-500 uppercase tracking-wide">
+                        <span className="flex items-center gap-2 shrink-0">
+                            <Clock size={14} strokeWidth={2.5} className="text-neutral-600" />
+                            {dateString} <span className="text-neutral-700 mx-1">/</span> {timeString}
                         </span>
                         {assignment.description && (
-                            <span className="flex items-center gap-1.5 truncate">
-                                <span className="h-1 w-1 rounded-full bg-neutral-700" />
-                                <span className="truncate">{assignment.description}</span>
+                            <span className="flex items-center gap-2 truncate text-neutral-600">
+                                <span className="h-1 w-1 rounded-full bg-neutral-800" />
+                                <span className="truncate normal-case font-medium">{assignment.description}</span>
                             </span>
                         )}
                     </div>
                 </div>
             </div>
 
-            {/* Right: Collective Progress & Actions */}
-            <div className="flex items-center justify-between md:justify-end gap-8 pt-4 md:pt-0 shrink-0">
-                {/* Cohort Progress Indicator */}
-                {!isPending && !isOverdue && (
-                    <div className="hidden lg:flex flex-col gap-1.5 text-right min-w-[100px]">
-                        <span className="text-[10px] font-bold text-neutral-600 uppercase tracking-wider">Network</span>
-                        <div className="flex items-center gap-2">
-                            <div className="flex gap-0.5">
+            {/* Right: Actions & Progress */}
+            <div className="flex items-center justify-between md:justify-end gap-10 pt-6 md:pt-0 shrink-0 border-t md:border-t-0 border-white/5">
+                {/* Network Progress Indicator */}
+                {userStatus !== 'finished' && !isOverdue && (
+                    <div className="hidden lg:flex flex-col gap-2 text-right min-w-[120px]">
+                        <span className="text-[10px] font-bold text-neutral-600 uppercase tracking-[0.2em]">Cohort Progress</span>
+                        <div className="flex items-center gap-3 justify-end">
+                            <div className="flex gap-1">
                                 {[1, 2, 3, 4, 5].map(i => (
-                                    <div key={i} className={`h-1 w-3 rounded-sm ${i * 20 <= pulse.finished_percentage ? 'bg-[var(--color-primary)]' : 'bg-neutral-800'}`} />
+                                    <div key={i} className={`h-1.5 w-4 rounded-full transition-colors ${i * 20 <= pulse.finished_percentage ? 'bg-[var(--color-primary)]' : 'bg-neutral-800'}`} />
                                 ))}
                             </div>
-                            <span className="text-[11px] font-bold text-neutral-400">{pulse.finished_percentage}%</span>
+                            <span className="text-[12px] font-black text-neutral-400 font-outfit">{pulse.finished_percentage}%</span>
                         </div>
                     </div>
                 )}
 
                 {/* Primary Action Button */}
-                <div className="flex items-center gap-3">
-                    {isPending ? (
-                        <button
-                            onClick={handleVerify}
-                            disabled={isVerifying}
-                            className="h-10 px-4 rounded-lg bg-white text-black text-[13px] font-bold flex items-center gap-2 transition-all hover:bg-neutral-200 active:scale-95 disabled:opacity-50"
-                        >
-                            {isVerifying ? <Loader2 className="animate-spin" size={14} /> : <CheckCircle2 size={14} strokeWidth={2.5} />}
-                            Verify Intel
-                        </button>
-                    ) : userStatus === 'finished' ? (
-                        <div className="h-10 px-4 rounded-lg bg-green-500/10 text-green-500 text-[13px] font-bold flex items-center gap-2 border border-green-500/20">
-                            <CheckCircle2 size={14} strokeWidth={2.5} /> Done
+                <div className="flex items-center gap-4">
+                    {userStatus === 'finished' ? (
+                        <div className="h-11 px-6 rounded-xl bg-green-500/10 text-green-500 text-[13px] font-extrabold flex items-center gap-2.5 border border-green-500/20 shadow-sm uppercase tracking-[0.1em]">
+                            <CheckCircle2 size={16} strokeWidth={2.5} /> Completed
                         </div>
                     ) : (
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-3">
                             {userStatus === 'not_started' ? (
                                 <button
                                     onClick={() => handleStatusUpdate('in_progress')}
                                     disabled={isUpdating}
-                                    className="h-10 px-4 rounded-lg bg-neutral-900 border border-white/5 text-white/60 text-[13px] font-bold flex items-center gap-2 transition-all hover:bg-white hover:text-black active:scale-95 disabled:opacity-50"
+                                    className="h-11 px-6 rounded-xl bg-neutral-900 border border-white/10 text-neutral-400 text-[13px] font-extrabold flex items-center gap-2.5 transition-all hover:bg-white hover:text-black active:scale-95 disabled:opacity-50 uppercase tracking-[0.1em]"
                                 >
-                                    <Play size={12} fill="currentColor" /> Start Work
+                                    <Play size={14} fill="currentColor" /> Begin Task
                                 </button>
                             ) : (
                                 <button
                                     onClick={() => handleStatusUpdate('finished')}
                                     disabled={isUpdating}
-                                    className="h-10 px-4 rounded-lg bg-[var(--color-primary)] text-white text-[13px] font-bold flex items-center gap-2 transition-all hover:brightness-110 active:scale-95 shadow-[0_4px_12px_rgba(249,115,22,0.15)] disabled:opacity-50"
+                                    className="h-11 px-6 rounded-xl bg-[var(--color-primary)] text-white text-[13px] font-extrabold flex items-center gap-2.5 transition-all hover:brightness-110 active:scale-95 shadow-glow disabled:opacity-50 uppercase tracking-[0.1em]"
                                 >
-                                    <Zap size={14} fill="currentColor" /> Finish
+                                    <Zap size={16} fill="currentColor" /> Complete
                                 </button>
                             )}
                         </div>
                     )}
 
-                    {!isPending && (
-                        <button className="h-10 w-10 flex items-center justify-center rounded-lg border border-white/5 bg-white/[0.02] text-neutral-600 hover:text-white hover:bg-white/5 transition-all">
-                            <ChevronRight size={18} />
-                        </button>
-                    )}
+                    <button className="h-11 w-11 flex items-center justify-center rounded-xl border border-white/10 bg-white/[0.03] text-neutral-500 hover:text-white hover:bg-white/10 transition-all shadow-sm">
+                        <ChevronRight size={20} />
+                    </button>
                 </div>
             </div>
         </div>
     )
 }
+
+
 
 function Loader2(props: any) {
     return (

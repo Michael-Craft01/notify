@@ -28,7 +28,8 @@ export default async function Home() {
     .select(`
       *,
       users!created_by (full_name),
-      user_progress (status, user_id)
+      user_progress (status, user_id),
+      assignment_pulse_stats (finished_percentage, involvement_percentage)
     `)
     .gte("due_date", new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString()) // Extra 48h buffer
     .order("due_date", { ascending: true });
@@ -37,42 +38,51 @@ export default async function Home() {
     console.error("Error fetching assignments details:", JSON.stringify(error));
   }
 
-  const verifiedThreats = assignments?.filter((a) => a.status === "verified") || [];
-  const pendingIntelligence = assignments?.filter((a) => a.status === "pending") || [];
+  const allTasks = assignments || [];
+  const activeTasks = allTasks.filter((a) => {
+    const myProgress = a.user_progress?.find((p: any) => p.user_id === user.id);
+    const userStatus = myProgress?.status || 'not_started';
+    return userStatus !== 'finished';
+  });
+  const completedTasks = allTasks.filter((a) => {
+    const myProgress = a.user_progress?.find((p: any) => p.user_id === user.id);
+    return myProgress?.status === 'finished';
+  });
+  const overdueCount = activeTasks.filter(a => new Date(a.due_date).getTime() < Date.now()).length;
 
   return (
     <div className="bg-[var(--color-background)] min-h-screen font-sans selection:bg-[var(--color-primary)]/30">
       {/* Premium Elite Navigation */}
-      <nav className="glass sticky top-0 z-[100] border-b border-white/5 h-14">
-        <div className="max-w-[1400px] mx-auto px-4 sm:px-6 h-full flex items-center justify-between">
-          <div className="flex items-center gap-8">
-            <div className="flex items-center gap-2.5">
-              <div className="h-6 w-6 rounded-md bg-[var(--color-primary)] flex items-center justify-center text-black shadow-[0_0_15px_rgba(249,115,22,0.4)]">
-                <Terminal size={14} strokeWidth={3} />
+      <nav className="glass sticky top-0 z-[100] border-b border-white/5 h-16">
+        <div className="max-w-[1400px] mx-auto px-6 h-full flex items-center justify-between">
+          <div className="flex items-center gap-10">
+            <div className="flex items-center gap-3">
+              <div className="h-8 w-8 rounded-lg bg-[var(--color-primary)] flex items-center justify-center text-black shadow-glow">
+                <Terminal size={18} strokeWidth={2.5} />
               </div>
-              <h1 className="text-base font-bold tracking-tight text-white flex items-center">
-                Warden
+              <h1 className="text-lg font-extrabold tracking-tight text-white font-outfit uppercase">
+                Notify
               </h1>
             </div>
 
-            <div className="hidden md:flex items-center gap-6">
-              <div className="flex items-center gap-2 h-8 px-3 rounded-md bg-white/5 text-[12px] font-semibold text-white/90">
+            <div className="hidden md:flex items-center gap-8">
+              <div className="flex items-center gap-2 text-[13px] font-bold text-white uppercase tracking-wider">
                 <LayoutDashboard size={14} className="text-[var(--color-primary)]" />
-                Overview
+                Dashboard
               </div>
-              <div className="text-[12px] font-semibold text-neutral-500 hover:text-neutral-300 transition-colors cursor-not-allowed flex items-center gap-2">
+              <div className="text-[13px] font-bold text-neutral-500 hover:text-neutral-300 transition-colors cursor-pointer flex items-center gap-2 uppercase tracking-wider">
                 <MessageSquare size={14} />
-                Archive
+                Schedules
               </div>
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-4">
             <NotificationToggle />
-            <div className="h-4 w-px bg-white/10 mx-1 hidden sm:block" />
+            <div className="h-6 w-px bg-white/10 mx-2 hidden sm:block" />
             <AddAssignmentModal userId={user.id} />
-            <div className="hidden sm:flex items-center gap-2 ml-2 pl-4 border-l border-white/5">
-              <div className="h-8 w-8 rounded-full bg-neutral-800 border border-white/5 flex items-center justify-center text-[11px] font-bold text-neutral-400">
+            <div className="hidden sm:flex items-center gap-3 ml-2 pl-4 border-l border-white/5">
+              <div className="h-9 w-9 rounded-full bg-neutral-800 border border-white/10 flex items-center justify-center text-[12px] font-bold text-neutral-300 shadow-sm">
                 {user.email?.[0].toUpperCase()}
               </div>
             </div>
@@ -80,36 +90,49 @@ export default async function Home() {
         </div>
       </nav>
 
-      <main className="max-w-[1100px] mx-auto px-4 sm:px-6 py-10">
-        <div className="space-y-12">
-
-          {/* Section: Active Directives */}
-          <section className="space-y-6">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <h2 className="text-[13px] font-bold text-neutral-400 uppercase tracking-widest">Active Directives</h2>
-                <div className="h-1.5 w-1.5 rounded-full bg-[var(--color-primary)] animate-pulse" />
+      <main className="max-w-[1100px] mx-auto px-6 py-12">
+        <div className="space-y-16">
+          
+          {/* Stats Overview */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {[
+              { label: "Active Tasks", value: activeTasks.length, color: "var(--color-primary)" },
+              { label: "Completed", value: completedTasks.length, color: "var(--color-text-muted)" },
+              { label: "Overdue", value: overdueCount, color: "#ef4444" },
+            ].map((stat, i) => (
+              <div key={i} className="premium-card rounded-2xl p-6 border border-white/5 bg-white/[0.02]">
+                <p className="text-[11px] font-bold text-neutral-500 uppercase tracking-[0.2em] mb-1">{stat.label}</p>
+                <p className="text-4xl font-black font-outfit" style={{ color: stat.color }}>{stat.value}</p>
               </div>
-              <div className="flex items-center gap-2 text-[12px] font-semibold text-neutral-500">
-                <span className="text-neutral-200">{verifiedThreats.length}</span>
-                Task{verifiedThreats.length !== 1 ? 's' : ''} Identified
+            ))}
+          </div>
+
+          {/* Section: Active Tasks */}
+          <section className="space-y-8">
+            <div className="flex items-center justify-between border-b border-white/5 pb-4">
+              <div className="flex items-center gap-4">
+                <h2 className="text-sm font-black text-white uppercase tracking-[0.2em] font-outfit">Upcoming Schedule</h2>
+                <div className="h-2 w-2 rounded-full bg-[var(--color-primary)] shadow-glow animate-pulse" />
+              </div>
+              <div className="text-[12px] font-bold text-neutral-500 uppercase tracking-widest">
+                <span className="text-white">{activeTasks.length}</span> Pending Tasks
               </div>
             </div>
 
-            <div className="grid grid-cols-1 gap-1">
-              {verifiedThreats.length === 0 ? (
-                <div className="rounded-xl border border-dashed border-white/5 py-16 flex flex-col items-center justify-center gap-3 text-center">
-                  <div className="h-10 w-10 rounded-full bg-neutral-900 flex items-center justify-center text-neutral-700">
-                    <ShieldCheck size={20} />
+            <div className="grid grid-cols-1 gap-4">
+              {activeTasks.length === 0 ? (
+                <div className="rounded-2xl border border-dashed border-white/10 py-24 flex flex-col items-center justify-center gap-5 bg-white/[0.01]">
+                  <div className="h-14 w-14 rounded-2xl bg-neutral-900 flex items-center justify-center text-neutral-600 border border-white/5 shadow-inner">
+                    <ShieldCheck size={28} />
                   </div>
-                  <div className="space-y-1">
-                    <p className="text-[13px] font-bold text-neutral-500 uppercase tracking-wider">Scanners Clear</p>
-                    <p className="text-[12px] text-neutral-600 font-medium">All mission objectives have been resolved.</p>
+                  <div className="text-center space-y-1">
+                    <p className="text-sm font-bold text-neutral-400 uppercase tracking-[0.2em]">Clear Schedule</p>
+                    <p className="text-[13px] text-neutral-600 font-medium tracking-wide">All your current tasks have been resolved.</p>
                   </div>
                 </div>
               ) : (
-                <div className="flex flex-col gap-2">
-                  {verifiedThreats.map((assignment) => (
+                <div className="flex flex-col gap-4">
+                  {activeTasks.map((assignment) => (
                     <AssignmentCard
                       key={assignment.id}
                       assignment={assignment as any}
@@ -121,44 +144,37 @@ export default async function Home() {
             </div>
           </section>
 
-          {/* Section: Unconfirmed Intelligence */}
-          <section className="space-y-6">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <h2 className="text-[13px] font-bold text-neutral-400 uppercase tracking-widest">Unconfirmed Data</h2>
-                <div className="h-4 px-2 rounded bg-neutral-800 text-[10px] font-black text-neutral-500 flex items-center">BETA</div>
-              </div>
-              <span className="text-[12px] font-semibold text-neutral-500">
-                <span className="text-neutral-300">{pendingIntelligence.length}</span> Awaiting Scan
-              </span>
-            </div>
-
-            <div className="grid grid-cols-1 gap-2">
-              {pendingIntelligence.length === 0 ? (
-                <div className="rounded-xl border border-dashed border-white/5 py-12 flex flex-col items-center justify-center gap-2">
-                  <p className="text-[12px] font-bold text-neutral-700 uppercase tracking-widest italic">Zero Pending Objectives</p>
+          {/* Section: Recently Completed */}
+          {completedTasks.length > 0 && (
+            <section className="space-y-8 opacity-60">
+              <div className="flex items-center justify-between border-b border-white/5 pb-4">
+                <div className="flex items-center gap-4">
+                  <h2 className="text-sm font-black text-neutral-400 uppercase tracking-[0.2em] font-outfit">Recently Completed</h2>
                 </div>
-              ) : (
-                pendingIntelligence.map((assignment) => (
+              </div>
+
+              <div className="flex flex-col gap-4">
+                {completedTasks.map((assignment) => (
                   <AssignmentCard
                     key={assignment.id}
                     assignment={assignment as any}
                     currentUserId={user.id}
                   />
-                ))
-              )}
-            </div>
-          </section>
+                ))}
+              </div>
+            </section>
+          )}
 
         </div>
       </main>
 
+
       {/* Elite SaaS Footer */}
-      <footer className="max-w-[1100px] mx-auto px-6 py-20 border-t border-white/5 flex items-center justify-between text-neutral-600 text-[11px] font-bold uppercase tracking-widest">
-        <div>Warden Unified Access</div>
-        <div className="flex items-center gap-6">
-          <span className="hover:text-white transition-colors cursor-pointer">Security Protocol</span>
-          <span className="hover:text-white transition-colors cursor-pointer">Operative Network</span>
+      <footer className="max-w-[1100px] mx-auto px-6 py-20 border-t border-white/5 flex items-center justify-between text-neutral-600 text-[11px] font-bold uppercase tracking-[0.2em]">
+        <div>© 2024 Notify Intelligent Systems</div>
+        <div className="flex items-center gap-8">
+          <span className="hover:text-white transition-colors cursor-pointer">Security Center</span>
+          <span className="hover:text-white transition-colors cursor-pointer">Network Status</span>
         </div>
       </footer>
     </div>

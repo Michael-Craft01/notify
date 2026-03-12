@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/utils/supabase/server'
-import { Command } from 'lucide-react'
+import { Terminal } from 'lucide-react'
 import OnboardingForm from '@/components/OnboardingForm'
 
 export default async function OnboardingPage() {
@@ -31,21 +31,21 @@ export default async function OnboardingPage() {
 
                 <div className="flex flex-col items-center text-center gap-4 relative z-10">
                     <div className="h-10 w-10 rounded-xl bg-[var(--color-primary)] flex items-center justify-center text-black shadow-[0_0_20px_rgba(249,115,22,0.3)]">
-                        <Command size={20} strokeWidth={2.5} />
+                        <Terminal size={20} strokeWidth={2.5} />
                     </div>
                     <div className="space-y-1">
-                        <h1 className="text-xl font-bold tracking-tight text-white italic">Warden</h1>
-                        <p className="text-[12px] font-semibold text-neutral-500 uppercase tracking-widest">Profile Initialization</p>
+                        <h1 className="text-xl font-bold tracking-tight text-white uppercase font-outfit">Notify</h1>
+                        <p className="text-[12px] font-semibold text-neutral-500 uppercase tracking-widest">Profile Configuration</p>
                     </div>
                     <p className="text-[13px] text-neutral-400 font-medium max-w-[240px] leading-relaxed">
-                        Complete your identification to access the operative network.
+                        Complete your profile to synchronize with your cohort.
                     </p>
                 </div>
 
                 <OnboardingForm />
 
                 <div className="text-[10px] font-bold text-neutral-800 uppercase tracking-[0.4em] relative z-10">
-                    Warden Authority
+                    Notify Intelligent Systems
                 </div>
             </div>
         </div>

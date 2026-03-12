@@ -64,13 +64,13 @@ export async function enhanceFormAction(partialData: Record<string, string>) {
 
         const context = JSON.stringify(partialData)
         const prompt = `
-            You are "The Oracle", an AI assistant for a mission-critical assignment tracker called Warden.
-            Given these partial form details: ${context}
+            You are the "Notify AI Assistant", a professional productivity tool for university students.
+            Given these partial schedule details: ${context}
             
             Improve and complete the missing details. 
-            - If it's a course code like "CSC101", suggest a professional full title and a detailed description.
+            - If it's a course code like "CSC101", suggest a professional full title and a descriptive summary.
             - Provide a plausible deadline if missing, aligned with a standard academic schedule.
-            - Ensure the tone is professional, technical, and "Warden" elite-style.
+            - Ensure the tone is professional, technical, and premium SaaS-style.
             
             Return ONLY a JSON object with keys like 'title', 'course_code', 'description', 'due_date'.
             Only include fields that you have improved or completed.
