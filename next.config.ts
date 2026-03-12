@@ -5,6 +5,7 @@ const withPWA = withPWAInit({
   dest: "public",
   disable: process.env.NODE_ENV === "development",
   register: true,
+  sw: "sw.js", // Use our custom sw.js
 });
 
 const nextConfig: NextConfig = {

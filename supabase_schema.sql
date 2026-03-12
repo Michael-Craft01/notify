@@ -170,3 +170,29 @@ GROUP BY
 
 -- Grant access to authenticated users
 GRANT SELECT ON public.assignment_pulse_stats TO authenticated;
+-- 6. User Subscriptions (Web Push)
+CREATE TABLE public.user_subscriptions (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  user_id UUID REFERENCES public.users(id) ON DELETE CASCADE,
+  subscription JSONB NOT NULL,
+  device_type TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(user_id, subscription)
+);
+
+ALTER TABLE public.user_subscriptions ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can create their own subscriptions" 
+ON public.user_subscriptions FOR INSERT 
+TO authenticated 
+WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can read their own subscriptions" 
+ON public.user_subscriptions FOR SELECT 
+TO authenticated 
+USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can delete their own subscriptions" 
+ON public.user_subscriptions FOR DELETE 
+TO authenticated 
+USING (auth.uid() = user_id);

@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 import { createClient } from '@/utils/supabase/server'
+import { scheduleDeadlineAlerts } from '@/trigger/deadline-alerts'
 
 // Validation Schema
 const CreateAssignmentSchema = z.object({
@@ -35,8 +36,8 @@ export async function createAssignment(formData: FormData) {
         return { error: 'Invalid fields. Please check your submission.' }
     }
 
-    // 3. Insert into Supabase (Default difficulty to 5 until AI phase)
-    const { error: insertError } = await supabase
+    // 3. Insert into Supabase
+    const { data: assignments, error: insertError } = await supabase
         .from('assignments')
         .insert({
             course_code: validatedFields.data.course_code.toUpperCase(),
@@ -46,10 +47,24 @@ export async function createAssignment(formData: FormData) {
             created_by: user.id,
             difficulty_score: 5,
         })
+        .select()
 
-    if (insertError) {
+    if (insertError || !assignments) {
         console.error(insertError)
         return { error: 'Failed to create assignment in the database.' }
+    }
+
+    // 4. Trigger Background Notification Matrix (Phase 4)
+    // We only trigger for the creator here; Phase 4 logic will eventually target the cohort.
+    try {
+        await scheduleDeadlineAlerts.trigger({
+            assignmentId: assignments[0].id,
+            dueDate: validatedFields.data.due_date,
+            title: validatedFields.data.title
+        })
+    } catch (triggerError) {
+        console.error('Trigger.dev failed to schedule:', triggerError)
+        // We don't return error here because the assignment was successfully created in DB
     }
 
     revalidatePath('/')

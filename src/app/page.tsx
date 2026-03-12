@@ -1,8 +1,8 @@
-import { BellRing } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
-import AssignmentCard from "@/components/AssignmentCard";
 import AddAssignmentModal from "@/components/AddAssignmentModal";
+import AssignmentCard from "@/components/AssignmentCard";
+import NotificationToggle from "@/components/NotificationToggle";
 
 export default async function Home() {
   const supabase = await createClient();
@@ -12,30 +12,42 @@ export default async function Home() {
     redirect("/login");
   }
 
-  // Fetch all future assignments, ordered by urgency
+  // Fetch all future assignments, joined with pulse stats and current user's progress
   const { data: assignments, error } = await supabase
     .from("assignments")
-    .select("*, users (full_name)")
+    .select(`
+      *,
+      users (full_name),
+      assignment_pulse_stats (finished_percentage, involvement_percentage),
+      user_progress!left (status)
+    `)
+    .eq("user_progress.user_id", user.id)
     .gte("due_date", new Date().toISOString())
     .order("due_date", { ascending: true });
 
   if (error) {
-    console.error("Failed to fetch assignments:", error);
+    console.error("Error fetching assignments:", error);
   }
 
   const verifiedThreats = assignments?.filter((a) => a.status === "verified") || [];
-  const pendingIntel = assignments?.filter((a) => a.status === "pending") || [];
+  const pendingIntelligence = assignments?.filter((a) => a.status === "pending") || [];
 
   return (
-    <main className="flex min-h-screen flex-col bg-[var(--color-background)] p-6 pb-24 relative">
-      <header className="flex items-center justify-between pb-6">
+    <div className="flex flex-col gap-8 pb-20">
+      {/* Header section with branding and push toggle */}
+      <header className="flex items-center justify-between pt-4">
         <div>
-          <h1 className="text-2xl font-bold text-[var(--color-primary)]">Notify</h1>
-          <p className="text-sm text-[var(--color-text-muted)]">Deadline Warden</p>
+          <h1 className="text-3xl font-black tracking-tighter text-white">
+            NOTIFY
+          </h1>
+          <p className="text-xs font-bold text-[var(--color-primary)] uppercase tracking-widest bg-[var(--color-primary)]/10 px-2 py-0.5 rounded inline-block mt-1">
+            Deadline Warden v1.0
+          </p>
         </div>
-        <button className="rounded-full bg-[var(--color-surface-hover)] p-2 text-[var(--color-text-main)] transition-colors hover:bg-[var(--color-primary-light)]">
-          <BellRing size={20} />
-        </button>
+        <div className="flex items-center gap-3">
+          <NotificationToggle />
+          <AddAssignmentModal />
+        </div>
       </header>
 
       <section className="mt-4 flex flex-col gap-4">
@@ -57,12 +69,12 @@ export default async function Home() {
 
         <h2 className="mt-6 text-lg font-semibold text-[var(--color-text-main)]">Pending Intelligence</h2>
 
-        {pendingIntel.length === 0 ? (
+        {pendingIntelligence.length === 0 ? (
           <div className="rounded-xl border border-dashed border-[var(--color-surface-hover)] p-8 text-center text-sm text-[var(--color-text-muted)]">
             No intelligence awaiting verification.
           </div>
         ) : (
-          pendingIntel.map((assignment) => (
+          pendingIntelligence.map((assignment) => (
             <AssignmentCard
               key={assignment.id}
               assignment={assignment as any}
@@ -72,8 +84,10 @@ export default async function Home() {
         )}
       </section>
 
-      {/* Fixed bottom logging action */}
-      <AddAssignmentModal userId={user.id} />
-    </main>
+      {/* Manual logging action at bottom for accessibility */}
+      <div className="flex justify-center mt-4">
+        <AddAssignmentModal />
+      </div>
+    </div>
   );
 }
