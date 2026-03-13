@@ -4,6 +4,7 @@ import { useState, useEffect, Suspense } from 'react'
 import { Loader2, Mail, Terminal, Sparkles, TrendingUp, Users } from 'lucide-react'
 import { sendOTP, verifyOTP, signInWithOAuth } from './actions'
 import { useRouter, useSearchParams } from 'next/navigation'
+import { createClient } from '@/utils/supabase/client'
 
 function LoginContent() {
     const [email, setEmail] = useState('')
@@ -21,9 +22,18 @@ function LoginContent() {
 
     const handleOAuth = async (provider: 'google') => {
         setIsLoading(true)
-        const result = await signInWithOAuth(provider)
-        if (result?.error) {
-            setError(result.error)
+        setError(null)
+        
+        const supabase = createClient()
+        const { error } = await supabase.auth.signInWithOAuth({
+            provider,
+            options: {
+                redirectTo: `${window.location.origin}/auth/confirm`,
+            },
+        })
+
+        if (error) {
+            setError(error.message)
             setIsLoading(false)
         }
     }
