@@ -4,7 +4,8 @@ import { cookies } from "next/headers";
 import AddAssignmentModal from "@/components/AddAssignmentModal";
 import AssignmentCard from "@/components/AssignmentCard";
 import NotificationToggle from "@/components/NotificationToggle";
-import { Terminal, Clock, CheckCircle2, AlertTriangle, TrendingUp, Users } from "lucide-react";
+import { Clock, CheckCircle2, AlertTriangle, TrendingUp, Users } from "lucide-react";
+import Image from "next/image";
 
 export default async function Home() {
   const supabase = await createClient();
@@ -64,8 +65,9 @@ export default async function Home() {
         <div className="max-w-[1200px] mx-auto px-6 h-[60px] flex items-center justify-between">
           {/* Brand */}
           <div className="flex items-center gap-2.5 group cursor-pointer">
-            <div className="h-8 w-8 rounded-lg flex items-center justify-center bg-gradient-to-br from-[#F97316] to-[#EA580C] shadow-[0_0_16px_rgba(249,115,22,0.40)] group-hover:shadow-[0_0_24px_rgba(249,115,22,0.60)] transition-shadow">
-              <Terminal size={14} color="#fff" strokeWidth={2.5} />
+            <div className="h-8 w-8 rounded-lg flex items-center justify-center overflow-hidden shadow-[0_0_16px_rgba(249,115,22,0.40)] group-hover:shadow-[0_0_24px_rgba(249,115,22,0.60)] transition-shadow">
+              {/* Using the uploaded logo for better branding instead of the Terminal icon */}
+              <Image src="/favicon.png" alt="Notify Logo" width={32} height={32} className="w-full h-full object-cover" />
             </div>
             <span className="font-[family-name:var(--font-outfit)] font-extrabold text-[15px] tracking-[0.05em] uppercase text-white/95 group-hover:text-white transition-colors">
               Notify
@@ -167,7 +169,7 @@ export default async function Home() {
       <footer className="border-t border-[var(--color-border)] py-8 mt-auto">
         <div className="max-w-[1200px] mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
-            <Terminal size={14} className="text-[#F97316]" strokeWidth={2.5} />
+            <Image src="/favicon.png" alt="Notify Logo" width={16} height={16} className="w-4 h-4 object-cover rounded-sm" />
             <span className="font-[family-name:var(--font-outfit)] font-bold text-[13px] tracking-wider uppercase text-white/80">Notify</span>
           </div>
           <p className="text-[12px] text-[var(--color-text-dim)]">
