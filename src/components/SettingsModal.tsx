@@ -4,6 +4,8 @@ import { useState, useRef, useEffect, useTransition } from 'react'
 import { createPortal } from 'react-dom'
 import { Settings, X, User, GraduationCap, Bell, Loader2, Save, LogOut } from 'lucide-react'
 import { updateUserProfile } from '@/app/actions/profile'
+import { signOut } from '@/app/actions/auth'
+import { useRouter } from 'next/navigation'
 
 type SettingsModalProps = {
     user: {
@@ -17,6 +19,8 @@ type SettingsModalProps = {
 export default function SettingsModal({ user }: SettingsModalProps) {
     const [isOpen, setIsOpen] = useState(false)
     const [isPending, startTransition] = useTransition()
+    const [isLoggingOut, setIsLoggingOut] = useState(false)
+    const router = useRouter()
     const [formData, setFormData] = useState({
         full_name: user.full_name || '',
         cohort_year: user.cohort_year?.toString() || '',
@@ -26,6 +30,13 @@ export default function SettingsModal({ user }: SettingsModalProps) {
     useEffect(() => {
         setMounted(true)
     }, [])
+
+    const handleLogout = async () => {
+        setIsLoggingOut(true)
+        await signOut()
+        setIsLoggingOut(false)
+        setIsOpen(false)
+    }
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -55,7 +66,7 @@ export default function SettingsModal({ user }: SettingsModalProps) {
 
             {isOpen && mounted && createPortal(
                 <div className="fixed inset-0 z-[300] animate-fade-in">
-                    <div className="absolute inset-0 bg-black/60 backdrop-blur-md" onClick={() => setIsOpen(false)} />
+                    <div className="absolute inset-0 bg-black/60 backdrop-blur-xl" onClick={() => setIsOpen(false)} />
                     
                     <div className="absolute bottom-12 sm:bottom-20 left-1/2 -translate-x-1/2 w-full max-w-[440px] px-4 animate-scale-in">
                         <div className="relative w-full bg-[#0a0a0a]/90 backdrop-blur-3xl rounded-[32px] border border-white/10 shadow-2xl overflow-hidden">
@@ -147,10 +158,12 @@ export default function SettingsModal({ user }: SettingsModalProps) {
                                 </button>
                                 <button 
                                     type="button"
-                                    className="w-full h-11 bg-white/5 text-white/40 border border-white/5 rounded-xl font-bold text-[12px] hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/20 transition-all flex items-center justify-center gap-2"
+                                    onClick={handleLogout}
+                                    disabled={isLoggingOut}
+                                    className="w-full h-11 bg-white/5 text-white/40 border border-white/5 rounded-xl font-bold text-[12px] hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/20 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
                                 >
-                                    <LogOut size={14} />
-                                    Logout
+                                    {isLoggingOut ? <Loader2 size={14} className="animate-spin" /> : <LogOut size={14} />}
+                                    {isLoggingOut ? 'Signing out...' : 'Logout'}
                                 </button>
                             </div>
                         </div>

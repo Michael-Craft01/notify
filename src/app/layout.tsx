@@ -9,6 +9,25 @@ export const metadata: Metadata = {
   title: "Notify | Intelligent Schedule Assistant",
   description: "Professional schedule management and deadline tracking.",
   manifest: "/manifest.json",
+  icons: {
+    icon: "/favicon.png",
+    apple: "/favicon.png",
+  },
+  openGraph: {
+    title: "Notify",
+    description: "Professional schedule management and deadline tracking.",
+    url: "https://notify.example.com",
+    siteName: "Notify",
+    images: [
+      {
+        url: "/og-image.png",
+        width: 1200,
+        height: 630,
+      },
+    ],
+    locale: "en_US",
+    type: "website",
+  },
 };
 
 export const viewport: Viewport = {

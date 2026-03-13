@@ -120,7 +120,7 @@ export default function NotifyAIChat({ currentAssignments }: { currentAssignment
                 <div className="fixed inset-0 z-[300] animate-fade-in">
                     {/* Backdrop */}
                     <div 
-                        className="absolute inset-0 bg-black/40 backdrop-blur-sm" 
+                        className="absolute inset-0 bg-black/40 backdrop-blur-xl" 
                         onClick={() => setIsOpen(false)} 
                     />
                     

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect, useTransition } from 'react'
+import { createPortal } from 'react-dom'
 import {
     Plus, X, Loader2, Sparkles, ChevronRight, ChevronLeft,
     FileText, ClipboardList, Monitor, MapPin,
@@ -50,7 +51,6 @@ export default function AddAssignmentModal({ userId }: { userId: string }) {
     const [isExtracting, setIsExtracting] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const [done, setDone] = useState(false)
-    const popoutRef = useRef<HTMLDivElement>(null)
 
     // Form state
     const [taskType, setTaskType] = useState<TaskType>('assignment')
@@ -84,16 +84,6 @@ export default function AddAssignmentModal({ userId }: { userId: string }) {
         setLocation('')
     }
 
-    // Close on outside click
-    useEffect(() => {
-        const handler = (e: MouseEvent) => {
-            if (popoutRef.current && !popoutRef.current.contains(e.target as Node)) {
-                handleClose()
-            }
-        }
-        if (isOpen) document.addEventListener('mousedown', handler)
-        return () => document.removeEventListener('mousedown', handler)
-    }, [isOpen])
 
     const handleFileScan = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0]
@@ -142,7 +132,7 @@ export default function AddAssignmentModal({ userId }: { userId: string }) {
     }
 
     return (
-        <div className="relative" ref={popoutRef}>
+        <div className="relative">
             {/* Trigger button */}
             <button
                 onClick={() => setIsOpen(v => !v)}
@@ -157,7 +147,7 @@ export default function AddAssignmentModal({ userId }: { userId: string }) {
                 <div className="fixed inset-0 z-[300] animate-fade-in">
                     {/* Backdrop */}
                     <div 
-                        className="absolute inset-0 bg-black/60 backdrop-blur-md" 
+                        className="absolute inset-0 bg-black/60 backdrop-blur-xl" 
                         onClick={handleClose} 
                     />
                     
@@ -213,244 +203,248 @@ export default function AddAssignmentModal({ userId }: { userId: string }) {
                                 </button>
                             </div>
 
-                            {/* Body */}
-                            <div className="p-5 max-h-[70vh] sm:max-h-[600px] overflow-y-auto">
+                            {/* Body: Carousel Container */}
+                            <div className="relative overflow-hidden w-full">
+                                <div 
+                                    className="flex items-start transition-transform duration-500 ease-out will-change-transform"
+                                    style={{ transform: `translateX(-${step * 100}%)` }}
+                                >
+                                    {/* Step 0: Choose Type */}
+                                    <div className="w-full shrink-0 h-full p-5 max-h-[70vh] sm:max-h-[600px] overflow-y-auto">
+                                        <div className="space-y-3">
+                                            <div className="mb-3">
+                                                <p className="text-[13px] font-bold mb-0.5 text-white">New Task</p>
+                                                <p className="text-[11px] text-white/40">Select the task type to get started</p>
+                                            </div>
 
-                                {/* Step 0: Choose Type */}
-                                {step === 0 && (
-                                    <div className="space-y-3 animate-fade-up">
-                                        <div className="mb-3">
-                                            <p className="text-[13px] font-bold mb-0.5 text-white">New Task</p>
-                                            <p className="text-[11px] text-white/40">Select the task type to get started</p>
+                                            <div className="grid grid-cols-2 gap-2">
+                                                {TYPES.map((type) => (
+                                                    <button
+                                                        key={type.value}
+                                                        onClick={() => { setTaskType(type.value); setStep(1) }}
+                                                        className="rounded-xl p-3 text-left border transition-all hover:scale-[1.02] active:scale-[0.98]"
+                                                        style={{
+                                                            background: taskType === type.value ? type.bg : 'var(--color-surface-2)',
+                                                            borderColor: taskType === type.value ? `${type.color}44` : 'var(--color-border)',
+                                                        }}
+                                                    >
+                                                        <div
+                                                            className="h-7 w-7 rounded-lg flex items-center justify-center mb-2"
+                                                            style={{ background: type.bg }}
+                                                        >
+                                                            <type.icon size={14} style={{ color: type.color }} />
+                                                        </div>
+                                                        <p className="text-[12px] font-bold mb-0.5 text-white">{type.label}</p>
+                                                        <p className="text-[10px] leading-snug text-white/30">{type.hint}</p>
+                                                    </button>
+                                                ))}
+                                            </div>
+
+                                            <label
+                                                className="flex items-center gap-3 p-3 rounded-xl border border-dashed border-white/10 bg-white/[0.02] cursor-pointer transition-all hover:border-orange/40"
+                                            >
+                                                <div className="h-7 w-7 rounded-lg flex items-center justify-center bg-orange/10 shrink-0">
+                                                    {isExtracting
+                                                        ? <Loader2 size={13} className="animate-spin text-orange" />
+                                                        : <Sparkles size={13} className="text-orange" />
+                                                    }
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="text-[12px] font-bold text-white">AI Import</p>
+                                                    <p className="text-[10px] text-white/30">Upload PDF or image to auto-fill</p>
+                                                </div>
+                                                <ChevronRight size={13} className="text-white/20" />
+                                                <input type="file" accept="image/*,application/pdf" onChange={handleFileScan} className="sr-only" disabled={isExtracting} />
+                                            </label>
+
+                                            {error && <p className="text-[11px] pt-1 text-red-500">{error}</p>}
                                         </div>
+                                    </div>
 
-                                        <div className="grid grid-cols-2 gap-2">
-                                            {TYPES.map((type) => (
-                                                <button
-                                                    key={type.value}
-                                                    onClick={() => { setTaskType(type.value); setStep(1) }}
-                                                    className="rounded-xl p-3 text-left border transition-all hover:scale-[1.02] active:scale-[0.98]"
+                                    {/* Step 1: Details */}
+                                    <div className="w-full shrink-0 p-5 max-h-[70vh] sm:max-h-[600px] overflow-y-auto">
+                                        <div className="space-y-3">
+                                            <div className="flex items-center gap-2 mb-1">
+                                                <div
+                                                    className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest flex items-center gap-1"
                                                     style={{
-                                                        background: taskType === type.value ? type.bg : 'var(--color-surface-2)',
-                                                        borderColor: taskType === type.value ? `${type.color}44` : 'var(--color-border)',
+                                                        background: selectedType.bg,
+                                                        color: selectedType.color,
+                                                        border: `1px solid ${selectedType.color}33`,
                                                     }}
                                                 >
-                                                    <div
-                                                        className="h-7 w-7 rounded-lg flex items-center justify-center mb-2"
-                                                        style={{ background: type.bg }}
-                                                    >
-                                                        <type.icon size={14} style={{ color: type.color }} />
-                                                    </div>
-                                                    <p className="text-[12px] font-bold mb-0.5 text-white">{type.label}</p>
-                                                    <p className="text-[10px] leading-snug text-white/30">{type.hint}</p>
-                                                </button>
-                                            ))}
-                                        </div>
-
-                                        <label
-                                            className="flex items-center gap-3 p-3 rounded-xl border border-dashed border-white/10 bg-white/[0.02] cursor-pointer transition-all hover:border-orange/40"
-                                        >
-                                            <div className="h-7 w-7 rounded-lg flex items-center justify-center bg-orange/10 shrink-0">
-                                                {isExtracting
-                                                    ? <Loader2 size={13} className="animate-spin text-orange" />
-                                                    : <Sparkles size={13} className="text-orange" />
-                                                }
+                                                    <selectedType.icon size={9} />
+                                                    {selectedType.label}
+                                                </div>
+                                                <p className="text-[12px] font-semibold text-white">Task Details</p>
                                             </div>
-                                            <div className="flex-1 min-w-0">
-                                                <p className="text-[12px] font-bold text-white">AI Import</p>
-                                                <p className="text-[10px] text-white/30">Upload PDF or image to auto-fill</p>
-                                            </div>
-                                            <ChevronRight size={13} className="text-white/20" />
-                                            <input type="file" accept="image/*,application/pdf" onChange={handleFileScan} className="sr-only" disabled={isExtracting} />
-                                        </label>
 
-                                        {error && <p className="text-[11px] pt-1 text-red-500">{error}</p>}
-                                    </div>
-                                )}
-
-                                {/* Step 1: Details */}
-                                {step === 1 && (
-                                    <div className="space-y-3 animate-fade-up">
-                                        <div className="flex items-center gap-2 mb-1">
-                                            <div
-                                                className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest flex items-center gap-1"
-                                                style={{
-                                                    background: selectedType.bg,
-                                                    color: selectedType.color,
-                                                    border: `1px solid ${selectedType.color}33`,
-                                                }}
-                                            >
-                                                <selectedType.icon size={9} />
-                                                {selectedType.label}
-                                            </div>
-                                            <p className="text-[12px] font-semibold text-white">Task Details</p>
-                                        </div>
-
-                                        <div>
-                                            <div className="flex items-center justify-between mb-1">
-                                                <label className="text-[10px] font-bold uppercase tracking-[0.1em] text-white/40">Course Code</label>
-                                                <AITinyButton
-                                                    onClick={async () => {
-                                                        const r = await enhanceFormAction({ course_code: courseCode, title })
-                                                        if (r.success && r.data) {
-                                                            if (r.data.course_code) setCourseCode(r.data.course_code.toUpperCase())
-                                                            if (r.data.title) setTitle(r.data.title)
-                                                        }
-                                                    }}
-                                                    disabled={!courseCode && !title}
-                                                />
-                                            </div>
-                                            <input
-                                                type="text"
-                                                value={courseCode}
-                                                onChange={e => setCourseCode(e.target.value.toUpperCase())}
-                                                placeholder="e.g. CSC 301"
-                                                className="w-full h-10 bg-white/5 border border-white/10 rounded-xl px-3 text-[13px] font-semibold uppercase tracking-wide text-white focus:border-orange/30 outline-none transition-all"
-                                            />
-                                        </div>
-
-                                        <div>
-                                            <div className="flex items-center justify-between mb-1">
-                                                <label className="text-[10px] font-bold uppercase tracking-[0.1em] text-white/40">Title</label>
-                                                <AITinyButton
-                                                    onClick={async () => {
-                                                        const r = await enhanceFormAction({ course_code: courseCode, title, description })
-                                                        if (r.success && r.data) {
-                                                            if (r.data.title) setTitle(r.data.title)
-                                                            if (r.data.description) setDescription(r.data.description)
-                                                        }
-                                                    }}
-                                                    disabled={!courseCode && !title}
-                                                />
-                                            </div>
-                                            <input
-                                                type="text"
-                                                value={title}
-                                                onChange={e => setTitle(e.target.value)}
-                                                placeholder="Enter task title..."
-                                                className="w-full h-10 bg-white/5 border border-white/10 rounded-xl px-3 text-[13px] text-white focus:border-orange/30 outline-none transition-all text-white"
-                                            />
-                                        </div>
-
-                                        <div>
-                                            <label className="block text-[10px] font-bold uppercase tracking-[0.1em] mb-1 text-white/40">
-                                                <span className="flex items-center gap-1"><Calendar size={10} /> Due Date & Time</span>
-                                            </label>
-                                            <input
-                                                type="datetime-local"
-                                                value={dueDate}
-                                                onChange={e => setDueDate(e.target.value)}
-                                                className="w-full h-10 bg-white/5 border border-white/10 rounded-xl px-3 text-[13px] text-white focus:border-orange/30 outline-none transition-all"
-                                                style={{ colorScheme: 'dark' }}
-                                            />
-                                        </div>
-
-                                        {needsUrl && (
-                                            <div className="animate-fade-in">
-                                                <label className="block text-[10px] font-bold uppercase tracking-[0.1em] mb-1 text-white/40">
-                                                    <span className="flex items-center gap-1"><Link2 size={10} /> Access Link</span>
-                                                </label>
-                                                <input
-                                                    type="url"
-                                                    value={resourceUrl}
-                                                    onChange={e => setResourceUrl(e.target.value)}
-                                                    placeholder="https://..."
-                                                    className="w-full h-10 bg-white/5 border border-white/10 rounded-xl px-3 text-[12px] text-white focus:border-orange/30 outline-none transition-all"
-                                                />
-                                            </div>
-                                        )}
-
-                                        {needsLocation && (
-                                            <div className="animate-fade-in">
-                                                <label className="block text-[10px] font-bold uppercase tracking-[0.1em] mb-1 text-white/40">
-                                                    <span className="flex items-center gap-1"><MapPin size={10} /> Campus Location</span>
-                                                </label>
+                                            <div>
+                                                <div className="flex items-center justify-between mb-1">
+                                                    <label className="text-[10px] font-bold uppercase tracking-[0.1em] text-white/40">Course Code</label>
+                                                    <AITinyButton
+                                                        onClick={async () => {
+                                                            const r = await enhanceFormAction({ course_code: courseCode, title })
+                                                            if (r.success && r.data) {
+                                                                if (r.data.course_code) setCourseCode(r.data.course_code.toUpperCase())
+                                                                if (r.data.title) setTitle(r.data.title)
+                                                            }
+                                                        }}
+                                                        disabled={!courseCode && !title}
+                                                    />
+                                                </div>
                                                 <input
                                                     type="text"
-                                                    value={location}
-                                                    onChange={e => setLocation(e.target.value)}
-                                                    placeholder="e.g. Block C, Hall 2"
-                                                    className="w-full h-10 bg-white/5 border border-white/10 rounded-xl px-3 text-[13px] text-white focus:border-orange/30 outline-none transition-all"
+                                                    value={courseCode}
+                                                    onChange={e => setCourseCode(e.target.value.toUpperCase())}
+                                                    placeholder="e.g. CSC 301"
+                                                    className="w-full h-10 bg-white/5 border border-white/10 rounded-xl px-3 text-[13px] font-semibold uppercase tracking-wide text-white focus:border-orange/30 outline-none transition-all"
                                                 />
                                             </div>
-                                        )}
 
-                                        <div>
-                                            <label className="block text-[10px] font-bold uppercase tracking-[0.1em] mb-1 text-white/40">
-                                                Notes
-                                            </label>
-                                            <textarea
-                                                value={description}
-                                                onChange={e => setDescription(e.target.value)}
-                                                placeholder="Any requirements or notes..."
-                                                rows={2}
-                                                className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-[12px] text-white focus:border-orange/30 outline-none transition-all resize-none"
-                                            />
-                                        </div>
-
-                                        {error && <p className="text-[11px] text-red-500">{error}</p>}
-
-                                        <button
-                                            onClick={() => setStep(2)}
-                                            disabled={!canProceedFromDetails}
-                                            className="w-full h-11 bg-orange text-white rounded-xl text-[13px] font-black uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg shadow-orange/20 transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:scale-100"
-                                        >
-                                            Review Details <ChevronRight size={14} />
-                                        </button>
-                                    </div>
-                                )}
-
-                                {/* Step 2: Confirm */}
-                                {step === 2 && (
-                                    <div className="space-y-3 animate-fade-up">
-                                        {done ? (
-                                            <div className="py-8 flex flex-col items-center gap-4">
-                                                <div className="h-16 w-16 rounded-full bg-green-500/10 flex items-center justify-center animate-scale-in">
-                                                    <CheckCircle2 size={32} className="text-green-500" />
+                                            <div>
+                                                <div className="flex items-center justify-between mb-1">
+                                                    <label className="text-[10px] font-bold uppercase tracking-[0.1em] text-white/40">Title</label>
+                                                    <AITinyButton
+                                                        onClick={async () => {
+                                                            const r = await enhanceFormAction({ course_code: courseCode, title, description })
+                                                            if (r.success && r.data) {
+                                                                if (r.data.title) setTitle(r.data.title)
+                                                                if (r.data.description) setDescription(r.data.description)
+                                                            }
+                                                        }}
+                                                        disabled={!courseCode && !title}
+                                                    />
                                                 </div>
-                                                <div className="text-center">
-                                                    <p className="text-[15px] font-black uppercase tracking-widest text-white">Task Synchronized</p>
-                                                    <p className="text-[11px] text-white/40 mt-1">Successfully added to your dashboard.</p>
-                                                </div>
+                                                <input
+                                                    type="text"
+                                                    value={title}
+                                                    onChange={e => setTitle(e.target.value)}
+                                                    placeholder="Enter task title..."
+                                                    className="w-full h-10 bg-white/5 border border-white/10 rounded-xl px-3 text-[13px] text-white focus:border-orange/30 outline-none transition-all text-white"
+                                                />
                                             </div>
-                                        ) : (
-                                            <>
-                                                <p className="text-[12px] font-bold text-white mb-2">Confirm Task</p>
-                                                <div className="bg-white/[0.03] border border-white/10 rounded-2xl p-4 space-y-3">
-                                                    <SummaryRow label="Type">
-                                                        <span className="px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-widest flex items-center gap-1" style={{ background: selectedType.bg, color: selectedType.color }}>
-                                                            <selectedType.icon size={9} /> {selectedType.label}
-                                                        </span>
-                                                    </SummaryRow>
-                                                    <SummaryRow label="Course"><span className="text-white font-bold">{courseCode}</span></SummaryRow>
-                                                    <SummaryRow label="Title"><span className="text-white">{title}</span></SummaryRow>
-                                                    <SummaryRow label="Due"><span className="text-white/80">{new Date(dueDate).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span></SummaryRow>
-                                                    {resourceUrl && <SummaryRow label="Link"><span className="truncate block max-w-[180px] text-blue-400">{resourceUrl}</span></SummaryRow>}
-                                                    {location && <SummaryRow label="Location"><span className="text-white/80">{location}</span></SummaryRow>}
-                                                    {description && <SummaryRow label="Notes"><span className="text-white/60 leading-relaxed">{description}</span></SummaryRow>}
-                                                </div>
 
-                                                {error && <p className="text-[11px] text-red-500">{error}</p>}
+                                            <div>
+                                                <label className="block text-[10px] font-bold uppercase tracking-[0.1em] mb-1 text-white/40">
+                                                    <span className="flex items-center gap-1"><Calendar size={10} /> Due Date & Time</span>
+                                                </label>
+                                                <input
+                                                    type="datetime-local"
+                                                    value={dueDate}
+                                                    onChange={e => setDueDate(e.target.value)}
+                                                    className="w-full h-10 bg-white/5 border border-white/10 rounded-xl px-3 text-[13px] text-white focus:border-orange/30 outline-none transition-all"
+                                                    style={{ colorScheme: 'dark' }}
+                                                />
+                                            </div>
 
-                                                <div className="flex gap-2 pt-2">
-                                                    <button
-                                                        onClick={() => setStep(1)}
-                                                        className="flex-1 h-11 bg-white/5 border border-white/10 text-white rounded-xl text-[12px] font-bold hover:bg-white/10 transition-all"
-                                                    >
-                                                        Edit
-                                                    </button>
-                                                    <button
-                                                        onClick={handleSubmit}
-                                                        disabled={isPending}
-                                                        className="flex-[2] h-11 bg-orange text-white rounded-xl text-[12px] font-black uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg shadow-orange/20 transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50"
-                                                    >
-                                                        {isPending ? <><Loader2 size={13} className="animate-spin" /> Synchronizing...</> : 'Confirm & Save'}
-                                                    </button>
+                                            {needsUrl && (
+                                                <div className="animate-fade-in">
+                                                    <label className="block text-[10px] font-bold uppercase tracking-[0.1em] mb-1 text-white/40">
+                                                        <span className="flex items-center gap-1"><Link2 size={10} /> Access Link</span>
+                                                    </label>
+                                                    <input
+                                                        type="url"
+                                                        value={resourceUrl}
+                                                        onChange={e => setResourceUrl(e.target.value)}
+                                                        placeholder="https://..."
+                                                        className="w-full h-10 bg-white/5 border border-white/10 rounded-xl px-3 text-[12px] text-white focus:border-orange/30 outline-none transition-all"
+                                                    />
                                                 </div>
-                                            </>
-                                        )}
+                                            )}
+
+                                            {needsLocation && (
+                                                <div className="animate-fade-in">
+                                                    <label className="block text-[10px] font-bold uppercase tracking-[0.1em] mb-1 text-white/40">
+                                                        <span className="flex items-center gap-1"><MapPin size={10} /> Campus Location</span>
+                                                    </label>
+                                                    <input
+                                                        type="text"
+                                                        value={location}
+                                                        onChange={e => setLocation(e.target.value)}
+                                                        placeholder="e.g. Block C, Hall 2"
+                                                        className="w-full h-10 bg-white/5 border border-white/10 rounded-xl px-3 text-[13px] text-white focus:border-orange/30 outline-none transition-all"
+                                                    />
+                                                </div>
+                                            )}
+
+                                            <div>
+                                                <label className="block text-[10px] font-bold uppercase tracking-[0.1em] mb-1 text-white/40">
+                                                    Notes
+                                                </label>
+                                                <textarea
+                                                    value={description}
+                                                    onChange={e => setDescription(e.target.value)}
+                                                    placeholder="Any requirements or notes..."
+                                                    rows={2}
+                                                    className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-[12px] text-white focus:border-orange/30 outline-none transition-all resize-none"
+                                                />
+                                            </div>
+
+                                            {error && <p className="text-[11px] text-red-500">{error}</p>}
+
+                                            <button
+                                                onClick={() => setStep(2)}
+                                                disabled={!canProceedFromDetails}
+                                                className="w-full h-11 bg-orange text-white rounded-xl text-[13px] font-black uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg shadow-orange/20 transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:scale-100"
+                                            >
+                                                Review Details <ChevronRight size={14} />
+                                            </button>
+                                        </div>
                                     </div>
-                                )}
+
+                                    {/* Step 2: Confirm */}
+                                    <div className="w-full shrink-0 p-5 max-h-[70vh] sm:max-h-[600px] overflow-y-auto">
+                                        <div className="space-y-3">
+                                            {done ? (
+                                                <div className="py-8 flex flex-col items-center gap-4">
+                                                    <div className="h-16 w-16 rounded-full bg-green-500/10 flex items-center justify-center animate-scale-in">
+                                                        <CheckCircle2 size={32} className="text-green-500" />
+                                                    </div>
+                                                    <div className="text-center">
+                                                        <p className="text-[15px] font-black uppercase tracking-widest text-white">Task Synchronized</p>
+                                                        <p className="text-[11px] text-white/40 mt-1">Successfully added to your dashboard.</p>
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <>
+                                                    <p className="text-[12px] font-bold text-white mb-2">Confirm Task</p>
+                                                    <div className="bg-white/[0.03] border border-white/10 rounded-2xl p-4 space-y-3">
+                                                        <SummaryRow label="Type">
+                                                            <span className="px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-widest flex items-center gap-1" style={{ background: selectedType.bg, color: selectedType.color }}>
+                                                                <selectedType.icon size={9} /> {selectedType.label}
+                                                            </span>
+                                                        </SummaryRow>
+                                                        <SummaryRow label="Course"><span className="text-white font-bold">{courseCode}</span></SummaryRow>
+                                                        <SummaryRow label="Title"><span className="text-white">{title}</span></SummaryRow>
+                                                        <SummaryRow label="Due"><span className="text-white/80">{new Date(dueDate).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span></SummaryRow>
+                                                        {resourceUrl && <SummaryRow label="Link"><span className="truncate block max-w-[180px] text-blue-400">{resourceUrl}</span></SummaryRow>}
+                                                        {location && <SummaryRow label="Location"><span className="text-white/80">{location}</span></SummaryRow>}
+                                                        {description && <SummaryRow label="Notes"><span className="text-white/60 leading-relaxed">{description}</span></SummaryRow>}
+                                                    </div>
+
+                                                    {error && <p className="text-[11px] text-red-500">{error}</p>}
+
+                                                    <div className="flex gap-2 pt-2">
+                                                        <button
+                                                            onClick={() => setStep(1)}
+                                                            className="flex-1 h-11 bg-white/5 border border-white/10 text-white rounded-xl text-[12px] font-bold hover:bg-white/10 transition-all"
+                                                        >
+                                                            Edit
+                                                        </button>
+                                                        <button
+                                                            onClick={handleSubmit}
+                                                            disabled={isPending}
+                                                            className="flex-[2] h-11 bg-orange text-white rounded-xl text-[12px] font-black uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg shadow-orange/20 transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50"
+                                                        >
+                                                            {isPending ? <><Loader2 size={13} className="animate-spin" /> Synchronizing...</> : 'Confirm & Save'}
+                                                        </button>
+                                                    </div>
+                                                </>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>

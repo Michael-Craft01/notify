@@ -26,7 +26,7 @@ export async function sendOTP(email: string) {
     return { success: true }
 }
 
-export async function signInWithOAuth(provider: 'google' | 'spotify') {
+export async function signInWithOAuth(provider: 'google') {
     const supabase = await createClient()
 
     const { data, error } = await supabase.auth.signInWithOAuth({
