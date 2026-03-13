@@ -87,105 +87,37 @@ export default async function Home() {
         </div>
       </nav>
 
-      <main className="max-w-[1200px] mx-auto pt-12 px-6 pb-20">
-
-        {/* ── HERO GREETING ───────────────────────────────────────────────── */}
-        <div className="animate-fade-up mb-12">
-          <p className="text-xs font-semibold tracking-[0.18em] uppercase text-[var(--color-text-dim)] mb-2.5">
-            {new Date().toLocaleDateString([], { weekday: "long", month: "long", day: "numeric" })}
-          </p>
-          <h1 className="font-[family-name:var(--font-outfit)] text-[clamp(32px,5vw,52px)] font-extrabold tracking-[-0.025em] leading-[1.1] text-[var(--color-text-main)]">
-            {overdue.length > 0
-              ? <><span className="text-[#F97316]">{overdue.length} task{overdue.length !== 1 ? 's' : ''}</span>{' '}<span className="text-[var(--color-text-muted)]">past due.</span></>
-              : <>{greeting},<br /><span className="text-[var(--color-text-muted)]">{firstName}.</span></>
-            }
-          </h1>
-        </div>
-
-        {/* ── STATS ROW ───────────────────────────────────────────────────── */}
-        <div className="animate-fade-up grid grid-cols-2 md:grid-cols-4 gap-3 mb-14">
-          {stats.map((s, i) => (
-            <div key={i} className="stat-card" style={{ animationDelay: `${i * 50}ms` }}>
-              <div className="flex items-center justify-between mb-4">
-                <span className="text-[10px] font-bold tracking-[0.16em] uppercase text-[var(--color-text-dim)]">{s.label}</span>
-                <div className={`h-[26px] w-[26px] rounded-md flex items-center justify-center border ${i === 0 ? 'bg-[#F97316]/10 border-[#F97316]/25' : 'bg-[var(--color-surface-2)] border-[var(--color-border)]'}`}>
-                  <s.icon size={12} color={i === 0 ? '#F97316' : 'var(--color-text-dim)'} />
-                </div>
-              </div>
-              <p className={`font-[family-name:var(--font-outfit)] text-[40px] font-black leading-none ${i === 0 ? 'text-[#F97316]' : 'text-[var(--color-text-main)]'}`}>
-                {s.value}
-              </p>
-            </div>
-          ))}
-        </div>
-
-        {/* ── OVERDUE ─────────────────────────────────────────────────────── */}
-        {overdue.length > 0 && (
-          <section className="animate-fade-up mb-12">
-            <SectionHeader label="Overdue" count={overdue.length} dim />
-            <div className="flex flex-col gap-2.5">
-              {overdue.map((a) => (
-                <AssignmentCard key={a.id} assignment={a as any} currentUserId={user.id} pulse={a.pulse} userStatus={a.myProgress as any} />
-              ))}
-            </div>
-          </section>
-        )}
-
-        {/* ── UPCOMING ────────────────────────────────────────────────────── */}
-        <section className="animate-fade-up mb-12">
-          <SectionHeader label="Upcoming" count={upcoming.length} />
-          {upcoming.length === 0 ? (
-            <EmptyState label="No upcoming tasks" sub="Add a task to get started." />
-          ) : (
-            <div className="flex flex-col gap-2.5">
-              {upcoming.map((a) => (
-                <AssignmentCard key={a.id} assignment={a as any} currentUserId={user.id} pulse={a.pulse} userStatus={a.myProgress as any} />
-              ))}
-            </div>
-          )}
+      <main className="max-w-[1200px] mx-auto pt-12 px-6 pb-20 flex flex-col gap-6 text-[var(--color-text-main)]">
+        <section>
+          <div className="text-base font-semibold mb-1">Overdue</div>
+          <div className="text-sm mb-2">{overdue.length}</div>
+          <div className="flex flex-col gap-2">
+            {overdue.map((a) => (
+              <AssignmentCard key={a.id} assignment={a as any} currentUserId={user.id} userStatus={a.myProgress as any} />
+            ))}
+          </div>
         </section>
 
-        {/* ── COMPLETED ───────────────────────────────────────────────────── */}
-        {done.length > 0 && (
-          <section className="animate-fade-up opacity-50 hover:opacity-100 transition-opacity duration-300">
-            <SectionHeader label="Completed" count={done.length} />
-            <div className="flex flex-col gap-2.5">
-              {done.map((a) => (
-                <AssignmentCard key={a.id} assignment={a as any} currentUserId={user.id} pulse={a.pulse} userStatus="finished" />
-              ))}
-            </div>
-          </section>
-        )}
+        <section>
+          <div className="text-base font-semibold mb-1">Upcoming</div>
+          <div className="text-sm mb-2">{upcoming.length}</div>
+          <div className="flex flex-col gap-2">
+            {upcoming.map((a) => (
+              <AssignmentCard key={a.id} assignment={a as any} currentUserId={user.id} userStatus={a.myProgress as any} />
+            ))}
+          </div>
+        </section>
+
+        <section>
+          <div className="text-base font-semibold mb-1">Completed</div>
+          <div className="text-sm mb-2">{done.length}</div>
+          <div className="flex flex-col gap-2">
+            {done.map((a) => (
+              <AssignmentCard key={a.id} assignment={a as any} currentUserId={user.id} userStatus="finished" />
+            ))}
+          </div>
+        </section>
       </main>
-
-      {/* ── FOOTER ──────────────────────────────────────────────────────── */}
-      <footer className="border-t border-[var(--color-border)] px-6 py-6 flex justify-between items-center max-w-[1200px] mx-auto text-[10px] font-bold tracking-[0.14em] uppercase text-[var(--color-text-dim)]">
-        <span>© {new Date().getFullYear()} Notify</span>
-        {userProfile?.cohort_year && <span>Cohort {userProfile.cohort_year}</span>}
-      </footer>
-    </div>
-  );
-}
-
-function SectionHeader({ label, count, dim }: { label: string; count: number; dim?: boolean }) {
-  return (
-    <div className="flex items-center gap-3 mb-4">
-      <span className={`text-[10px] font-extrabold tracking-[0.18em] uppercase ${dim ? 'text-white/30' : 'text-white/50'}`}>
-        {label}
-      </span>
-      <div className="flex-1 h-[1px] bg-[var(--color-border)]" />
-      <span className="text-[10px] font-bold text-[var(--color-text-dim)] px-2 py-0.5 rounded-full bg-[var(--color-surface-2)] border border-[var(--color-border)]">
-        {count}
-      </span>
-    </div>
-  );
-}
-
-function EmptyState({ label, sub }: { label: string; sub: string }) {
-  return (
-    <div className="border border-dashed border-[var(--color-border)] rounded-2xl py-14 px-6 flex flex-col items-center gap-2 text-center hover:border-[var(--color-border-hover)] transition-colors">
-      <p className="text-xs font-bold tracking-[0.12em] uppercase text-[var(--color-text-dim)]">{label}</p>
-      <p className="text-xs text-[var(--color-text-dim)] opacity-70">{sub}</p>
     </div>
   );
 }
