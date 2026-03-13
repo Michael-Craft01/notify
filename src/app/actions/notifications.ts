@@ -4,6 +4,7 @@ import { cookies } from 'next/headers'
 import { createClient } from '@/utils/supabase/server'
 import { createClient as createServiceClient } from '@supabase/supabase-js'
 import { revalidatePath } from 'next/cache'
+import webpush from '@/utils/webpush'
 
 const MOCK_USER_ID = '00000000-0000-0000-0000-000000000000'
 
@@ -46,6 +47,13 @@ export async function saveSubscription(subscription: any) {
         return { error: 'Invalid subscription object. Please try enabling alerts again.' }
     }
 
+    const { data: existing } = await writeClient
+        .from('user_subscriptions')
+        .select('id')
+        .eq('user_id', user.id)
+        .contains('subscription', { endpoint: subscription.endpoint })
+        .single()
+
     const { error } = await writeClient
         .from('user_subscriptions')
         .upsert(
@@ -60,6 +68,26 @@ export async function saveSubscription(subscription: any) {
     if (error) {
         console.error('[notifications] saveSubscription error:', error)
         return { error: `Failed to save subscription: ${error.message}` }
+    }
+
+    // Send Welcome Notification if this is the first time
+    if (!existing) {
+        try {
+            const fullName = user.user_metadata?.full_name || user.email?.split('@')[0] || 'there'
+            const firstName = fullName.split(' ')[0]
+
+            await webpush.sendNotification(
+                subscription,
+                JSON.stringify({
+                    title: `🚀 Welcome, ${firstName}!`,
+                    body: "Alerts are active. Tip: Install the app for the full experience. 💡",
+                    url: '/',
+                    urgency: 'high',
+                })
+            )
+        } catch (pushErr) {
+            console.warn('[notifications] Welcome push failed:', pushErr)
+        }
     }
 
     revalidatePath('/')
@@ -98,19 +126,12 @@ export async function sendTestNotification() {
         return { error: 'No active subscriptions found. Enable alerts first.' }
     }
 
-    const webpush = await import('web-push')
-    webpush.default.setVapidDetails(
-        'mailto:admin@notifyapp.com',
-        process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!,
-        process.env.VAPID_PRIVATE_KEY!
-    )
-
     let sent = 0
     const toDelete: string[] = []
 
     for (const row of subs) {
         try {
-            await webpush.default.sendNotification(
+            await webpush.sendNotification(
                 row.subscription,
                 JSON.stringify({
                     title: '🔔 Notify Alerts Active',
