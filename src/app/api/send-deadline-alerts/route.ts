@@ -148,14 +148,6 @@ export async function GET(req: NextRequest) {
                 .single()
 
             const cohortPct = pulse?.finished_percentage ?? 0
-
-            const payload = JSON.stringify({
-                title: window.title(assignment.title),
-                body: window.body(assignment.title, cohortPct),
-                url: assignment.resource_url || '/',
-                urgency: window.urgency,
-            })
-
             const toDelete: string[] = []
 
             await Promise.allSettled(
