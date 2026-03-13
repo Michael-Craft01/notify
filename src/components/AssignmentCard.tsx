@@ -62,16 +62,35 @@ export default function AssignmentCard({ assignment, pulse, userStatus: init }: 
 
     const Icon = assignment.task_type ? TYPE_ICONS[assignment.task_type] : FileText
 
-    return (
-        <div className="w-full bg-[#0a0a0a] rounded-[12px] border border-[var(--color-border)] p-5 flex flex-col gap-2">
-            <div className="flex flex-col gap-1.5">
-                <Icon size={16} className="text-white mb-0.5" />
+    // Status styling logic
+    const isOverdueState = isOverdue && !isDone
+    const isCompletedState = isDone
+    const isInProgressState = status === 'in_progress' && !isDone && !isOverdue
 
-                <div className="text-[15px] font-bold text-white tracking-wide">
-                    {assignment.course_code} {!isDone && <span className="font-bold">{timeLabel}</span>}
+    const borderStyle = isCompletedState
+        ? 'border-[var(--color-success-soft)] shadow-[0_0_12px_rgba(255,255,255,0.03)] opacity-75'
+        : isOverdueState
+            ? 'border-red-900/50 shadow-[0_0_12px_rgba(220,38,38,0.1)]'
+            : isInProgressState
+                ? 'border-[var(--color-primary-border)] shadow-[0_0_12px_rgba(249,115,22,0.1)]'
+                : 'border-[var(--color-border)]'
+
+    const timeLabelStyle = isOverdueState
+        ? 'text-red-400'
+        : isInProgressState
+            ? 'text-[var(--orange-bright)]'
+            : 'text-white'
+
+    return (
+        <div className={`w-full bg-[#0a0a0a] rounded-[12px] border ${borderStyle} p-5 flex flex-col gap-2 transition-all duration-200`}>
+            <div className="flex flex-col gap-1.5">
+                <Icon size={16} className={`${isCompletedState ? 'text-gray-500' : 'text-white'} mb-0.5`} />
+
+                <div className={`text-[15px] font-bold ${isCompletedState ? 'text-gray-400 line-through decoration-gray-500/50' : 'text-white'} tracking-wide`}>
+                    {assignment.course_code} {!isDone && <span className={`font-bold ml-1.5 ${timeLabelStyle}`}>{timeLabel}</span>}
                 </div>
 
-                <div className="text-[17px] font-medium text-white mb-0.5">
+                <div className={`text-[18px] font-bold ${isCompletedState ? 'text-gray-500 line-through decoration-gray-500/50' : 'text-white'} mb-0.5`}>
                     {assignment.title}
                 </div>
 
@@ -91,8 +110,8 @@ export default function AssignmentCard({ assignment, pulse, userStatus: init }: 
                     </button>
                 )}
                 {isDone && (
-                    <div className="self-start mb-2">
-                        <CheckCircle2 size={18} className="text-[#f97316]" />
+                    <div className="self-start mb-2 px-3 py-1.5 bg-[#10B981]/10 border border-[#10B981]/30 rounded-[4px] flex items-center gap-1.5 text-[#10B981] text-[13px] font-bold">
+                        <CheckCircle2 size={14} /> Completed
                     </div>
                 )}
 
@@ -106,7 +125,7 @@ export default function AssignmentCard({ assignment, pulse, userStatus: init }: 
             </div>
 
             {expanded && (
-                <div className="flex flex-col gap-1 mt-2 text-[14px] text-[#D1D5DB] border-t border-[var(--color-border)] pt-3">
+                <div className="flex flex-col gap-1 mt-2 text-[14px] text-[#D1D5DB] border-t border-[var(--color-border)] pt-3 leading-relaxed">
                     {assignment.description && <p>{assignment.description}</p>}
                     {assignment.resource_url && <a href={assignment.resource_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 hover:text-white transition-colors text-[#60A5FA]"><Link2 size={14} /> {assignment.resource_url}</a>}
                     {assignment.location && <p className="flex items-center gap-1.5"><MapPin size={14} /> {assignment.location}</p>}
