@@ -1,8 +1,8 @@
 'use client'
 
 import { useState, useEffect, Suspense } from 'react'
-import { Loader2, Mail, Terminal, Sparkles, TrendingUp, Users } from 'lucide-react'
-import { sendOTP, verifyOTP, signInWithOAuth } from './actions'
+import { Loader2, Mail, Terminal } from 'lucide-react'
+import { sendOTP, verifyOTP } from './actions'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 
@@ -14,6 +14,7 @@ function LoginContent() {
     const [error, setError] = useState<string | null>(null)
     const router = useRouter()
     const searchParams = useSearchParams()
+    const supabase = createClient()
 
     useEffect(() => {
         const msg = searchParams.get('message')
@@ -22,17 +23,14 @@ function LoginContent() {
 
     const handleOAuth = async (provider: 'google') => {
         setIsLoading(true)
-        setError(null)
-        
-        try {
-            const result = await signInWithOAuth(provider)
-            if (result?.error) {
-                setError(result.error)
-                setIsLoading(false)
-            }
-            // If success, the server action performs the redirect
-        } catch (err: any) {
-            setError(err.message || 'Failed to initiate login')
+        const { error } = await supabase.auth.signInWithOAuth({
+            provider,
+            options: {
+                redirectTo: `${window.location.origin}/auth/confirm`,
+            },
+        })
+        if (error) {
+            setError(error.message)
             setIsLoading(false)
         }
     }
@@ -67,19 +65,19 @@ function LoginContent() {
         <div className="min-h-screen bg-[#050505] text-white selection:bg-orange/30 selection:text-orange overflow-x-hidden">
             {/* ── IMMERSIVE BACKGROUND ────────────────────────────────────────── */}
             <div className="fixed inset-0 pointer-events-none overflow-hidden opacity-[0.02] sm:opacity-[0.03] flex items-center justify-center">
-                <img 
-                    src="/favicon.png" 
-                    className="w-[150vw] h-[150vw] sm:w-[120vw] sm:h-[120vw] max-w-none object-contain animate-pulse duration-[10s]" 
-                    alt="" 
+                <img
+                    src="/favicon.png"
+                    className="w-[150vw] h-[150vw] sm:w-[120vw] sm:h-[120vw] max-w-none object-contain animate-pulse duration-[10s]"
+                    alt=""
                 />
             </div>
-            
+
             <div className="fixed top-[-10%] left-[-10%] w-[70%] h-[70%] sm:w-[50%] sm:h-[50%] bg-orange/10 rounded-full blur-[140px] animate-pulse pointer-events-none" />
             <div className="fixed bottom-[-10%] right-[-10%] w-[70%] h-[70%] sm:w-[50%] sm:h-[50%] bg-orange/5 rounded-full blur-[140px] animate-pulse pointer-events-none" style={{ animationDelay: '2s' }} />
 
             {/* ── CONTENT GRID ─────────────────────────────────────────────────── */}
             <div className="relative z-10 flex flex-col lg:grid lg:grid-cols-2 min-h-screen">
-                
+
                 {/* Left Side: Value Proposition & Details */}
                 <div className="flex flex-col justify-center p-8 sm:p-20 xl:p-32 space-y-12 sm:space-y-16 lg:border-r border-white/5 bg-white/[0.01] backdrop-blur-sm">
                     <div className="space-y-4 sm:space-y-6 animate-fade-up">
@@ -132,7 +130,7 @@ function LoginContent() {
 
                     <div className="pt-8 border-t border-white/5 flex flex-wrap items-center gap-4 sm:gap-6 animate-fade-up" style={{ animationDelay: '400ms' }}>
                         <div className="flex -space-x-2 sm:-space-x-3">
-                            {[1,2,3,4].map(i => (
+                            {[1, 2, 3, 4].map(i => (
                                 <div key={i} className="h-7 w-7 sm:h-8 sm:w-8 rounded-full border-2 border-[#0a0a0a] bg-white/10 flex items-center justify-center text-[9px] sm:text-[10px] font-black">
                                     {String.fromCharCode(64 + i)}
                                 </div>
@@ -151,7 +149,7 @@ function LoginContent() {
                             {/* Glass Card */}
                             <div className="absolute -inset-[1px] bg-gradient-to-b from-white/20 to-transparent rounded-[32px] opacity-100" />
                             <div className="relative bg-[#0a0a0a]/90 backdrop-blur-3xl p-7 sm:p-10 rounded-[31px] shadow-2xl space-y-6 sm:space-y-8 overflow-hidden transition-all duration-500">
-                                
+
                                 {/* Step Indicator */}
                                 <div className="space-y-2 text-center">
                                     <h2 className="text-[12px] sm:text-[13px] font-black uppercase tracking-[0.2em] text-white">
