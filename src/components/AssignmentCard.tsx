@@ -67,98 +67,55 @@ export default function AssignmentCard({ assignment, pulse, userStatus: init }: 
 
     return (
         <div
-            className="card"
-            style={{
-                borderRadius: 14,
-                padding: '18px 20px',
-                opacity: isDone ? 0.55 : 1,
-                transition: 'opacity 0.3s',
-            }}
+            className={`card p-4 sm:p-5 rounded-[14px] transition-all duration-300 ${isDone ? 'opacity-55 hover:opacity-75' : ''}`}
         >
             {/* ── Top row ─────────────────────────────────────────────────── */}
-            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14 }}>
+            <div className="flex items-start gap-3.5">
 
                 {/* Type icon */}
-                <div style={{
-                    width: 36, height: 36, borderRadius: 10, flexShrink: 0, marginTop: 1,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    background: 'var(--color-surface-2)',
-                    border: '1px solid var(--color-border)',
-                }}>
-                    <TypeIcon size={15} color="var(--color-text-muted)" />
+                <div className="w-9 h-9 rounded-lg shrink-0 mt-0.5 flex items-center justify-center bg-[var(--color-surface-2)] border border-[var(--color-border)] shadow-sm">
+                    <TypeIcon size={16} className="text-[var(--color-text-muted)]" />
                 </div>
 
                 {/* Title + course */}
-                <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4, flexWrap: 'wrap' }}>
-                        <span style={{
-                            fontSize: 9, fontWeight: 800, letterSpacing: '0.14em', textTransform: 'uppercase',
-                            color: 'var(--color-text-dim)',
-                        }}>
+                <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1 flex-wrap">
+                        <span className="text-[9px] font-extrabold tracking-[0.14em] uppercase text-[var(--color-text-dim)]">
                             {assignment.course_code}
                         </span>
                         {/* Urgency indicator */}
                         {!isDone && (
-                            <span style={{
-                                fontSize: 9, fontWeight: 700, letterSpacing: '0.08em',
-                                paddingLeft: 6, paddingRight: 6, paddingTop: 2, paddingBottom: 2,
-                                borderRadius: 99,
-                                background: isOverdue
-                                    ? 'rgba(249,115,22,0.12)'
-                                    : hoursLeft < 6
-                                    ? 'rgba(249,115,22,0.08)'
-                                    : 'transparent',
-                                color: isOverdue || hoursLeft < 6
-                                    ? '#FB923C'
-                                    : 'var(--color-text-dim)',
-                                border: isOverdue || hoursLeft < 6
-                                    ? '1px solid rgba(249,115,22,0.25)'
-                                    : '1px solid transparent',
-                            }}>
+                            <span className={`text-[9px] font-bold tracking-[0.08em] px-1.5 py-0.5 rounded-full border ${isOverdue ? 'bg-[#F97316]/10 text-[#FB923C] border-[#F97316]/25' : hoursLeft < 6 ? 'bg-[#F97316]/5 text-[#FB923C] border-[#F97316]/20' : 'bg-transparent text-[var(--color-text-dim)] border-transparent'}`}>
                                 {timeLabel}
                             </span>
                         )}
                         {isDone && (
-                            <span style={{
-                                fontSize: 9, fontWeight: 700, letterSpacing: '0.08em',
-                                color: 'var(--color-text-dim)',
-                            }}>Completed</span>
+                            <span className="text-[9px] font-bold tracking-[0.08em] text-[var(--color-text-dim)]">Completed</span>
                         )}
                     </div>
 
-                    <p style={{
-                        fontFamily: 'var(--font-outfit)',
-                        fontSize: 15, fontWeight: 700,
-                        color: isDone ? 'var(--color-text-dim)' : 'var(--color-text-main)',
-                        letterSpacing: '-0.01em',
-                        textDecoration: isDone ? 'line-through' : 'none',
-                        whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-                    }}>
+                    <p className={`font-[family-name:var(--font-outfit)] text-[15px] font-bold tracking-[-0.01em] whitespace-nowrap overflow-hidden text-overflow-ellipsis ${isDone ? 'text-[var(--color-text-dim)] line-through' : 'text-[var(--color-text-main)]'}`}>
                         {assignment.title}
                     </p>
 
-                    <p style={{ fontSize: 11, color: 'var(--color-text-dim)', marginTop: 3 }}>
+                    <p className="text-[11px] text-[var(--color-text-dim)] mt-0.5">
                         {due.toLocaleDateString([], { month: 'short', day: 'numeric' })} · {due.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                         {assignment.users?.full_name && <> · Posted by {assignment.users.full_name}</>}
                     </p>
                 </div>
 
                 {/* Right: actions + expand */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                <div className="flex items-center gap-2 shrink-0">
                     {/* Quick link */}
                     {assignment.resource_url && (
                         <a
                             href={assignment.resource_url}
                             target="_blank"
                             rel="noopener noreferrer"
-                            style={{
-                                height: 32, width: 32, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                background: 'var(--color-surface-2)', border: '1px solid var(--color-border)',
-                                color: 'var(--color-text-muted)', textDecoration: 'none', transition: 'border-color 0.15s',
-                            }}
+                            className="h-8 w-8 rounded-lg flex items-center justify-center bg-[var(--color-surface-2)] border border-[var(--color-border)] text-[var(--color-text-muted)] hover:bg-[var(--color-surface-3)] hover:text-[var(--color-text-main)] hover:border-[var(--color-border-hover)] transition-all shrink-0"
                             title="Open resource"
                         >
-                            <ExternalLink size={13} />
+                            <ExternalLink size={14} />
                         </a>
                     )}
 
@@ -167,39 +124,37 @@ export default function AssignmentCard({ assignment, pulse, userStatus: init }: 
                         <button
                             onClick={() => handleStatus(status === 'not_started' ? 'in_progress' : 'finished')}
                             disabled={isPending}
-                            className="btn-primary"
-                            style={{ height: 32, paddingLeft: 14, paddingRight: 14, borderRadius: 8, fontSize: 11, whiteSpace: 'nowrap' }}
+                            className="btn-primary h-8 px-3.5 rounded-lg text-[11px] whitespace-nowrap shrink-0"
                         >
-                            {isPending ? <Loader2 size={11} style={{ display: 'inline', animation: 'spin 1s linear infinite' }} /> :
+                            {isPending ? <Loader2 size={12} className="inline animate-spin" /> :
                              status === 'not_started' ? 'Begin' : 'Mark Done'}
                         </button>
                     )}
 
                     {isDone && (
-                        <div style={{ height: 32, width: 32, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--color-surface-2)', border: '1px solid var(--color-border)' }}>
-                            <CheckCircle2 size={14} color="var(--color-text-muted)" />
+                        <div className="h-8 w-8 rounded-lg flex items-center justify-center bg-[var(--color-surface-2)] border border-[var(--color-border)] shrink-0">
+                            <CheckCircle2 size={15} className="text-[var(--color-text-muted)]" />
                         </div>
                     )}
 
                     {/* Expand toggle */}
                     <button
                         onClick={() => setExpanded(v => !v)}
-                        className="btn-ghost"
-                        style={{ height: 32, width: 32, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                        className="btn-ghost h-8 w-8 rounded-lg flex items-center justify-center hover:bg-[var(--color-surface-2)] transition-colors shrink-0"
                     >
-                        {expanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                        {expanded ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
                     </button>
                 </div>
             </div>
 
             {/* ── Cohort progress bar ─────────────────────────────────────── */}
             {pctDone > 0 && (
-                <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--color-border)' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6, alignItems: 'center' }}>
-                        <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--color-text-dim)', letterSpacing: '0.08em' }}>
+                <div className="mt-3.5 pt-3.5 border-t border-[var(--color-border)]">
+                    <div className="flex justify-between items-center mb-1.5">
+                        <span className="text-[10px] font-semibold tracking-[0.08em] text-[var(--color-text-dim)]">
                             Cohort progress
                         </span>
-                        <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--color-text-muted)' }}>
+                        <span className="text-[10px] font-bold text-[var(--color-text-muted)]">
                             {pctDone}%
                         </span>
                     </div>
@@ -211,13 +166,9 @@ export default function AssignmentCard({ assignment, pulse, userStatus: init }: 
 
             {/* ── Expanded detail ─────────────────────────────────────────── */}
             {expanded && (
-                <div style={{
-                    marginTop: 14, paddingTop: 14,
-                    borderTop: '1px solid var(--color-border)',
-                    display: 'flex', flexDirection: 'column', gap: 10,
-                }} className="animate-fade-up">
+                <div className="mt-3.5 pt-3.5 border-t border-[var(--color-border)] flex flex-col gap-2.5 animate-fade-up">
                     {assignment.description && (
-                        <p style={{ fontSize: 12, color: 'var(--color-text-muted)', lineHeight: 1.6 }}>
+                        <p className="text-xs text-[var(--color-text-muted)] leading-[1.6]">
                             {assignment.description}
                         </p>
                     )}
@@ -226,22 +177,21 @@ export default function AssignmentCard({ assignment, pulse, userStatus: init }: 
                             href={assignment.resource_url}
                             target="_blank"
                             rel="noopener noreferrer"
-                            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11, color: 'var(--color-text-muted)', textDecoration: 'none' }}
+                            className="inline-flex items-center gap-1.5 text-[11px] text-[var(--color-text-muted)] hover:text-[#FB923C] transition-colors w-fit truncate"
                         >
-                            <Link2 size={11} /> {assignment.resource_url}
+                            <Link2 size={12} className="shrink-0" /> <span className="underline decoration-[#FB923C]/30 underline-offset-2 truncate leading-tight">{assignment.resource_url}</span>
                         </a>
                     )}
                     {assignment.location && (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: 'var(--color-text-muted)' }}>
-                            <MapPin size={11} /> {assignment.location}
+                        <div className="flex items-center gap-1.5 text-[11px] text-[var(--color-text-muted)]">
+                            <MapPin size={12} className="shrink-0" /> {assignment.location}
                         </div>
                     )}
                     {!isDone && status === 'in_progress' && (
                         <button
                             onClick={() => handleStatus('finished')}
                             disabled={isPending}
-                            className="btn-secondary"
-                            style={{ alignSelf: 'flex-start', height: 30, paddingLeft: 12, paddingRight: 12, borderRadius: 8, fontSize: 11 }}
+                            className="btn-secondary self-start h-[30px] px-3 rounded-lg text-[11px]"
                         >
                             {isPending ? 'Saving…' : '✓ Mark as Completed'}
                         </button>

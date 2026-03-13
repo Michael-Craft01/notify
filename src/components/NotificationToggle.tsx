@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Bell, BellOff, Loader2, AlertCircle, CheckCircle2, Zap } from 'lucide-react'
+import { Bell, BellOff, Loader2, AlertCircle, CheckCircle2 } from 'lucide-react'
 import { saveSubscription, removeSubscription, sendTestNotification } from '@/app/actions/notifications'
 
 type NotifState = 'idle' | 'subscribing' | 'unsubscribing' | 'testing'
@@ -14,7 +14,6 @@ export default function NotificationToggle() {
     const [showTooltip, setShowTooltip] = useState(false)
     const [statusMsg, setStatusMsg] = useState<string | null>(null)
 
-    // ── Init: check existing subscription ──────────────────────────────────
     useEffect(() => {
         const init = async () => {
             try {
@@ -25,7 +24,6 @@ export default function NotificationToggle() {
 
                 setPermission(Notification.permission)
 
-                // Register service worker if not already active
                 await navigator.serviceWorker.register('/sw.js', { scope: '/' })
                 const reg = await navigator.serviceWorker.ready
                 const sub = await reg.pushManager.getSubscription()
@@ -39,7 +37,6 @@ export default function NotificationToggle() {
         init()
     }, [])
 
-    // ── Subscribe ───────────────────────────────────────────────────────────
     const subscribe = async () => {
         setState('subscribing')
         setStatusMsg(null)
@@ -55,7 +52,7 @@ export default function NotificationToggle() {
             }
 
             const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
-            if (!vapidKey) throw new Error('VAPID key missing from environment')
+            if (!vapidKey) throw new Error('VAPID key missing')
 
             const urlBase64ToUint8Array = (base64: string) => {
                 const padding = '='.repeat((4 - (base64.length % 4)) % 4)
@@ -79,13 +76,8 @@ export default function NotificationToggle() {
             }
 
             setIsSubscribed(true)
-
-            // Send a confirmation push so user sees it working immediately
             setState('testing')
-            const testRes = await sendTestNotification()
-            if (testRes.error) {
-                console.warn('[NotificationToggle] Test notification failed:', testRes.error)
-            }
+            await sendTestNotification()
         } catch (err: any) {
             console.error('[NotificationToggle] Subscribe error:', err)
             setStatusMsg(err?.message || 'Failed to enable alerts.')
@@ -94,7 +86,6 @@ export default function NotificationToggle() {
         }
     }
 
-    // ── Unsubscribe ─────────────────────────────────────────────────────────
     const unsubscribe = async () => {
         setState('unsubscribing')
         setStatusMsg(null)
@@ -117,25 +108,16 @@ export default function NotificationToggle() {
         }
     }
 
-    // ── Not supported ───────────────────────────────────────────────────────
     if (!initializing && !('serviceWorker' in navigator)) {
-        return null // Don't render if push isn't supported
+        return null
     }
 
-    // ── Loading / initializing ──────────────────────────────────────────────
     if (initializing || state !== 'idle') {
         return (
-            <div
-                className="relative flex items-center gap-2 h-9 px-3 rounded-xl border text-[11px] font-bold"
-                style={{
-                    background: 'var(--color-surface-2)',
-                    borderColor: 'var(--color-border)',
-                    color: 'var(--color-text-dim)',
-                }}
-            >
+            <div className="btn-secondary h-9 px-3 rounded-xl pointer-events-none text-[11px]">
                 <Loader2 size={13} className="animate-spin" />
                 <span className="hidden sm:inline">
-                    {state === 'testing' ? 'Sending test...' :
+                    {state === 'testing' ? 'Testing...' :
                      state === 'subscribing' ? 'Enabling...' :
                      state === 'unsubscribing' ? 'Disabling...' : 'Loading...'}
                 </span>
@@ -143,7 +125,6 @@ export default function NotificationToggle() {
         )
     }
 
-    // ── Blocked by browser ──────────────────────────────────────────────────
     if (permission === 'denied') {
         return (
             <div
@@ -152,26 +133,18 @@ export default function NotificationToggle() {
                 onMouseLeave={() => setShowTooltip(false)}
             >
                 <div
-                    className="flex items-center gap-2 h-9 px-3 rounded-xl border text-[11px] font-bold cursor-not-allowed"
-                    style={{
-                        background: 'var(--color-danger-soft)',
-                        borderColor: 'hsla(4,86%,58%,0.25)',
-                        color: 'var(--color-danger)',
-                    }}
+                    className="flex items-center gap-2 h-9 px-3 rounded-xl border text-[11px] font-bold cursor-not-allowed bg-white/5 border-white/10 text-[var(--color-text-dim)]"
                 >
                     <AlertCircle size={13} />
                     <span className="hidden sm:inline">Blocked</span>
                 </div>
                 {showTooltip && (
-                    <Tooltip>
-                        Alerts are blocked by your browser. Open site settings and allow notifications to re-enable.
-                    </Tooltip>
+                    <Tooltip>Alerts are blocked by your browser. Open site settings to allow notifications.</Tooltip>
                 )}
             </div>
         )
     }
 
-    // ── Subscribed / Unsubscribed ───────────────────────────────────────────
     return (
         <div
             className="relative"
@@ -180,12 +153,11 @@ export default function NotificationToggle() {
         >
             <button
                 onClick={isSubscribed ? unsubscribe : subscribe}
-                className="flex items-center gap-2 h-9 px-3 rounded-xl border text-[11px] font-bold transition-all"
-                style={{
-                    background: isSubscribed ? 'var(--color-success-soft)' : 'var(--color-surface-2)',
-                    borderColor: isSubscribed ? 'hsla(142,70%,45%,0.3)' : 'var(--color-border)',
-                    color: isSubscribed ? 'var(--color-success)' : 'var(--color-text-muted)',
-                }}
+                className={`h-9 px-3 rounded-xl text-[11px] font-bold transition-all ${
+                    isSubscribed 
+                        ? 'flex items-center gap-1.5 bg-[var(--color-primary-soft)] border border-[var(--color-primary-border)] text-[var(--orange-bright)] drop-shadow-[0_0_8px_rgba(249,115,22,0.4)] shadow-[0_0_12px_rgba(249,115,22,0.15)] hover:scale-[1.02] active:scale-[0.98]' 
+                        : 'btn-secondary hover:scale-[1.02] active:scale-[0.98]'
+                }`}
             >
                 {isSubscribed ? <CheckCircle2 size={13} /> : <Bell size={13} />}
                 <span className="hidden sm:inline">{isSubscribed ? 'Alerts On' : 'Enable Alerts'}</span>
@@ -194,19 +166,14 @@ export default function NotificationToggle() {
             {showTooltip && (
                 <Tooltip>
                     {isSubscribed
-                        ? 'You receive push alerts 48h, 24h, and 6h before deadlines — even when the app is closed. Click to disable.'
-                        : 'Enable deadline alerts. You\'ll get reminders 48h, 24h, and 6h before each task.'}
+                        ? 'Push alerts enabled (48h, 24h, 6h before deadlines). Click to disable.'
+                        : 'Enable deadline alerts. Get notified 48h, 24h, and 6h before tasks are due.'}
                 </Tooltip>
             )}
 
             {statusMsg && (
                 <div
-                    className="absolute right-0 top-full mt-2 w-56 p-3 rounded-xl text-[11px] z-50"
-                    style={{
-                        background: 'var(--color-danger-soft)',
-                        border: '1px solid hsla(4,86%,58%,0.25)',
-                        color: 'var(--color-danger)',
-                    }}
+                    className="absolute right-0 top-full mt-2 w-56 p-3 rounded-xl text-[11px] z-50 animate-fade-in bg-[var(--color-surface-3)] border border-[var(--color-border)] text-[var(--color-text-main)]"
                 >
                     {statusMsg}
                 </div>
@@ -218,14 +185,7 @@ export default function NotificationToggle() {
 function Tooltip({ children }: { children: React.ReactNode }) {
     return (
         <div
-            className="absolute right-0 top-full mt-2 w-58 p-3 rounded-xl text-[11px] leading-relaxed z-50 pointer-events-none"
-            style={{
-                width: '232px',
-                background: 'var(--color-surface-3)',
-                border: '1px solid var(--color-border-hover)',
-                boxShadow: 'var(--shadow-md)',
-                color: 'var(--color-text-muted)',
-            }}
+            className="absolute right-0 top-full mt-2 w-[232px] p-3 rounded-xl text-[11px] leading-relaxed z-50 animate-fade-in pointer-events-none bg-[#070707]/95 backdrop-blur-[20px] border border-[var(--color-border)] shadow-md text-[var(--color-text-muted)]"
         >
             {children}
         </div>

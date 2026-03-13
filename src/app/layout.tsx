@@ -25,7 +25,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="dark">
-      <body className={`${inter.variable} ${outfit.variable} font-sans min-h-screen bg-[var(--color-background)] text-[var(--color-text-main)] antialiased`}>
+      <body className={`${inter.variable} ${outfit.variable} antialiased`}>
         <div className="min-h-screen">
           {children}
         </div>

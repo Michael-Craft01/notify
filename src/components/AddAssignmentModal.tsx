@@ -149,23 +149,27 @@ export default function AddAssignmentModal({ userId }: { userId: string }) {
 
             {/* Popout */}
             {isOpen && (
-                <div
-                    className="absolute right-0 top-full mt-3 z-[300] animate-scale-in"
-                    style={{ width: '340px' }}
-                >
+                <>
+                    {/* Optional backdrop for contrast */}
+                    <div className="fixed inset-0 z-[290] bg-black/40 backdrop-blur-[2px] animate-fade-in" />
+                    
                     <div
-                        className="rounded-2xl overflow-hidden"
-                        style={{
-                            background: 'var(--color-surface)',
-                            border: '1px solid var(--color-border-hover)',
-                            boxShadow: 'var(--shadow-lg), 0 0 0 1px rgba(255,255,255,0.03)',
-                        }}
+                        className="fixed sm:absolute sm:right-0 bottom-0 sm:bottom-auto sm:top-full mt-3 z-[300] animate-slide-up sm:animate-scale-in w-full sm:w-[360px] p-4 sm:p-0"
                     >
-                        {/* Header */}
                         <div
-                            className="flex items-center justify-between px-4 py-3 border-b"
-                            style={{ borderColor: 'var(--color-border)' }}
+                            className="card w-full rounded-2xl sm:rounded-3xl overflow-hidden shadow-2xl"
+                            style={{
+                                background: 'rgba(10,10,10,0.85)',
+                                backdropFilter: 'var(--glass-blur-lg)',
+                                WebkitBackdropFilter: 'var(--glass-blur-lg)',
+                                border: '1px solid var(--color-border-hover)',
+                            }}
                         >
+                            {/* Header */}
+                            <div
+                                className="flex items-center justify-between px-5 py-4 border-b"
+                                style={{ borderColor: 'var(--color-border)' }}
+                            >
                             {/* Step back */}
                             <button
                                 onClick={() => step > 0 ? setStep((step - 1) as Step) : handleClose()}
@@ -199,13 +203,13 @@ export default function AddAssignmentModal({ userId }: { userId: string }) {
                                 ))}
                             </div>
 
-                            <button onClick={handleClose} className="btn-ghost h-7 w-7 rounded-lg flex items-center justify-center">
-                                <X size={14} />
+                            <button onClick={handleClose} className="btn-ghost h-8 w-8 rounded-xl flex items-center justify-center bg-white/5 hover:bg-white/10">
+                                <X size={15} />
                             </button>
                         </div>
 
                         {/* Body */}
-                        <div className="p-4">
+                        <div className="p-5 max-h-[70vh] sm:max-h-[600px] overflow-y-auto">
 
                             {/* ── Step 0: Choose Type ── */}
                             {step === 0 && (
@@ -477,6 +481,7 @@ export default function AddAssignmentModal({ userId }: { userId: string }) {
                         </div>
                     </div>
                 </div>
+                </>
             )}
         </div>
     )

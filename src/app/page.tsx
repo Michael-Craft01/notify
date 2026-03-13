@@ -57,88 +57,73 @@ export default async function Home() {
   ];
 
   return (
-    <div style={{ minHeight: "100vh", background: "var(--color-bg)", fontFamily: "var(--font-inter)" }}>
+    <div className="min-h-screen bg-[var(--color-bg)] font-[family-name:var(--font-inter)]">
 
       {/* ── NAV ─────────────────────────────────────────────────────────────── */}
-      <nav style={{
-        position: "sticky", top: 0, zIndex: 50,
-        background: "rgba(7,7,7,0.80)",
-        backdropFilter: "blur(24px)", WebkitBackdropFilter: "blur(24px)",
-        borderBottom: "1px solid var(--color-border)",
-      }}>
-        <div style={{ maxWidth: 1200, margin: "0 auto", padding: "0 24px", height: 60, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+      <nav className="sticky top-0 z-50 bg-[#070707]/80 backdrop-blur-xl border-b border-[var(--color-border)] transition-all">
+        <div className="max-w-[1200px] mx-auto px-6 h-[60px] flex items-center justify-between">
           {/* Brand */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div style={{
-              height: 32, width: 32, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center',
-              background: 'linear-gradient(135deg, #F97316, #EA580C)',
-              boxShadow: '0 0 16px rgba(249,115,22,0.40)',
-            }}>
+          <div className="flex items-center gap-2.5 group cursor-pointer">
+            <div className="h-8 w-8 rounded-lg flex items-center justify-center bg-gradient-to-br from-[#F97316] to-[#EA580C] shadow-[0_0_16px_rgba(249,115,22,0.40)] group-hover:shadow-[0_0_24px_rgba(249,115,22,0.60)] transition-shadow">
               <Terminal size={14} color="#fff" strokeWidth={2.5} />
             </div>
-            <span style={{ fontFamily: 'var(--font-outfit)', fontWeight: 800, fontSize: 15, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.95)' }}>
+            <span className="font-[family-name:var(--font-outfit)] font-extrabold text-[15px] tracking-[0.05em] uppercase text-white/95 group-hover:text-white transition-colors">
               Notify
             </span>
           </div>
 
           {/* Actions */}
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <div className="flex items-center gap-3">
             <NotificationToggle />
-            <div style={{ width: 1, height: 20, background: "var(--color-border)" }} />
+            <div className="w-[1px] h-5 bg-[var(--color-border)]" />
             <AddAssignmentModal userId={user.id} />
-            <div style={{
-              height: 34, width: 34, borderRadius: "50%", border: "1px solid var(--color-border-hover)",
-              background: "var(--color-surface-2)", display: "flex", alignItems: "center", justifyContent: "center",
-              fontSize: 11, fontWeight: 800, letterSpacing: "0.04em", color: "var(--color-text-muted)",
-            }} title={displayName}>
+            <div 
+              className="h-[34px] w-[34px] rounded-full border border-[var(--color-border-hover)] bg-[var(--color-surface-2)] flex items-center justify-center text-[11px] font-extrabold tracking-[0.04em] text-[var(--color-text-muted)] hover:bg-[var(--color-surface-3)] hover:text-[var(--color-text-main)] transition-colors cursor-pointer"
+              title={displayName}
+            >
               {initials}
             </div>
           </div>
         </div>
       </nav>
 
-      <main style={{ maxWidth: 1200, margin: "0 auto", padding: "48px 24px 80px" }}>
+      <main className="max-w-[1200px] mx-auto pt-12 px-6 pb-20">
 
         {/* ── HERO GREETING ───────────────────────────────────────────────── */}
-        <div className="animate-fade-up" style={{ marginBottom: 48 }}>
-          <p style={{ fontSize: 12, fontWeight: 600, letterSpacing: "0.18em", textTransform: "uppercase", color: "var(--color-text-dim)", marginBottom: 10 }}>
+        <div className="animate-fade-up mb-12">
+          <p className="text-xs font-semibold tracking-[0.18em] uppercase text-[var(--color-text-dim)] mb-2.5">
             {new Date().toLocaleDateString([], { weekday: "long", month: "long", day: "numeric" })}
           </p>
-          <h1 style={{ fontFamily: 'var(--font-outfit)', fontSize: 'clamp(32px, 5vw, 52px)', fontWeight: 800, letterSpacing: '-0.025em', lineHeight: 1.1, color: 'var(--color-text-main)' }}>
+          <h1 className="font-[family-name:var(--font-outfit)] text-[clamp(32px,5vw,52px)] font-extrabold tracking-[-0.025em] leading-[1.1] text-[var(--color-text-main)]">
             {overdue.length > 0
-              ? <><span style={{ color: '#F97316' }}>{overdue.length} task{overdue.length !== 1 ? 's' : ''}</span>{' '}<span style={{ color: 'var(--color-text-muted)' }}>past due.</span></>
-              : <>{greeting},<br /><span style={{ color: 'var(--color-text-muted)' }}>{firstName}.</span></>
+              ? <><span className="text-[#F97316]">{overdue.length} task{overdue.length !== 1 ? 's' : ''}</span>{' '}<span className="text-[var(--color-text-muted)]">past due.</span></>
+              : <>{greeting},<br /><span className="text-[var(--color-text-muted)]">{firstName}.</span></>
             }
           </h1>
         </div>
 
         {/* ── STATS ROW ───────────────────────────────────────────────────── */}
-        <div className="animate-fade-up" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 56 }}>
+        <div className="animate-fade-up grid grid-cols-2 md:grid-cols-4 gap-3 mb-14">
           {stats.map((s, i) => (
             <div key={i} className="stat-card" style={{ animationDelay: `${i * 50}ms` }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-                <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--color-text-dim)' }}>{s.label}</span>
-                <div style={{
-                  height: 26, width: 26, borderRadius: 7, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  background: i === 0 ? 'rgba(249,115,22,0.12)' : 'var(--color-surface-2)',
-                  border: `1px solid ${i === 0 ? 'rgba(249,115,22,0.25)' : 'var(--color-border)'}`,
-                }}>
+              <div className="flex items-center justify-between mb-4">
+                <span className="text-[10px] font-bold tracking-[0.16em] uppercase text-[var(--color-text-dim)]">{s.label}</span>
+                <div className={`h-[26px] w-[26px] rounded-md flex items-center justify-center border ${i === 0 ? 'bg-[#F97316]/10 border-[#F97316]/25' : 'bg-[var(--color-surface-2)] border-[var(--color-border)]'}`}>
                   <s.icon size={12} color={i === 0 ? '#F97316' : 'var(--color-text-dim)'} />
                 </div>
               </div>
-              <p style={{
-                fontFamily: 'var(--font-outfit)', fontSize: 40, fontWeight: 900, lineHeight: 1,
-                color: i === 0 ? '#F97316' : 'var(--color-text-main)',
-              }}>{s.value}</p>
+              <p className={`font-[family-name:var(--font-outfit)] text-[40px] font-black leading-none ${i === 0 ? 'text-[#F97316]' : 'text-[var(--color-text-main)]'}`}>
+                {s.value}
+              </p>
             </div>
           ))}
         </div>
 
         {/* ── OVERDUE ─────────────────────────────────────────────────────── */}
         {overdue.length > 0 && (
-          <section className="animate-fade-up" style={{ marginBottom: 48 }}>
+          <section className="animate-fade-up mb-12">
             <SectionHeader label="Overdue" count={overdue.length} dim />
-            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            <div className="flex flex-col gap-2.5">
               {overdue.map((a) => (
                 <AssignmentCard key={a.id} assignment={a as any} currentUserId={user.id} pulse={a.pulse} userStatus={a.myProgress as any} />
               ))}
@@ -147,12 +132,12 @@ export default async function Home() {
         )}
 
         {/* ── UPCOMING ────────────────────────────────────────────────────── */}
-        <section className="animate-fade-up" style={{ marginBottom: 48 }}>
+        <section className="animate-fade-up mb-12">
           <SectionHeader label="Upcoming" count={upcoming.length} />
           {upcoming.length === 0 ? (
             <EmptyState label="No upcoming tasks" sub="Add a task to get started." />
           ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            <div className="flex flex-col gap-2.5">
               {upcoming.map((a) => (
                 <AssignmentCard key={a.id} assignment={a as any} currentUserId={user.id} pulse={a.pulse} userStatus={a.myProgress as any} />
               ))}
@@ -162,9 +147,9 @@ export default async function Home() {
 
         {/* ── COMPLETED ───────────────────────────────────────────────────── */}
         {done.length > 0 && (
-          <section className="animate-fade-up" style={{ opacity: 0.5 }}>
+          <section className="animate-fade-up opacity-50 hover:opacity-100 transition-opacity duration-300">
             <SectionHeader label="Completed" count={done.length} />
-            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            <div className="flex flex-col gap-2.5">
               {done.map((a) => (
                 <AssignmentCard key={a.id} assignment={a as any} currentUserId={user.id} pulse={a.pulse} userStatus="finished" />
               ))}
@@ -174,13 +159,7 @@ export default async function Home() {
       </main>
 
       {/* ── FOOTER ──────────────────────────────────────────────────────── */}
-      <footer style={{
-        borderTop: "1px solid var(--color-border)", padding: "24px",
-        display: "flex", justifyContent: "space-between", alignItems: "center",
-        maxWidth: 1200, margin: "0 auto",
-        fontSize: 10, fontWeight: 600, letterSpacing: "0.14em", textTransform: "uppercase",
-        color: "var(--color-text-dim)",
-      }}>
+      <footer className="border-t border-[var(--color-border)] px-6 py-6 flex justify-between items-center max-w-[1200px] mx-auto text-[10px] font-bold tracking-[0.14em] uppercase text-[var(--color-text-dim)]">
         <span>© {new Date().getFullYear()} Notify</span>
         {userProfile?.cohort_year && <span>Cohort {userProfile.cohort_year}</span>}
       </footer>
@@ -190,21 +169,12 @@ export default async function Home() {
 
 function SectionHeader({ label, count, dim }: { label: string; count: number; dim?: boolean }) {
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
-      <span style={{
-        fontSize: 10, fontWeight: 800, letterSpacing: "0.18em", textTransform: "uppercase",
-        color: dim ? "rgba(255,255,255,0.35)" : "rgba(255,255,255,0.50)",
-      }}>
+    <div className="flex items-center gap-3 mb-4">
+      <span className={`text-[10px] font-extrabold tracking-[0.18em] uppercase ${dim ? 'text-white/30' : 'text-white/50'}`}>
         {label}
       </span>
-      <div style={{ flex: 1, height: 1, background: "var(--color-border)" }} />
-      <span style={{
-        fontSize: 10, fontWeight: 700,
-        color: "var(--color-text-dim)",
-        padding: "2px 8px", borderRadius: 99,
-        background: "var(--color-surface-2)",
-        border: "1px solid var(--color-border)",
-      }}>
+      <div className="flex-1 h-[1px] bg-[var(--color-border)]" />
+      <span className="text-[10px] font-bold text-[var(--color-text-dim)] px-2 py-0.5 rounded-full bg-[var(--color-surface-2)] border border-[var(--color-border)]">
         {count}
       </span>
     </div>
@@ -213,13 +183,9 @@ function SectionHeader({ label, count, dim }: { label: string; count: number; di
 
 function EmptyState({ label, sub }: { label: string; sub: string }) {
   return (
-    <div style={{
-      border: "1px dashed var(--color-border)", borderRadius: 16,
-      padding: "56px 24px", display: "flex", flexDirection: "column",
-      alignItems: "center", gap: 8, textAlign: "center",
-    }}>
-      <p style={{ fontSize: 12, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--color-text-dim)" }}>{label}</p>
-      <p style={{ fontSize: 12, color: "var(--color-text-dim)", opacity: 0.7 }}>{sub}</p>
+    <div className="border border-dashed border-[var(--color-border)] rounded-2xl py-14 px-6 flex flex-col items-center gap-2 text-center hover:border-[var(--color-border-hover)] transition-colors">
+      <p className="text-xs font-bold tracking-[0.12em] uppercase text-[var(--color-text-dim)]">{label}</p>
+      <p className="text-xs text-[var(--color-text-dim)] opacity-70">{sub}</p>
     </div>
   );
 }

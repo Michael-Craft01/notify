@@ -45,7 +45,7 @@ export default function OnboardingForm() {
                     onChange={(e) => setFullName(e.target.value)}
                     placeholder="e.g. Liam Carter"
                     required
-                    className="w-full h-12 rounded-lg border border-white/10 bg-black/40 px-4 text-[13px] text-white placeholder-neutral-700 focus:border-[var(--color-primary)] focus:outline-none transition-all font-semibold"
+                    className="input-field w-full h-12 px-4 shadow-inner"
                 />
             </div>
 
@@ -72,13 +72,13 @@ export default function OnboardingForm() {
                     min="2024"
                     max="2035"
                     required
-                    className="w-full h-12 rounded-lg border border-white/10 bg-black/40 px-4 text-[13px] text-white placeholder-neutral-700 focus:border-[var(--color-primary)] focus:outline-none transition-all font-semibold"
+                    className="input-field w-full h-12 px-4 shadow-inner"
                 />
             </div>
 
             <button
                 type="submit"
-                className="mt-2 w-full h-14 flex items-center justify-center rounded-lg bg-[var(--color-primary)] px-4 text-[14px] font-bold text-white transition-all hover:brightness-110 active:scale-[0.98] shadow-[0_4px_15px_rgba(249,115,22,0.2)]"
+                className="btn-primary mt-2 w-full h-14 flex items-center justify-center rounded-xl px-4 text-[14px] font-bold shadow-[0_4px_15px_rgba(249,115,22,0.2)]"
             >
                 Complete Setup
             </button>
