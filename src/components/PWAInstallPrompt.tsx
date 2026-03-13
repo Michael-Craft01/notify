@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Download, X } from 'lucide-react'
+import { X } from 'lucide-react'
 import Image from 'next/image'
 
 export default function PWAInstallPrompt() {

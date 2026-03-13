@@ -2,8 +2,9 @@
 
 import { useState, useEffect, Suspense } from 'react'
 import { Loader2, Mail, Terminal } from 'lucide-react'
-import { sendOTP, verifyOTP, signInWithOAuth } from './actions'
+import { sendOTP, verifyOTP } from './actions'
 import { useRouter, useSearchParams } from 'next/navigation'
+import { createClient } from '@/utils/supabase/client'
 
 function LoginContent() {
     const [email, setEmail] = useState('')
@@ -13,6 +14,7 @@ function LoginContent() {
     const [error, setError] = useState<string | null>(null)
     const router = useRouter()
     const searchParams = useSearchParams()
+    const supabase = createClient()
 
     useEffect(() => {
         const msg = searchParams.get('message')
@@ -21,9 +23,14 @@ function LoginContent() {
 
     const handleOAuth = async (provider: 'google' | 'spotify') => {
         setIsLoading(true)
-        const result = await signInWithOAuth(provider)
-        if (result?.error) {
-            setError(result.error)
+        const { error } = await supabase.auth.signInWithOAuth({
+            provider,
+            options: {
+                redirectTo: `${window.location.origin}/auth/confirm`,
+            },
+        })
+        if (error) {
+            setError(error.message)
             setIsLoading(false)
         }
     }

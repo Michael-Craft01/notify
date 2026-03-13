@@ -26,28 +26,6 @@ export async function sendOTP(email: string) {
     return { success: true }
 }
 
-export async function signInWithOAuth(provider: 'google' | 'spotify') {
-    const supabase = await createClient()
-
-    const { data, error } = await supabase.auth.signInWithOAuth({
-        provider,
-        options: {
-            redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/confirm`,
-        },
-    })
-
-    if (error) {
-        console.error(`${provider} Sign In Error:`, error)
-        return { error: error.message }
-    }
-
-    if (data.url) {
-        redirect(data.url)
-    }
-
-    return { success: true }
-}
-
 export async function verifyOTP(email: string, token: string) {
 
     const supabase = await createClient()
