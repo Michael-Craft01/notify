@@ -29,9 +29,9 @@ type AssignmentProps = {
 }
 
 const TYPE_ICONS: Record<TaskType, React.ElementType> = {
-    assignment:    FileText,
-    quiz:          ClipboardList,
-    online_test:   Monitor,
+    assignment: FileText,
+    quiz: ClipboardList,
+    online_test: Monitor,
     physical_test: MapPin,
 }
 
@@ -40,10 +40,10 @@ export default function AssignmentCard({ assignment, pulse, userStatus: init }: 
     const [expanded, setExpanded] = useState(false)
     const [isPending, startTransition] = useTransition()
 
-    const due      = new Date(assignment.due_date)
+    const due = new Date(assignment.due_date)
     const hoursLeft = (due.getTime() - Date.now()) / 3600000
     const isOverdue = hoursLeft <= 0
-    const isDone    = status === 'finished'
+    const isDone = status === 'finished'
 
     const TypeIcon = TYPE_ICONS[assignment.task_type || 'assignment']
 
@@ -114,6 +114,7 @@ export default function AssignmentCard({ assignment, pulse, userStatus: init }: 
                             rel="noopener noreferrer"
                             className="h-8 w-8 rounded-lg flex items-center justify-center bg-[var(--color-surface-2)] border border-[var(--color-border)] text-[var(--color-text-muted)] hover:bg-[var(--color-surface-3)] hover:text-[var(--color-text-main)] hover:border-[var(--color-border-hover)] transition-all shrink-0"
                             title="Open resource"
+                            aria-label="Open resource link"
                         >
                             <ExternalLink size={14} />
                         </a>
@@ -126,8 +127,8 @@ export default function AssignmentCard({ assignment, pulse, userStatus: init }: 
                             disabled={isPending}
                             className="btn-primary h-8 px-3.5 rounded-lg text-[11px] whitespace-nowrap shrink-0"
                         >
-                            {isPending ? <Loader2 size={12} className="inline animate-spin" /> :
-                             status === 'not_started' ? 'Begin' : 'Mark Done'}
+                            {isPending ? <Loader2 size={11} style={{ display: 'inline', animation: 'spin 1s linear infinite' }} /> :
+                                status === 'not_started' ? 'Begin' : 'Mark Done'}
                         </button>
                     )}
 
@@ -140,7 +141,10 @@ export default function AssignmentCard({ assignment, pulse, userStatus: init }: 
                     {/* Expand toggle */}
                     <button
                         onClick={() => setExpanded(v => !v)}
-                        className="btn-ghost h-8 w-8 rounded-lg flex items-center justify-center hover:bg-[var(--color-surface-2)] transition-colors shrink-0"
+                        className="btn-ghost"
+                        style={{ height: 32, width: 32, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                        aria-label={expanded ? "Collapse details" : "Expand details"}
+                        aria-expanded={expanded}
                     >
                         {expanded ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
                     </button>
