@@ -61,5 +61,21 @@ export async function updateSession(request: NextRequest) {
         return NextResponse.redirect(url)
     }
 
+    // Enforce onboarding check if logged in and not already on the onboarding or auth route
+    if (authenticated && !request.nextUrl.pathname.startsWith('/onboarding') && !request.nextUrl.pathname.startsWith('/auth') && !request.nextUrl.pathname.startsWith('/api')) {
+        // Query the public.users table to see if their profile is complete
+        const { data: userProfile } = await supabase
+            .from('users')
+            .select('full_name, cohort_year')
+            .eq('id', authenticated.id)
+            .single()
+
+        if (!userProfile || !userProfile.full_name || !userProfile.cohort_year) {
+            const url = request.nextUrl.clone()
+            url.pathname = '/onboarding'
+            return NextResponse.redirect(url)
+        }
+    }
+
     return supabaseResponse
 }

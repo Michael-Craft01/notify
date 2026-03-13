@@ -20,13 +20,12 @@ export async function POST(request: Request) {
         return NextResponse.redirect(new URL('/login', request.url))
     }
 
-    // Upsert user profile in our public.users table
-    // This handles cases where the DB trigger might have failed for a new user
+    // Upsert user profile in our public.users table (creates if doesn't exist)
     const { error: updateError } = await supabase
         .from('users')
         .upsert({
             id: user.id,
-            email: user.email!,
+            email: user.email,
             full_name: fullName,
             cohort_year: cohortYear
         }, { onConflict: 'id' })
