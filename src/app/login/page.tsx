@@ -24,19 +24,15 @@ function LoginContent() {
         setIsLoading(true)
         setError(null)
         
-        const supabase = createClient()
-        // Prioritize actual browser location over hardcoded env vars
-        const redirectOrigin = window.location.origin || process.env.NEXT_PUBLIC_SITE_URL
-        
-        const { error } = await supabase.auth.signInWithOAuth({
-            provider,
-            options: {
-                redirectTo: `${redirectOrigin}/auth/confirm`,
-            },
-        })
-
-        if (error) {
-            setError(error.message)
+        try {
+            const result = await signInWithOAuth(provider)
+            if (result?.error) {
+                setError(result.error)
+                setIsLoading(false)
+            }
+            // If success, the server action performs the redirect
+        } catch (err: any) {
+            setError(err.message || 'Failed to initiate login')
             setIsLoading(false)
         }
     }

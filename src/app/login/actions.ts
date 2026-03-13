@@ -28,11 +28,19 @@ export async function sendOTP(email: string) {
 
 export async function signInWithOAuth(provider: 'google') {
     const supabase = await createClient()
+    
+    // In production, we must use the absolute Vercel URL
+    // We prioritize NEXT_PUBLIC_SITE_URL, then fall back to the Vercel System URL
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL 
+        || (process.env.NEXT_PUBLIC_VERCEL_URL ? `https://${process.env.NEXT_PUBLIC_VERCEL_URL}` : 'http://localhost:3000')
+    
+    const redirectUrl = `${siteUrl.endsWith('/') ? siteUrl.slice(0, -1) : siteUrl}/auth/confirm`
 
     const { data, error } = await supabase.auth.signInWithOAuth({
         provider,
         options: {
-            redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/confirm`,
+            redirectTo: redirectUrl,
+            skipBrowserRedirect: false // Ensure server-side redirect handled by Supabase
         },
     })
 
@@ -42,7 +50,7 @@ export async function signInWithOAuth(provider: 'google') {
     }
 
     if (data.url) {
-        redirect(data.url)
+        redirect(data.url) // Perform the server-side redirect
     }
 
     return { success: true }

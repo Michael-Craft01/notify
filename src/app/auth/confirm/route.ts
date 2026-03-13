@@ -45,33 +45,42 @@ export async function GET(request: NextRequest) {
             return NextResponse.redirect(redirectUrl)
         }
     } else if (code) {
-        const supabase = await createClient()
-        const { error, data } = await supabase.auth.exchangeCodeForSession(code)
-        if (!error && data.user) {
-            // Automatically upsert a basic user record to satisfy foreign key constraints
-            // We'll pull the name from Google metadata if available
-            await supabase
-                .from('users')
-                .upsert({
-                    id: data.user.id,
-                    email: data.user.email!,
-                    full_name: data.user.user_metadata?.full_name || data.user.email?.split('@')[0] || 'User',
-                }, { onConflict: 'id' })
+        try {
+            const supabase = await createClient()
+            console.log('Auth: Exchanging code for session...')
+            const { error: exchangeError, data } = await supabase.auth.exchangeCodeForSession(code)
+            
+            if (exchangeError) {
+                console.error('Exchange Error:', exchangeError)
+                return NextResponse.redirect(new URL(`/login?message=${encodeURIComponent(exchangeError.message)}`, request.url))
+            }
 
-            const redirectUrl = request.nextUrl.clone()
-            redirectUrl.pathname = next
-            redirectUrl.searchParams.delete('code')
-            return NextResponse.redirect(redirectUrl)
-        }
-        
-        if (error) {
-            console.error('Exchange Code Error:', error)
+            if (data.user) {
+                console.log('Auth: Session established, upserting user profile...')
+                // Automatically upsert a basic user record to satisfy foreign key constraints
+                const { error: upsertError } = await supabase
+                    .from('users')
+                    .upsert({
+                        id: data.user.id,
+                        email: data.user.email!,
+                        full_name: data.user.user_metadata?.full_name || data.user.email?.split('@')[0] || 'User',
+                    }, { onConflict: 'id' })
 
-            // If exchange fails, redirect to login with the specific error
-            const errorUrl = request.nextUrl.clone()
-            errorUrl.pathname = '/login'
-            errorUrl.searchParams.set('message', error.message)
-            return NextResponse.redirect(errorUrl)
+                if (upsertError) {
+                    console.error('Upsert Error:', upsertError)
+                    // We record the error but continue to redirect if the session is valid
+                    // This prevents a hard lock if RLS is blocking the insert
+                }
+
+                console.log('Auth: Redirecting to:', next)
+                const redirectUrl = request.nextUrl.clone()
+                redirectUrl.pathname = next
+                redirectUrl.searchParams.delete('code')
+                return NextResponse.redirect(redirectUrl)
+            }
+        } catch (err: any) {
+            console.error('Critical Auth Flow Error:', err)
+            return NextResponse.redirect(new URL(`/login?message=${encodeURIComponent(err.message || 'Critical auth error')}`, request.url))
         }
     }
 
