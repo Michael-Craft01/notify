@@ -48,16 +48,18 @@ export async function GET(request: NextRequest) {
         const supabase = await createClient()
         const { error, data } = await supabase.auth.exchangeCodeForSession(code)
         if (!error && data.user) {
-            // Check if user exists in public.users
-            const { data: profile } = await supabase
+            // Automatically upsert a basic user record to satisfy foreign key constraints
+            // We'll pull the name from Google metadata if available
+            await supabase
                 .from('users')
-                .select('id')
-                .eq('id', data.user.id)
-                .single()
+                .upsert({
+                    id: data.user.id,
+                    email: data.user.email!,
+                    full_name: data.user.user_metadata?.full_name || data.user.email?.split('@')[0] || 'User',
+                }, { onConflict: 'id' })
 
             const redirectUrl = request.nextUrl.clone()
-            // If no profile, force onboarding to ensure they are in public.users
-            redirectUrl.pathname = profile ? next : '/onboarding'
+            redirectUrl.pathname = next
             redirectUrl.searchParams.delete('code')
             return NextResponse.redirect(redirectUrl)
         }
