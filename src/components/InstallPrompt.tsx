@@ -6,20 +6,28 @@ import { Download, X, Smartphone } from 'lucide-react'
 export default function InstallPrompt() {
     const [deferredPrompt, setDeferredPrompt] = useState<any>(null)
     const [isVisible, setIsVisible] = useState(false)
+    const [isIOS, setIsIOS] = useState(false)
 
     useEffect(() => {
+        // Detect iOS
+        const userAgent = window.navigator.userAgent.toLowerCase()
+        const isIOSDevice = /iphone|ipad|ipod/.test(userAgent) && !(window as any).MSStream
+        setIsIOS(isIOSDevice)
+
         const handleBeforeInstallPrompt = (e: any) => {
-            // Prevent the mini-infobar from appearing on mobile
             e.preventDefault()
-            // Stash the event so it can be triggered later.
             setDeferredPrompt(e)
-            // Update UI notify the user they can install the PWA
             setIsVisible(true)
         }
 
         window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
 
-        // Check if already installed
+        // Show for iOS if not standalone
+        if (isIOSDevice && !window.matchMedia('(display-mode: standalone)').matches) {
+            setIsVisible(true)
+        }
+
+        // Check if already installed (Android/Desktop)
         if (window.matchMedia('(display-mode: standalone)').matches) {
             setIsVisible(false)
         }
@@ -31,15 +39,8 @@ export default function InstallPrompt() {
 
     const handleInstallClick = async () => {
         if (!deferredPrompt) return
-
-        // Show the install prompt
         deferredPrompt.prompt()
-        
-        // Wait for the user to respond to the prompt
         const { outcome } = await deferredPrompt.userChoice
-        console.log(`User response to the install prompt: ${outcome}`)
-        
-        // We've used the prompt, and can't use it again, throw it away
         setDeferredPrompt(null)
         setIsVisible(false)
     }
@@ -55,18 +56,24 @@ export default function InstallPrompt() {
                     </div>
                     <div>
                         <h4 className="text-white text-[13px] font-bold">Install Notify</h4>
-                        <p className="text-white/40 text-[11px] leading-tight">Add to your home screen for the full app experience.</p>
+                        <p className="text-white/40 text-[11px] leading-tight">
+                            {isIOS 
+                                ? "Tap 'Share' then 'Add to Home Screen'" 
+                                : "Add to home screen for the full experience."}
+                        </p>
                     </div>
                 </div>
                 
                 <div className="flex items-center gap-2">
-                    <button
-                        onClick={handleInstallClick}
-                        className="bg-white text-black text-[11px] font-black px-4 py-2 rounded-lg hover:scale-[1.05] active:scale-[0.95] transition-all flex items-center gap-1.5"
-                    >
-                        <Download size={12} strokeWidth={3} />
-                        Install
-                    </button>
+                    {!isIOS && (
+                        <button
+                            onClick={handleInstallClick}
+                            className="bg-white text-black text-[11px] font-black px-4 py-2 rounded-lg hover:scale-[1.05] active:scale-[0.95] transition-all flex items-center gap-1.5"
+                        >
+                            <Download size={12} strokeWidth={3} />
+                            Install
+                        </button>
+                    )}
                     <button
                         onClick={() => setIsVisible(false)}
                         className="p-2 text-white/20 hover:text-white transition-colors"

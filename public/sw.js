@@ -95,3 +95,10 @@ self.addEventListener('sync', (event) => {
         console.log('[SW] Background sync triggered');
     }
 });
+
+// ── Fetch: required for PWA installability ────
+self.addEventListener('fetch', (event) => {
+    // Basic pass-through for now, satisfies Chrome's PWA criteria
+    // In a full offline app, you'd add caching logic here
+    event.respondWith(fetch(event.request).catch(() => caches.match(event.request)));
+});
