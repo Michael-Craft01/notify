@@ -45,6 +45,10 @@ export default async function Home() {
   const { data: userProfile } = await supabase
     .from("users").select("full_name, cohort_year").eq("id", user.id).single();
 
+  if (!userProfile) {
+    redirect("/onboarding");
+  }
+
   const displayName = userProfile?.full_name || user.email?.split("@")[0] || "User";
   const firstName   = displayName.split(" ")[0];
   const initials    = displayName.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2);

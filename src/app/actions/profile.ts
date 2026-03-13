@@ -40,11 +40,12 @@ export async function updateUserProfile(formData: FormData) {
 
     const { error } = await supabase
         .from('users')
-        .update({
+        .upsert({
+            id: user.id,
+            email: user.email!,
             full_name: validated.data.full_name,
             cohort_year: validated.data.cohort_year,
-        })
-        .eq('id', user.id)
+        }, { onConflict: 'id' })
 
     if (error) {
         console.error('Error updating profile:', error)

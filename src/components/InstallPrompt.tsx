@@ -9,12 +9,23 @@ export default function InstallPrompt() {
     const [isIOS, setIsIOS] = useState(false)
 
     useEffect(() => {
-        // Detect iOS
-        const userAgent = window.navigator.userAgent.toLowerCase()
+        // Trace logs to help debug on mobile
+        console.log('[PWA] Checking installability...')
+
+        // Detect OS
+        const userAgent = typeof window !== 'undefined' ? window.navigator.userAgent.toLowerCase() : ''
         const isIOSDevice = /iphone|ipad|ipod/.test(userAgent) && !(window as any).MSStream
+        const isAndroid = /android/.test(userAgent)
+        
+        // Precise standalone check
+        const isStandalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone === true
+        
         setIsIOS(isIOSDevice)
+        console.log('[PWA] Device:', isIOSDevice ? 'iOS' : isAndroid ? 'Android' : 'Desktop')
+        console.log('[PWA] Standalone Mode:', isStandalone)
 
         const handleBeforeInstallPrompt = (e: any) => {
+            console.log('[PWA] beforeinstallprompt event captured!')
             e.preventDefault()
             setDeferredPrompt(e)
             setIsVisible(true)
@@ -22,25 +33,36 @@ export default function InstallPrompt() {
 
         window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
 
-        // Show for iOS if not standalone
-        if (isIOSDevice && !window.matchMedia('(display-mode: standalone)').matches) {
+        // For iOS, we show it manually if not standalone
+        if (isIOSDevice && !isStandalone) {
             setIsVisible(true)
         }
 
-        // Check if already installed (Android/Desktop)
-        if (window.matchMedia('(display-mode: standalone)').matches) {
+        // For Android, if the event doesn't fire in 8 seconds, show manual nudge anyway
+        const timer = setTimeout(() => {
+            if (isAndroid && !isStandalone && !deferredPrompt) {
+                console.log('[PWA] Android event timeout - showing manual nudge')
+                setIsVisible(true)
+            }
+        }, 8000)
+
+        // Check if already installed
+        if (isStandalone) {
             setIsVisible(false)
         }
 
         return () => {
             window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
+            clearTimeout(timer)
         }
-    }, [])
+    }, [deferredPrompt])
 
     const handleInstallClick = async () => {
         if (!deferredPrompt) return
+        console.log('[PWA] Triggering install prompt...')
         deferredPrompt.prompt()
         const { outcome } = await deferredPrompt.userChoice
+        console.log('[PWA] User response:', outcome)
         setDeferredPrompt(null)
         setIsVisible(false)
     }
@@ -59,7 +81,9 @@ export default function InstallPrompt() {
                         <p className="text-white/40 text-[11px] leading-tight">
                             {isIOS 
                                 ? "Tap 'Share' then 'Add to Home Screen'" 
-                                : "Add to home screen for the full experience."}
+                                : deferredPrompt 
+                                    ? "Install it for the full experience."
+                                    : "Tap the ⋮ menu then 'Install app'"}
                         </p>
                     </div>
                 </div>

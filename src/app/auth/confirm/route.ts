@@ -46,21 +46,31 @@ export async function GET(request: NextRequest) {
         }
     } else if (code) {
         const supabase = await createClient()
-        const { error } = await supabase.auth.exchangeCodeForSession(code)
-        if (!error) {
+        const { error, data } = await supabase.auth.exchangeCodeForSession(code)
+        if (!error && data.user) {
+            // Check if user exists in public.users
+            const { data: profile } = await supabase
+                .from('users')
+                .select('id')
+                .eq('id', data.user.id)
+                .single()
+
             const redirectUrl = request.nextUrl.clone()
-            redirectUrl.pathname = next
+            // If no profile, force onboarding to ensure they are in public.users
+            redirectUrl.pathname = profile ? next : '/onboarding'
             redirectUrl.searchParams.delete('code')
             return NextResponse.redirect(redirectUrl)
         }
         
-        console.error('Exchange Code Error:', error)
+        if (error) {
+            console.error('Exchange Code Error:', error)
 
-        // If exchange fails, redirect to login with the specific error
-        const errorUrl = request.nextUrl.clone()
-        errorUrl.pathname = '/login'
-        errorUrl.searchParams.set('message', error.message)
-        return NextResponse.redirect(errorUrl)
+            // If exchange fails, redirect to login with the specific error
+            const errorUrl = request.nextUrl.clone()
+            errorUrl.pathname = '/login'
+            errorUrl.searchParams.set('message', error.message)
+            return NextResponse.redirect(errorUrl)
+        }
     }
 
     // return the user to an error page with some instructions
