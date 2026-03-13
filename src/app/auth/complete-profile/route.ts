@@ -20,14 +20,15 @@ export async function POST(request: Request) {
         return NextResponse.redirect(new URL('/login', request.url))
     }
 
-    // Update user profile in our public.users table
+    // Upsert user profile in our public.users table (creates if doesn't exist)
     const { error: updateError } = await supabase
         .from('users')
-        .update({
+        .upsert({
+            id: user.id,
+            email: user.email,
             full_name: fullName,
             cohort_year: cohortYear
-        })
-        .eq('id', user.id)
+        }, { onConflict: 'id' })
 
     if (updateError) {
         console.error('Error updating profile:', updateError)

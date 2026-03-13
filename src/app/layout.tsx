@@ -18,6 +18,8 @@ export const viewport: Viewport = {
   maximumScale: 1,
 };
 
+import PWAInstallPrompt from "@/components/PWAInstallPrompt";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -29,6 +31,7 @@ export default function RootLayout({
         <div className="min-h-screen">
           {children}
         </div>
+        <PWAInstallPrompt />
       </body>
     </html>
   );
