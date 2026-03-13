@@ -25,10 +25,12 @@ function LoginContent() {
         setError(null)
         
         const supabase = createClient()
+        const redirectOrigin = process.env.NEXT_PUBLIC_SITE_URL || window.location.origin
+        
         const { error } = await supabase.auth.signInWithOAuth({
             provider,
             options: {
-                redirectTo: `${window.location.origin}/auth/confirm`,
+                redirectTo: `${redirectOrigin}/auth/confirm`,
             },
         })
 
