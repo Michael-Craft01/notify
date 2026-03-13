@@ -17,19 +17,32 @@ export default function NotificationToggle() {
     useEffect(() => {
         const init = async () => {
             try {
+                console.log('[NotificationToggle] Checking SW support...')
                 if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+                    console.log('[NotificationToggle] SW or Push not supported.')
                     setInitializing(false)
                     return
                 }
 
                 setPermission(Notification.permission)
+                console.log('[NotificationToggle] Current permission:', Notification.permission)
 
-                await navigator.serviceWorker.register('/sw.js', { scope: '/' })
-                const reg = await navigator.serviceWorker.ready
+                // Try to register, but don't hang if it's already managed by next-pwa
+                console.log('[NotificationToggle] Registering SW...')
+                const registration = await navigator.serviceWorker.register('/sw.js', { scope: '/' })
+                console.log('[NotificationToggle] SW registered:', registration.scope)
+
+                const reg = await Promise.race([
+                    navigator.serviceWorker.ready,
+                    new Promise((_, reject) => setTimeout(() => reject(new Error('SW ready timeout')), 5000))
+                ]) as ServiceWorkerRegistration
+                
+                console.log('[NotificationToggle] SW ready.')
                 const sub = await reg.pushManager.getSubscription()
+                console.log('[NotificationToggle] Existing sub:', !!sub)
                 setIsSubscribed(!!sub)
             } catch (err) {
-                console.error('[NotificationToggle] Init error:', err)
+                console.warn('[NotificationToggle] Init warning/error:', err)
             } finally {
                 setInitializing(false)
             }
@@ -42,8 +55,10 @@ export default function NotificationToggle() {
         setStatusMsg(null)
 
         try {
+            console.log('[NotificationToggle] Requesting permission...')
             const perm = await Notification.requestPermission()
             setPermission(perm)
+            console.log('[NotificationToggle] Permission result:', perm)
 
             if (perm !== 'granted') {
                 setStatusMsg('Permission denied. Enable in browser settings.')
@@ -52,7 +67,8 @@ export default function NotificationToggle() {
             }
 
             const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
-            if (!vapidKey) throw new Error('VAPID key missing')
+            console.log('[NotificationToggle] VAPID key present:', !!vapidKey)
+            if (!vapidKey) throw new Error('VAPID key missing. Check environment variables.')
 
             const urlBase64ToUint8Array = (base64: string) => {
                 const padding = '='.repeat((4 - (base64.length % 4)) % 4)
@@ -61,25 +77,35 @@ export default function NotificationToggle() {
                 return Uint8Array.from([...raw].map(c => c.charCodeAt(0)))
             }
 
-            const reg = await navigator.serviceWorker.ready
+            console.log('[NotificationToggle] Waiting for SW ready...')
+            const reg = await Promise.race([
+                navigator.serviceWorker.ready,
+                new Promise((_, reject) => setTimeout(() => reject(new Error('Browser stall: Service Worker not responding.')), 10000))
+            ]) as ServiceWorkerRegistration
+
+            console.log('[NotificationToggle] Subscribing via PushManager...')
             const sub = await reg.pushManager.subscribe({
                 userVisibleOnly: true,
                 applicationServerKey: urlBase64ToUint8Array(vapidKey),
             })
 
+            console.log('[NotificationToggle] Saving sub to DB...')
             const res = await saveSubscription(JSON.parse(JSON.stringify(sub)))
 
             if (res.error) {
+                console.error('[NotificationToggle] DB save error:', res.error)
                 setStatusMsg(res.error)
                 setState('idle')
                 return
             }
 
+            console.log('[NotificationToggle] Subscription successful. Sending test...')
             setIsSubscribed(true)
             setState('testing')
             await sendTestNotification()
+            console.log('[NotificationToggle] Test sequence complete.')
         } catch (err: any) {
-            console.error('[NotificationToggle] Subscribe error:', err)
+            console.error('[NotificationToggle] Subscribe sequence failed:', err)
             setStatusMsg(err?.message || 'Failed to enable alerts.')
         } finally {
             setState('idle')

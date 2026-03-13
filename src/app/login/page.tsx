@@ -25,7 +25,8 @@ function LoginContent() {
         setError(null)
         
         const supabase = createClient()
-        const redirectOrigin = process.env.NEXT_PUBLIC_SITE_URL || window.location.origin
+        // Prioritize actual browser location over hardcoded env vars
+        const redirectOrigin = window.location.origin || process.env.NEXT_PUBLIC_SITE_URL
         
         const { error } = await supabase.auth.signInWithOAuth({
             provider,
