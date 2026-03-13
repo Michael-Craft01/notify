@@ -35,13 +35,13 @@ export async function updateSession(request: NextRequest) {
         data: { user },
     } = await supabase.auth.getUser()
 
-    // --- Developer Bypass (Phase 4.5 Hotfix) ---
+    // --- Developer Bypass (Phase 4.5 Hotfix: DISABLED) ---
+    /*
     const mockUserEmail = request.cookies.get('notify-mock-user')?.value
     const isLocal = request.nextUrl.hostname === 'localhost' || request.nextUrl.hostname === '127.0.0.1'
-
-    // Create a mock user object with a VALID UUID to avoid PG errors
     const mockUser = (mockUserEmail && isLocal) ? { id: '00000000-0000-0000-0000-000000000000', email: mockUserEmail } : null
-    const authenticated = user || mockUser
+    */
+    const authenticated = user // Prioritize real session
 
     if (
         !authenticated &&
@@ -60,9 +60,6 @@ export async function updateSession(request: NextRequest) {
         url.pathname = '/'
         return NextResponse.redirect(url)
     }
-
-    return supabaseResponse
-}
 
     return supabaseResponse
 }
