@@ -119,7 +119,7 @@ export async function GET(req: NextRequest) {
     // Fetch all subscriptions once (shared across all windows)
     const { data: subs, error: subErr } = await supabase
         .from('user_subscriptions')
-        .select('id, subscription')
+        .select('id, subscription, device_type')
 
     if (subErr || !subs?.length) {
         return NextResponse.json({ ok: true, sent: 0, reason: 'No subscriptions', subErr })
@@ -158,6 +158,15 @@ export async function GET(req: NextRequest) {
 
             await Promise.allSettled(
                 subs.map(async (row) => {
+                    // Origin Filter: Don't send production pings to localhost test devices
+                    // Format: "browser:https://notify.vercel.app"
+                    const subOrigin = row.device_type?.split('browser:')[1]
+                    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL
+                    
+                    if (siteUrl && subOrigin && !subOrigin.includes(siteUrl) && !siteUrl.includes(subOrigin)) {
+                        return // Skip: origin mismatch
+                    }
+
                     try {
                         await webpush.sendNotification(row.subscription, payload)
                         totalSent++

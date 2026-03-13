@@ -49,13 +49,21 @@ export async function createAssignment(formData: FormData) {
         return { error: 'Invalid date format provided. Please use a standard date/time.' }
     }
 
+    const getNormalizedUrl = (url: any) => {
+        if (!url || typeof url !== 'string') return undefined
+        const siteUrl = process.env.NEXT_PUBLIC_SITE_URL
+        if (siteUrl && url.startsWith(siteUrl)) return url.replace(siteUrl, '')
+        if (url.startsWith('http://localhost:3000')) return url.replace('http://localhost:3000', '')
+        return url
+    }
+
     const rawData = {
         course_code: formData.get('course_code'),
         title: formData.get('title'),
         description: formData.get('description') || undefined,
         due_date: isoDate,
         task_type: formData.get('task_type') || 'assignment',
-        resource_url: formData.get('resource_url') || undefined,
+        resource_url: getNormalizedUrl(formData.get('resource_url')),
         location: formData.get('location') || undefined,
     }
 
@@ -132,13 +140,21 @@ export async function updateAssignment(assignmentId: string, formData: FormData)
 
     if (!user) return { error: 'Unauthorized' }
 
+    const getNormalizedUrl = (url: any) => {
+        if (!url || typeof url !== 'string') return undefined
+        const siteUrl = process.env.NEXT_PUBLIC_SITE_URL
+        if (siteUrl && url.startsWith(siteUrl)) return url.replace(siteUrl, '')
+        if (url.startsWith('http://localhost:3000')) return url.replace('http://localhost:3000', '')
+        return url
+    }
+
     const rawData = {
         course_code: formData.get('course_code'),
         title: formData.get('title'),
         description: formData.get('description') || undefined,
         due_date: new Date(formData.get('due_date') as string).toISOString(),
         task_type: formData.get('task_type') || 'assignment',
-        resource_url: formData.get('resource_url') || undefined,
+        resource_url: getNormalizedUrl(formData.get('resource_url')),
         location: formData.get('location') || undefined,
     }
 

@@ -49,7 +49,11 @@ export async function saveSubscription(subscription: any) {
     const { error } = await writeClient
         .from('user_subscriptions')
         .upsert(
-            { user_id: user.id, subscription, device_type: 'browser' },
+            { 
+                user_id: user.id, 
+                subscription, 
+                device_type: subscription.origin ? `browser:${subscription.origin}` : 'browser' 
+            },
             { onConflict: 'user_id, subscription' }
         )
 

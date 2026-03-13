@@ -90,7 +90,9 @@ export default function NotificationToggle() {
             })
 
             console.log('[NotificationToggle] Saving sub to DB...')
-            const res = await saveSubscription(JSON.parse(JSON.stringify(sub)))
+            const subData = JSON.parse(JSON.stringify(sub))
+            subData.origin = window.location.origin
+            const res = await saveSubscription(subData)
 
             if (res.error) {
                 console.error('[NotificationToggle] DB save error:', res.error)
