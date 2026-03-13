@@ -87,37 +87,94 @@ export default async function Home() {
         </div>
       </nav>
 
-      <main className="max-w-[1200px] mx-auto pt-12 px-6 pb-20 flex flex-col gap-6 text-[var(--color-text-main)]">
-        <section>
-          <div className="text-base font-semibold mb-1">Overdue</div>
-          <div className="text-sm mb-2">{overdue.length}</div>
-          <div className="flex flex-col gap-2">
-            {overdue.map((a) => (
-              <AssignmentCard key={a.id} assignment={a as any} currentUserId={user.id} userStatus={a.myProgress as any} />
-            ))}
-          </div>
+      <main className="max-w-[1200px] mx-auto pt-12 px-6 pb-20 flex flex-col gap-12 text-[var(--color-text-main)]">
+
+        {/* ── HERO ──────────────────────────────────────────────────────────── */}
+        <section className="animate-fade-up">
+          <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight mb-2 text-white">
+            {greeting}, {firstName}
+          </h1>
+          <p className="text-[15px] text-[var(--color-text-muted)] max-w-[600px] leading-relaxed">
+            Here&apos;s what&apos;s happening with your coursework.
+            {overdue.length > 0 ? ` You have ${overdue.length} overdue tasks to catch up on.` : " You're all caught up on overdue tasks!"}
+          </p>
         </section>
 
-        <section>
-          <div className="text-base font-semibold mb-1">Upcoming</div>
-          <div className="text-sm mb-2">{upcoming.length}</div>
-          <div className="flex flex-col gap-2">
-            {upcoming.map((a) => (
-              <AssignmentCard key={a.id} assignment={a as any} currentUserId={user.id} userStatus={a.myProgress as any} />
-            ))}
-          </div>
+        {/* ── STATS ROW ─────────────────────────────────────────────────────── */}
+        <section className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 animate-fade-up stagger">
+          {stats.map((s, i) => (
+            <div key={i} className="bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded-2xl p-4 sm:p-5 flex flex-col justify-between transition-all hover:border-[var(--color-border-hover)]">
+              <div className="flex items-center gap-2 mb-3">
+                <s.icon size={15} className="text-[var(--color-text-muted)]" />
+                <span className="text-[12px] font-bold uppercase tracking-wider text-[var(--color-text-dim)]">{s.label}</span>
+              </div>
+              <div className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">{s.value}</div>
+            </div>
+          ))}
         </section>
 
-        <section>
-          <div className="text-base font-semibold mb-1">Completed</div>
-          <div className="text-sm mb-2">{done.length}</div>
-          <div className="flex flex-col gap-2">
-            {done.map((a) => (
-              <AssignmentCard key={a.id} assignment={a as any} currentUserId={user.id} userStatus="finished" />
-            ))}
+        {/* ── TASKS ─────────────────────────────────────────────────────────── */}
+        {allTasks.length === 0 && (
+          <div className="flex flex-col items-center justify-center py-20 text-center">
+            <div className="h-16 w-16 mb-6 rounded-2xl flex items-center justify-center bg-[var(--color-surface-2)] border border-[var(--color-border)]">
+              <CheckCircle2 size={24} className="text-[var(--color-text-muted)]" />
+            </div>
+            <h2 className="text-xl font-bold text-white mb-2">You&apos;re all caught up!</h2>
+            <p className="text-[14px] text-[var(--color-text-dim)] max-w-[280px]">
+              There are no tasks pending or completed right now. Add a new task to get started.
+            </p>
           </div>
-        </section>
+        )}
+
+        {overdue.length > 0 && (
+          <section>
+            <h2 className="text-lg font-bold text-white leading-tight">Overdue</h2>
+            <p className="text-sm font-medium text-white mb-6 leading-tight">{overdue.length}</p>
+            <div className="flex flex-col gap-4">
+              {overdue.map((a) => (
+                <AssignmentCard key={a.id} assignment={a as any} pulse={a.pulse} currentUserId={user.id} userStatus={a.myProgress as any} />
+              ))}
+            </div>
+          </section>
+        )}
+
+        {upcoming.length > 0 && (
+          <section>
+            <h2 className="text-lg font-bold text-white leading-tight">Upcoming</h2>
+            <p className="text-sm font-medium text-white mb-6 leading-tight">{upcoming.length}</p>
+            <div className="flex flex-col gap-4">
+              {upcoming.map((a) => (
+                <AssignmentCard key={a.id} assignment={a as any} pulse={a.pulse} currentUserId={user.id} userStatus={a.myProgress as any} />
+              ))}
+            </div>
+          </section>
+        )}
+
+        {done.length > 0 && (
+          <section>
+            <h2 className="text-lg font-bold text-white leading-tight">Completed</h2>
+            <p className="text-sm font-medium text-white mb-6 leading-tight">{done.length}</p>
+            <div className="flex flex-col gap-4">
+              {done.map((a) => (
+                <AssignmentCard key={a.id} assignment={a as any} pulse={a.pulse} currentUserId={user.id} userStatus="finished" />
+              ))}
+            </div>
+          </section>
+        )}
       </main>
+
+      {/* ── FOOTER ──────────────────────────────────────────────────────────── */}
+      <footer className="border-t border-[var(--color-border)] py-8 mt-auto">
+        <div className="max-w-[1200px] mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-2">
+            <Terminal size={14} className="text-[#F97316]" strokeWidth={2.5} />
+            <span className="font-[family-name:var(--font-outfit)] font-bold text-[13px] tracking-wider uppercase text-white/80">Notify</span>
+          </div>
+          <p className="text-[12px] text-[var(--color-text-dim)]">
+            &copy; {new Date().getFullYear()} Notify Dashboard. All rights reserved.
+          </p>
+        </div>
+      </footer>
     </div>
   );
 }
