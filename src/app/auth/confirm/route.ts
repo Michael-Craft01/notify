@@ -10,6 +10,13 @@ export async function GET(request: NextRequest) {
     const type = searchParams.get('type') as EmailOtpType | null
     const next = searchParams.get('next') ?? '/'
 
+    console.log('Auth Callback Debug:', {
+        hasCode: !!code,
+        type,
+        next,
+        cookies: request.cookies.getAll().map(c => c.name)
+    })
+
     const error_description = searchParams.get('error_description')
     const error_name = searchParams.get('error')
 
@@ -46,6 +53,8 @@ export async function GET(request: NextRequest) {
             redirectUrl.searchParams.delete('code')
             return NextResponse.redirect(redirectUrl)
         }
+        
+        console.error('Exchange Code Error:', error)
 
         // If exchange fails, redirect to login with the specific error
         const errorUrl = request.nextUrl.clone()
