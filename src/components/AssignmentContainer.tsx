@@ -25,7 +25,7 @@ export default function AssignmentContainer({
     assignments, 
     currentUserId 
 }: AssignmentContainerProps) {
-    const [viewMode, setViewMode] = useState<'list' | 'grid'>('list')
+    const [viewMode, setViewMode] = useState<'list' | 'grid'>('grid')
     const [searchQuery, setSearchQuery] = useState('')
     const [activeFilter, setActiveFilter] = useState('all')
 

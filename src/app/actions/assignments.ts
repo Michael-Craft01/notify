@@ -39,11 +39,21 @@ export async function createAssignment(formData: FormData) {
     }
 
     const dueDateRaw = formData.get('due_date') as string
+    let isoDate: string
+    try {
+        const d = new Date(dueDateRaw)
+        if (isNaN(d.getTime())) throw new Error("Invalid date")
+        isoDate = d.toISOString()
+    } catch (e) {
+        console.error("Date parsing error:", dueDateRaw)
+        return { error: 'Invalid date format provided. Please use a standard date/time.' }
+    }
+
     const rawData = {
         course_code: formData.get('course_code'),
         title: formData.get('title'),
         description: formData.get('description') || undefined,
-        due_date: new Date(dueDateRaw).toISOString(),
+        due_date: isoDate,
         task_type: formData.get('task_type') || 'assignment',
         resource_url: formData.get('resource_url') || undefined,
         location: formData.get('location') || undefined,
@@ -52,6 +62,7 @@ export async function createAssignment(formData: FormData) {
     const validated = CreateAssignmentSchema.safeParse(rawData)
 
     if (!validated.success) {
+        console.error("Validation error:", validated.error.issues)
         return { error: `Validation Failed: ${validated.error.issues[0].message}` }
     }
 

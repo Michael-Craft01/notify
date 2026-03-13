@@ -49,6 +49,7 @@ export default async function Home() {
   const firstName   = displayName.split(" ")[0];
   const initials    = displayName.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2);
 
+  const productivity = allTasks.length > 0 ? Math.round((done.length / allTasks.length) * 100) : 0;
   const hour = new Date().getHours();
   const greeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
 
@@ -56,7 +57,7 @@ export default async function Home() {
     { label: "Upcoming",  value: upcoming.length, icon: Clock },
     { label: "Overdue",   value: overdue.length,  icon: AlertTriangle },
     { label: "Completed", value: done.length,      icon: CheckCircle2 },
-    { label: "Cohort",    value: pulseStats?.[0]?.total_cohort ?? "—", icon: Users },
+    { label: "Efficiency", value: `${productivity}%`, icon: TrendingUp },
   ];
 
   return (

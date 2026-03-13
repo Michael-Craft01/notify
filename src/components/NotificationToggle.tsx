@@ -139,7 +139,7 @@ export default function NotificationToggle() {
                     <span className="hidden sm:inline">Blocked</span>
                 </div>
                 {showTooltip && (
-                    <Tooltip>Alerts are blocked by your browser. Open site settings to allow notifications.</Tooltip>
+                    <FixedTooltip>Alerts are blocked by your browser. Open site settings to allow notifications.</FixedTooltip>
                 )}
             </div>
         )
@@ -164,30 +164,30 @@ export default function NotificationToggle() {
             </button>
 
             {showTooltip && (
-                <Tooltip>
+                <FixedTooltip>
                     {isSubscribed
                         ? 'Push alerts enabled (48h, 24h, 6h before deadlines). Click to disable.'
                         : 'Enable deadline alerts. Get notified 48h, 24h, and 6h before tasks are due.'}
-                </Tooltip>
+                </FixedTooltip>
             )}
 
             {statusMsg && (
-                <div
-                    className="absolute right-0 top-full mt-2 w-56 p-3 rounded-xl text-[11px] z-50 animate-fade-in bg-[var(--color-surface-3)] border border-[var(--color-border)] text-[var(--color-text-main)]"
-                >
-                    {statusMsg}
+                <div className="fixed inset-0 z-[400] flex items-end justify-center p-4 pb-24 sm:pb-32 pointer-events-none">
+                    <div className="animate-fade-up bg-[var(--color-surface-3)] border border-[var(--color-border)] text-[var(--color-text-main)] px-5 py-3 rounded-2xl text-[12px] font-bold shadow-2xl backdrop-blur-xl pointer-events-auto max-w-[320px] text-center">
+                        {statusMsg}
+                    </div>
                 </div>
             )}
         </div>
     )
 }
 
-function Tooltip({ children }: { children: React.ReactNode }) {
+function FixedTooltip({ children }: { children: React.ReactNode }) {
     return (
-        <div
-            className="absolute right-0 top-full mt-2 w-[232px] p-3 rounded-xl text-[11px] leading-relaxed z-50 animate-fade-in pointer-events-none bg-[#070707]/95 backdrop-blur-[20px] border border-[var(--color-border)] shadow-md text-[var(--color-text-muted)]"
-        >
-            {children}
+        <div className="fixed inset-0 z-[400] flex items-end justify-center p-4 pb-24 pointer-events-none">
+            <div className="animate-fade-up bg-[#070707]/95 backdrop-blur-[20px] border border-white/10 shadow-2xl text-white/60 px-4 py-2.5 rounded-xl text-[11px] leading-relaxed max-w-[280px] text-center">
+                {children}
+            </div>
         </div>
     )
 }

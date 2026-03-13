@@ -92,55 +92,77 @@ export async function enhanceFormAction(partialData: Record<string, string>) {
 }
 
 /**
- * NotifyAI Chat - Handles natural language database commands
+ * NotifyAI Chat - Handles natural language database commands with conversation history
  */
-export async function askNotifyAI(message: string, currentAssignments: any[]) {
+export async function askNotifyAI(
+    message: string, 
+    currentAssignments: any[], 
+    history: { role: 'user' | 'ai', content: string }[] = []
+) {
     try {
         const model = genAI.getGenerativeModel({ model: AI_MODEL })
+
+        const contextAssignments = currentAssignments.map(a => ({
+            id: a.id,
+            title: a.title,
+            course_code: a.course_code,
+            due_date: a.due_date,
+            task_type: a.task_type,
+            status: a.myProgress
+        }))
+
+        const chatContext = history.length > 0 
+            ? `CONVERSATION HISTORY:\n${history.map(h => `${h.role === 'user' ? 'User' : 'NotifyAI'}: ${h.content}`).join('\n')}`
+            : ''
 
         const systemPrompt = `
 You are "NotifyAI", the intelligent backbone of the Notify productivity app. 
 Your goal is to help students manage their assignments using natural language.
 
 CURRENT CONTEXT:
-- Time: ${new Date().toLocaleString()}
-- Current Assignments in View: ${JSON.stringify(currentAssignments.map(a => ({ id: a.id, title: a.title, code: a.course_code })))}
+- Current Time: ${new Date().toLocaleString()}
+- Assignments in View: ${JSON.stringify(contextAssignments)}
+
+${chatContext}
 
 CAPABILITIES:
 1. CREATE: Add new assignments/quizzes/tests.
 2. UPDATE: Change details or status (e.g., "mark MP201 as done").
 3. DELETE: Remove tasks.
-4. QUERY: Filter or find tasks (e.g., "what's due tomorrow?").
+4. QUERY: Filter, find, or analyze tasks.
 
-INSTRUCTIONS:
-- Translate the user's request into a structured action.
-- If the user wants to CREATE/UPDATE/DELETE, return a JSON object with the "intent", "actionData", and "message".
-- If the user is just asking a question, return a "chat" response.
-- Response MUST be a single JSON object. Do not include any other text or markdown formatting.
-- Schema for actionData (CREATE/UPDATE):
-  {
-    "course_code": "CS101",
-    "title": "Exam Prep",
-    "description": "...",
-    "due_date": "ISO-8601",
-    "task_type": "assignment" | "quiz" | "online_test" | "physical_test"
-  }
+STRICT INSTRUCTIONS:
+- You must return a SINGLE JSON object. No other text.
+- For CREATE/UPDATE:
+    - course_code: Uppercase (e.g., "CSC301")
+    - title: Clear, concise title
+    - due_date: MUST be a valid ISO-8601 string.
+    - task_type: MUST be exactly one of: 'assignment', 'quiz', 'online_test', 'physical_test'.
+- Use the CONVERSATION HISTORY to resolve pronouns ("it", "that") and follow-ups ("yes", "do it").
+- If the user says "add a quiz", set task_type to 'quiz'.
 
-Response JSON Example:
+RESPONSE SCHEMA:
 {
-  "intent": "create",
-  "actionData": { "course_code": "CSC301", "title": "Lab 5", "due_date": "2024-03-20T10:00:00Z" },
-  "message": "I've prepared the Lab 5 assignment for you."
+    "intent": "create" | "update" | "delete" | "query" | "chat",
+    "actionData": {
+        "id": "UUID (only for update/delete)",
+        "course_code": "...",
+        "title": "...",
+        "description": "...",
+        "due_date": "ISO-TIMESTAMP",
+        "task_type": "assignment" | "quiz" | "online_test" | "physical_test"
+    },
+    "message": "A professional and friendly response explaining the action."
 }
 
-Be helpful, concise, and professional. Use the "Notify" brand tone.
+Ensure the message confirms what was done (e.g., "I've added the quiz for you.").
 `
         const prompt = `${systemPrompt}\n\nUSER REQUEST: ${message}`
         const result = await model.generateContent(prompt)
 
         const text = result.response.text()
         const jsonMatch = text.match(/\{[\s\S]*\}/)
-        if (!jsonMatch) return { error: "I couldn't process that request." }
+        if (!jsonMatch) return { error: "I couldn't process that request. Try being more specific." }
 
         const aiResponse = JSON.parse(jsonMatch[0])
         return { success: true, ...aiResponse }

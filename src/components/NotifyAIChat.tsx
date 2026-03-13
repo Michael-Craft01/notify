@@ -1,12 +1,16 @@
 'use client'
 
 import { useState, useRef, useEffect, useTransition } from 'react'
+import { createPortal } from 'react-dom'
 import { 
     MessageSquare, X, Send, Sparkles, Loader2, 
     Bot, User, ChevronRight, CornerDownRight 
 } from 'lucide-react'
+import { useRouter } from 'next/navigation'
 import { askNotifyAI } from '@/app/actions/ai-assistant'
 import { createAssignment, updateAssignment, deleteAssignment } from '@/app/actions/assignments'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 
 type Message = {
     role: 'user' | 'ai'
@@ -22,7 +26,13 @@ export default function NotifyAIChat({ currentAssignments }: { currentAssignment
     ])
     const [input, setInput] = useState('')
     const [isPending, startTransition] = useTransition()
+    const router = useRouter()
     const scrollRef = useRef<HTMLDivElement>(null)
+
+    const [mounted, setMounted] = useState(false)
+    useEffect(() => {
+        setMounted(true)
+    }, [])
 
     useEffect(() => {
         if (scrollRef.current) {
@@ -35,11 +45,13 @@ export default function NotifyAIChat({ currentAssignments }: { currentAssignment
         if (!input.trim() || isPending) return
 
         const userMsg = input.trim()
+        const currentHistory = messages.map(m => ({ role: m.role, content: m.content }))
+
         setInput('')
         setMessages(prev => [...prev, { role: 'user', content: userMsg }])
 
         startTransition(async () => {
-            const res = await askNotifyAI(userMsg, currentAssignments)
+            const res = await askNotifyAI(userMsg, currentAssignments, currentHistory)
             
             if (res.error) {
                 setMessages(prev => [...prev, { role: 'ai', content: res.error }])
@@ -53,11 +65,34 @@ export default function NotifyAIChat({ currentAssignments }: { currentAssignment
                 const fd = new FormData()
                 Object.entries(res.actionData).forEach(([k, v]) => fd.append(k, v as string))
                 const createRes = await createAssignment(fd)
-                if (createRes.error) finalMessage = `I tried to create that, but: ${createRes.error}`
+                if (createRes.error) {
+                    finalMessage = `⚠️ Creation Failed: ${createRes.error}`
+                } else {
+                    router.refresh()
+                    finalMessage = `✅ **Task Created!** ${res.message || ''}`
+                }
             } 
+            else if (res.intent === 'update' && res.actionData?.id) {
+                const fd = new FormData()
+                Object.entries(res.actionData).forEach(([k, v]) => {
+                    if (k !== 'id') fd.append(k, v as string)
+                })
+                const updateRes = await updateAssignment(res.actionData.id, fd)
+                if (updateRes.error) {
+                    finalMessage = `⚠️ Update Failed: ${updateRes.error}`
+                } else {
+                    router.refresh()
+                    finalMessage = `✅ **Task Updated!** ${res.message || ''}`
+                }
+            }
             else if (res.intent === 'delete' && res.actionData?.id) {
                 const delRes = await deleteAssignment(res.actionData.id)
-                if (delRes.error) finalMessage = `I couldn't delete that: ${delRes.error}`
+                if (delRes.error) {
+                    finalMessage = `⚠️ Delete Failed: ${delRes.error}`
+                } else {
+                    router.refresh()
+                    finalMessage = `✅ **Task Removed!** ${res.message || ''}`
+                }
             }
 
             setMessages(prev => [...prev, { 
@@ -80,13 +115,19 @@ export default function NotifyAIChat({ currentAssignments }: { currentAssignment
                 <Sparkles size={16} fill={isOpen ? 'currentColor' : 'none'} className={isPending ? 'animate-pulse' : ''} />
             </button>
 
-            {/* Chat Popup */}
-            {isOpen && (
-                <>
-                    <div className="fixed inset-0 z-[200] bg-black/20 backdrop-blur-[1px] md:hidden" onClick={() => setIsOpen(false)} />
-                    <div className="fixed md:absolute right-4 md:right-0 bottom-20 md:bottom-auto md:top-full mt-4 z-[210] w-[calc(100vw-32px)] md:w-[380px] h-[500px] animate-scale-in">
+            {/* Chat Modal */}
+            {isOpen && mounted && createPortal(
+                <div className="fixed inset-0 z-[300] animate-fade-in">
+                    {/* Backdrop */}
+                    <div 
+                        className="absolute inset-0 bg-black/40 backdrop-blur-sm" 
+                        onClick={() => setIsOpen(false)} 
+                    />
+                    
+                    {/* Modal Content */}
+                    <div className="absolute bottom-12 sm:bottom-20 left-1/2 -translate-x-1/2 w-full max-w-[440px] px-4 animate-scale-in">
                         <div 
-                            className="flex flex-col h-full rounded-[28px] border border-white/10 shadow-2xl overflow-hidden"
+                            className="flex flex-col h-[600px] rounded-[28px] border border-white/10 shadow-2xl overflow-hidden"
                             style={{ 
                                 background: 'rgba(12, 12, 12, 0.85)',
                                 backdropFilter: 'blur(32px)',
@@ -124,8 +165,16 @@ export default function NotifyAIChat({ currentAssignments }: { currentAssignment
                                                 {m.role === 'user' ? <User size={14} /> : <Bot size={14} />}
                                             </div>
                                             <div className={`p-3.5 rounded-2xl text-[13px] leading-relaxed font-medium ${m.role === 'user' ? 'bg-white/5 text-white/80 rounded-tr-none' : 'bg-white/5 text-white/90 border border-white/5 rounded-tl-none shadow-sm'}`}>
-                                                {m.content}
-                                                {m.intent && m.intent !== 'chat' && (
+                                                {m.role === 'ai' ? (
+                                                    <div className="prose prose-invert prose-sm max-w-none prose-p:leading-relaxed prose-pre:bg-white/5 prose-pre:border prose-pre:border-white/10 prose-code:text-orange prose-a:text-orange hover:prose-a:text-orange-bright transition-colors">
+                                                        <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                                            {m.content}
+                                                        </ReactMarkdown>
+                                                    </div>
+                                                ) : (
+                                                    m.content
+                                                )}
+                                                {m.intent && m.intent !== 'chat' && m.intent !== 'query' && (
                                                     <div className="mt-2 pt-2 border-t border-white/5 flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-orange/60">
                                                         <CornerDownRight size={10} />
                                                         {m.intent} successful
@@ -176,7 +225,8 @@ export default function NotifyAIChat({ currentAssignments }: { currentAssignment
                             </form>
                         </div>
                     </div>
-                </>
+                </div>,
+                document.body
             )}
         </div>
     )
