@@ -1,0 +1,15 @@
+name: ADHD Alert Cron
+
+on:
+  schedule:
+    - cron: '*/30 * * * *' # Every 30 minutes
+  workflow_dispatch: # Allows manual triggering
+
+jobs:
+  ping-alerts:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Deadline Alerts Endpoint
+        run: |
+          curl -X GET "${{ secrets.SITE_URL }}/api/send-deadline-alerts" \
+          -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"
