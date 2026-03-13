@@ -34,7 +34,7 @@ const ALERT_WINDOWS = [
         label: '7d',
         ms: 7 * 24 * 60 * 60 * 1000,
         urgency: 'normal' as const,
-        title: (t: string) => `📅 On Your Radar: "${t}"`,
+        title: (t: string, name: string) => `📅 ${name}, On Your Radar: "${t}"`,
         body: (t: string, cohortPct: number) =>
             `Due in 7 days${cohortPct > 0 ? ` · ${cohortPct}% of your cohort has already started` : ''}. Add it to your plan now.`,
     },
@@ -42,7 +42,7 @@ const ALERT_WINDOWS = [
         label: '3d',
         ms: 3 * 24 * 60 * 60 * 1000,
         urgency: 'normal' as const,
-        title: (t: string) => `⏳ 3 Days Left — "${t}"`,
+        title: (t: string, name: string) => `⏳ ${name}, 3 Days Left — "${t}"`,
         body: (t: string, cohortPct: number) =>
             cohortPct > 50
                 ? `More than half your class is already on this. Don't let yourself fall behind.`
@@ -52,7 +52,7 @@ const ALERT_WINDOWS = [
         label: '48h',
         ms: 48 * 60 * 60 * 1000,
         urgency: 'normal' as const,
-        title: (t: string) => `🟡 48h Heads Up — "${t}"`,
+        title: (t: string, name: string) => `🟡 ${name}, 48h Heads Up — "${t}"`,
         body: (t: string, cohortPct: number) =>
             cohortPct > 0
                 ? `${cohortPct}% of your cohort have already finished this. Clock is ticking.`
@@ -62,7 +62,7 @@ const ALERT_WINDOWS = [
         label: '24h',
         ms: 24 * 60 * 60 * 1000,
         urgency: 'high' as const,
-        title: (t: string) => `🔴 Tomorrow — "${t}"`,
+        title: (t: string, name: string) => `🔴 Tomorrow, ${name} — "${t}"`,
         body: (_t: string, cohortPct: number) =>
             cohortPct > 60
                 ? `${cohortPct}% done. You can catch up — open it now.`
@@ -72,7 +72,7 @@ const ALERT_WINDOWS = [
         label: '12h',
         ms: 12 * 60 * 60 * 1000,
         urgency: 'high' as const,
-        title: (t: string) => `⚡ 12 Hours — "${t}"`,
+        title: (t: string, name: string) => `⚡ ${name}, 12 Hours — "${t}"`,
         body: (_t: string, _cohortPct: number) =>
             `Half a day left. Brain, this is not a drill. Open it.`,
     },
@@ -80,7 +80,7 @@ const ALERT_WINDOWS = [
         label: '6h',
         ms: 6 * 60 * 60 * 1000,
         urgency: 'high' as const,
-        title: (t: string) => `🚨 6h Left — "${t}"`,
+        title: (t: string, name: string) => `🚨 ${name}, 6h Left — "${t}"`,
         body: (_t: string, cohortPct: number) =>
             cohortPct > 0
                 ? `${cohortPct}% of your cohort finished. You have 6 hours. Go.`
@@ -90,7 +90,7 @@ const ALERT_WINDOWS = [
         label: '2h',
         ms: 2 * 60 * 60 * 1000,
         urgency: 'critical' as const,
-        title: (t: string) => `🔥 "${t}" — 2h`,
+        title: (t: string, name: string) => `🔥 ${name}, "${t}" — 2h`,
         body: (_t: string, _cohortPct: number) =>
             `2 hours. Everything else can wait. Focus here now.`,
     },
@@ -98,7 +98,7 @@ const ALERT_WINDOWS = [
         label: '30m',
         ms: 30 * 60 * 1000,
         urgency: 'critical' as const,
-        title: (t: string) => `💀 30 Minutes — "${t}"`,
+        title: (t: string, name: string) => `💀 ${name}, 30 Minutes — "${t}"`,
         body: (_t: string, _cohortPct: number) =>
             `THIRTY MINUTES. Submit what you have. Done beats perfect.`,
     },
@@ -119,7 +119,15 @@ export async function GET(req: NextRequest) {
     // Fetch all subscriptions once (shared across all windows)
     const { data: subs, error: subErr } = await supabase
         .from('user_subscriptions')
-        .select('id, subscription, device_type')
+        .select(`
+            id, 
+            subscription, 
+            device_type,
+            users (
+                full_name,
+                email
+            )
+        `)
 
     if (subErr || !subs?.length) {
         return NextResponse.json({ ok: true, sent: 0, reason: 'No subscriptions', subErr })
@@ -157,18 +165,27 @@ export async function GET(req: NextRequest) {
             const toDelete: string[] = []
 
             await Promise.allSettled(
-                subs.map(async (row) => {
-                    // Origin Filter: Don't send production pings to localhost test devices
-                    // Format: "browser:https://notify.vercel.app"
+                subs.map(async (row: any) => {
+                    // Origin Filter
                     const subOrigin = row.device_type?.split('browser:')[1]
                     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL
                     
                     if (siteUrl && subOrigin && !subOrigin.includes(siteUrl) && !siteUrl.includes(subOrigin)) {
-                        return // Skip: origin mismatch
+                        return 
                     }
 
+                    // Personalization Fallbacks
+                    const fullName = row.users?.full_name || row.users?.email?.split('@')[0] || 'there'
+                    const firstName = fullName.split(' ')[0]
+
+                    const payload = JSON.stringify({
+                        title: window.title(assignment.title, firstName),
+                        body: window.body(assignment.title, cohortPct),
+                        url: assignment.resource_url || '/',
+                        urgency: window.urgency,
+                    })
+
                     try {
-                        await webpush.sendNotification(row.subscription, payload)
                         totalSent++
                     } catch (err: any) {
                         if (err?.statusCode === 410 || err?.statusCode === 404) {
