@@ -26,11 +26,18 @@ export async function GET(request: NextRequest) {
     if (token_hash && type) {
         const supabase = await createClient()
 
-        const { error } = await supabase.auth.verifyOtp({
+        const { data, error } = await supabase.auth.verifyOtp({
             type,
             token_hash,
         })
-        if (!error) {
+        if (!error && data?.user) {
+            // Ensure user exists in public.users
+            await supabase.from('users').upsert({
+                id: data.user.id,
+                email: data.user.email,
+                full_name: data.user.user_metadata?.full_name || data.user.user_metadata?.name || ''
+            }, { onConflict: 'id' }).select()
+
             const redirectUrl = request.nextUrl.clone()
             redirectUrl.pathname = next
             redirectUrl.searchParams.delete('token_hash')
@@ -39,8 +46,15 @@ export async function GET(request: NextRequest) {
         }
     } else if (code) {
         const supabase = await createClient()
-        const { error } = await supabase.auth.exchangeCodeForSession(code)
-        if (!error) {
+        const { data, error } = await supabase.auth.exchangeCodeForSession(code)
+        if (!error && data?.user) {
+            // Ensure user exists in public.users
+            await supabase.from('users').upsert({
+                id: data.user.id,
+                email: data.user.email,
+                full_name: data.user.user_metadata?.full_name || data.user.user_metadata?.name || ''
+            }, { onConflict: 'id' }).select()
+
             const redirectUrl = request.nextUrl.clone()
             redirectUrl.pathname = next
             redirectUrl.searchParams.delete('code')
@@ -50,7 +64,7 @@ export async function GET(request: NextRequest) {
         // If exchange fails, redirect to login with the specific error
         const errorUrl = request.nextUrl.clone()
         errorUrl.pathname = '/login'
-        errorUrl.searchParams.set('message', error.message)
+        errorUrl.searchParams.set('message', error?.message || 'Authentication failed')
         return NextResponse.redirect(errorUrl)
     }
 
