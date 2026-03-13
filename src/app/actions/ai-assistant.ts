@@ -12,7 +12,7 @@ export async function extractAssignmentAction(formData: FormData) {
     if (!file) return { error: 'No file provided' }
 
     try {
-        const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" }) // Keeping extraction on Flash for speed/multimodal
+        const model = genAI.getGenerativeModel({ model: AI_MODEL })
 
         // Convert file to base64
         const buffer = await file.arrayBuffer()
@@ -88,5 +88,65 @@ export async function enhanceFormAction(partialData: Record<string, string>) {
     } catch (error: any) {
         console.error('Assistant Enhance Error:', error)
         return { error: 'Assistant unavailable at this moment.' }
+    }
+}
+
+/**
+ * NotifyAI Chat - Handles natural language database commands
+ */
+export async function askNotifyAI(message: string, currentAssignments: any[]) {
+    try {
+        const model = genAI.getGenerativeModel({ model: AI_MODEL })
+
+        const systemPrompt = `
+You are "NotifyAI", the intelligent backbone of the Notify productivity app. 
+Your goal is to help students manage their assignments using natural language.
+
+CURRENT CONTEXT:
+- Time: ${new Date().toLocaleString()}
+- Current Assignments in View: ${JSON.stringify(currentAssignments.map(a => ({ id: a.id, title: a.title, code: a.course_code })))}
+
+CAPABILITIES:
+1. CREATE: Add new assignments/quizzes/tests.
+2. UPDATE: Change details or status (e.g., "mark MP201 as done").
+3. DELETE: Remove tasks.
+4. QUERY: Filter or find tasks (e.g., "what's due tomorrow?").
+
+INSTRUCTIONS:
+- Translate the user's request into a structured action.
+- If the user wants to CREATE/UPDATE/DELETE, return a JSON object with the "intent", "actionData", and "message".
+- If the user is just asking a question, return a "chat" response.
+- Response MUST be a single JSON object. Do not include any other text or markdown formatting.
+- Schema for actionData (CREATE/UPDATE):
+  {
+    "course_code": "CS101",
+    "title": "Exam Prep",
+    "description": "...",
+    "due_date": "ISO-8601",
+    "task_type": "assignment" | "quiz" | "online_test" | "physical_test"
+  }
+
+Response JSON Example:
+{
+  "intent": "create",
+  "actionData": { "course_code": "CSC301", "title": "Lab 5", "due_date": "2024-03-20T10:00:00Z" },
+  "message": "I've prepared the Lab 5 assignment for you."
+}
+
+Be helpful, concise, and professional. Use the "Notify" brand tone.
+`
+        const prompt = `${systemPrompt}\n\nUSER REQUEST: ${message}`
+        const result = await model.generateContent(prompt)
+
+        const text = result.response.text()
+        const jsonMatch = text.match(/\{[\s\S]*\}/)
+        if (!jsonMatch) return { error: "I couldn't process that request." }
+
+        const aiResponse = JSON.parse(jsonMatch[0])
+        return { success: true, ...aiResponse }
+        
+    } catch (error: any) {
+        console.error('NotifyAI Error:', error)
+        return { error: 'NotifyAI is having a moment. Please try again later.' }
     }
 }

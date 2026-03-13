@@ -2,8 +2,10 @@ import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import AddAssignmentModal from "@/components/AddAssignmentModal";
-import AssignmentCard from "@/components/AssignmentCard";
+import AssignmentContainer from "@/components/AssignmentContainer";
 import NotificationToggle from "@/components/NotificationToggle";
+import SettingsModal from "@/components/SettingsModal";
+import NotifyAIChat from "@/components/NotifyAIChat";
 import { Clock, CheckCircle2, AlertTriangle, TrendingUp, Users } from "lucide-react";
 import Image from "next/image";
 
@@ -66,7 +68,6 @@ export default async function Home() {
           {/* Brand */}
           <div className="flex items-center gap-2.5 group cursor-pointer">
             <div className="h-8 w-8 rounded-lg flex items-center justify-center overflow-hidden shadow-[0_0_16px_rgba(249,115,22,0.40)] group-hover:shadow-[0_0_24px_rgba(249,115,22,0.60)] transition-shadow">
-              {/* Using the uploaded logo for better branding instead of the Terminal icon */}
               <Image src="/favicon.png" alt="Notify Logo" width={32} height={32} className="w-full h-full object-cover" />
             </div>
             <span className="font-[family-name:var(--font-outfit)] font-extrabold text-[15px] tracking-[0.05em] uppercase text-white/95 group-hover:text-white transition-colors">
@@ -78,13 +79,14 @@ export default async function Home() {
           <div className="flex items-center gap-3">
             <NotificationToggle />
             <div className="w-[1px] h-5 bg-[var(--color-border)]" />
+            <NotifyAIChat currentAssignments={allTasks} />
             <AddAssignmentModal userId={user.id} />
-            <div 
-              className="h-[34px] w-[34px] rounded-full border border-[var(--color-border-hover)] bg-[var(--color-surface-2)] flex items-center justify-center text-[11px] font-extrabold tracking-[0.04em] text-[var(--color-text-muted)] hover:bg-[var(--color-surface-3)] hover:text-[var(--color-text-main)] transition-colors cursor-pointer"
-              title={displayName}
-            >
-              {initials}
-            </div>
+            <SettingsModal user={{
+              id: user.id,
+              email: user.email!,
+              full_name: userProfile?.full_name || null,
+              cohort_year: userProfile?.cohort_year || null
+            }} />
           </div>
         </div>
       </nav>
@@ -92,25 +94,78 @@ export default async function Home() {
       <main className="max-w-[1200px] mx-auto pt-12 px-6 pb-20 flex flex-col gap-12 text-[var(--color-text-main)]">
 
         {/* ── HERO ──────────────────────────────────────────────────────────── */}
-        <section className="animate-fade-up">
-          <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight mb-2 text-white">
-            {greeting}, {firstName}
-          </h1>
-          <p className="text-[15px] text-[var(--color-text-muted)] max-w-[600px] leading-relaxed">
-            Here&apos;s what&apos;s happening with your coursework.
-            {overdue.length > 0 ? ` You have ${overdue.length} overdue tasks to catch up on.` : " You're all caught up on overdue tasks!"}
-          </p>
+        <section className="animate-fade-up relative px-1 sm:px-0">
+          {/* Ambient Background Texture */}
+          <div className="absolute -top-32 -left-20 w-72 h-72 bg-orange/20 rounded-full blur-[120px] pointer-events-none opacity-60 sm:opacity-100" />
+          <div 
+            className="absolute inset-x-0 -top-10 h-40 opacity-[0.03] pointer-events-none overflow-hidden"
+            style={{ backgroundImage: 'radial-gradient(circle, #fff 1px, transparent 1px)', backgroundSize: '24px 24px' }}
+          />
+          
+          <div className="relative z-10 flex flex-col gap-4">
+            <div className="flex items-center gap-2">
+              <span className="flex h-2 w-2 rounded-full bg-orange animate-pulse shadow-[0_0_8px_var(--orange)]" />
+              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-orange/80">Active Pulse</span>
+            </div>
+
+            <h1 className="text-4xl sm:text-7xl font-[family-name:var(--font-outfit)] font-black tracking-tighter leading-[0.9] text-white">
+              {greeting},<br />
+              <span className="bg-gradient-to-r from-white via-white to-white/40 bg-clip-text text-transparent">
+                {firstName}
+              </span>
+              <span className="text-orange">.</span>
+            </h1>
+
+            <p className="text-[15px] sm:text-[18px] text-white/40 max-w-[550px] leading-relaxed font-medium">
+              {overdue.length > 0 ? (
+                <>
+                  Crucial day ahead. You have <span className="text-white font-bold">{overdue.length} overdue</span> tasks demanding focus.
+                </>
+              ) : (
+                <>Your workflow is clean. All tasks are currently on track for your cohort.</>
+              )}
+            </p>
+          </div>
         </section>
 
-        {/* ── STATS ROW ─────────────────────────────────────────────────────── */}
-        <section className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 animate-fade-up stagger">
+        {/* ── STATS ROW (2x2 Mobile First) ─────────────────────────────────── */}
+        <section className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 animate-fade-up stagger relative">
           {stats.map((s, i) => (
-            <div key={i} className="bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded-2xl p-4 sm:p-5 flex flex-col justify-between transition-all hover:border-[var(--color-border-hover)]">
-              <div className="flex items-center gap-2 mb-3">
-                <s.icon size={15} className="text-[var(--color-text-muted)]" />
-                <span className="text-[12px] font-bold uppercase tracking-wider text-[var(--color-text-dim)]">{s.label}</span>
+            <div 
+              key={i} 
+              className="stat-card group relative p-5 sm:p-6 flex flex-col justify-between overflow-hidden cursor-pointer transition-all active:scale-[0.96] sm:active:scale-100"
+            >
+              {/* Background Index Texture */}
+              <div className="absolute -bottom-2 -right-2 text-7xl font-[family-name:var(--font-outfit)] font-black text-white/[0.02] select-none italic">
+                0{i + 1}
               </div>
-              <div className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">{s.value}</div>
+
+              <div className="flex items-center justify-between mb-8 relative z-10">
+                <div className={`p-2 rounded-xl border border-white/5 transition-colors group-hover:bg-white/5 ${
+                  s.label === 'Overdue' && overdue.length > 0 
+                  ? 'bg-red-500/10 text-red-500/80 shadow-[0_0_15px_rgba(239,68,68,0.1)]' 
+                  : s.label === 'Upcoming' && upcoming.length > 0
+                  ? 'bg-orange/10 text-orange shadow-[0_0_15px_rgba(249,115,22,0.1)]'
+                  : 'bg-white/5 text-white/30'
+                }`}>
+                  <s.icon size={16} />
+                </div>
+                <div className="h-1 w-1 rounded-full bg-white/20" />
+              </div>
+
+              <div className="relative z-10">
+                <div className="text-3xl sm:text-4xl font-[family-name:var(--font-outfit)] font-black tracking-tight text-white leading-none mb-1.5">
+                  {s.value}
+                </div>
+                <div className="text-[10px] font-black text-white/20 uppercase tracking-[0.15em]">
+                  {s.label}
+                </div>
+              </div>
+
+              {/* Enhanced Corner Glow */}
+              <div className="absolute top-0 right-0 p-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                 <div className="w-1 h-1 rounded-full bg-white/40 shadow-[0_0_10px_#fff]" />
+              </div>
             </div>
           ))}
         </section>
@@ -129,39 +184,30 @@ export default async function Home() {
         )}
 
         {overdue.length > 0 && (
-          <section>
-            <h2 className="text-lg font-bold text-white leading-tight">Overdue</h2>
-            <p className="text-sm font-medium text-white mb-6 leading-tight">{overdue.length}</p>
-            <div className="flex flex-col gap-4">
-              {overdue.map((a) => (
-                <AssignmentCard key={a.id} assignment={a as any} pulse={a.pulse} currentUserId={user.id} userStatus={a.myProgress as any} />
-              ))}
-            </div>
-          </section>
+          <AssignmentContainer 
+            title="Overdue" 
+            count={overdue.length} 
+            assignments={overdue} 
+            currentUserId={user.id} 
+          />
         )}
 
         {upcoming.length > 0 && (
-          <section>
-            <h2 className="text-lg font-bold text-white leading-tight">Upcoming</h2>
-            <p className="text-sm font-medium text-white mb-6 leading-tight">{upcoming.length}</p>
-            <div className="flex flex-col gap-4">
-              {upcoming.map((a) => (
-                <AssignmentCard key={a.id} assignment={a as any} pulse={a.pulse} currentUserId={user.id} userStatus={a.myProgress as any} />
-              ))}
-            </div>
-          </section>
+          <AssignmentContainer 
+            title="Upcoming" 
+            count={upcoming.length} 
+            assignments={upcoming} 
+            currentUserId={user.id} 
+          />
         )}
 
         {done.length > 0 && (
-          <section>
-            <h2 className="text-lg font-bold text-white leading-tight">Completed</h2>
-            <p className="text-sm font-medium text-white mb-6 leading-tight">{done.length}</p>
-            <div className="flex flex-col gap-4">
-              {done.map((a) => (
-                <AssignmentCard key={a.id} assignment={a as any} pulse={a.pulse} currentUserId={user.id} userStatus="finished" />
-              ))}
-            </div>
-          </section>
+          <AssignmentContainer 
+            title="Completed" 
+            count={done.length} 
+            assignments={done} 
+            currentUserId={user.id} 
+          />
         )}
       </main>
 

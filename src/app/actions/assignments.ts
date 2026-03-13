@@ -116,6 +116,61 @@ export async function createAssignment(formData: FormData) {
     return { success: true }
 }
 
+export async function updateAssignment(assignmentId: string, formData: FormData) {
+    const { supabase, user } = await getAuthUser()
+
+    if (!user) return { error: 'Unauthorized' }
+
+    const rawData = {
+        course_code: formData.get('course_code'),
+        title: formData.get('title'),
+        description: formData.get('description') || undefined,
+        due_date: new Date(formData.get('due_date') as string).toISOString(),
+        task_type: formData.get('task_type') || 'assignment',
+        resource_url: formData.get('resource_url') || undefined,
+        location: formData.get('location') || undefined,
+    }
+
+    const validated = CreateAssignmentSchema.safeParse(rawData)
+    if (!validated.success) return { error: validated.error.issues[0].message }
+
+    const { error } = await supabase
+        .from('assignments')
+        .update({
+            course_code: validated.data.course_code.toUpperCase(),
+            title: validated.data.title,
+            description: validated.data.description,
+            due_date: validated.data.due_date,
+            task_type: validated.data.task_type,
+            resource_url: validated.data.resource_url,
+            location: validated.data.location,
+        })
+        .eq('id', assignmentId)
+        .eq('created_by', user.id)
+
+    if (error) return { error: 'Failed to update task.' }
+
+    revalidatePath('/')
+    return { success: true }
+}
+
+export async function deleteAssignment(assignmentId: string) {
+    const { supabase, user } = await getAuthUser()
+
+    if (!user) return { error: 'Unauthorized' }
+
+    const { error } = await supabase
+        .from('assignments')
+        .delete()
+        .eq('id', assignmentId)
+        .eq('created_by', user.id)
+
+    if (error) return { error: 'Failed to delete task.' }
+
+    revalidatePath('/')
+    return { success: true }
+}
+
 export async function verifyAssignment(assignmentId: string) {
     const { supabase, user } = await getAuthUser()
 
