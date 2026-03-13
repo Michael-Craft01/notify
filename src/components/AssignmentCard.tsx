@@ -157,6 +157,7 @@ export default function AssignmentCard({ assignment, pulse, userStatus: init }: 
                                 color: 'var(--color-text-muted)', textDecoration: 'none', transition: 'border-color 0.15s',
                             }}
                             title="Open resource"
+                            aria-label="Open resource link"
                         >
                             <ExternalLink size={13} />
                         </a>
@@ -186,6 +187,8 @@ export default function AssignmentCard({ assignment, pulse, userStatus: init }: 
                         onClick={() => setExpanded(v => !v)}
                         className="btn-ghost"
                         style={{ height: 32, width: 32, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                        aria-label={expanded ? "Collapse details" : "Expand details"}
+                        aria-expanded={expanded}
                     >
                         {expanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
                     </button>

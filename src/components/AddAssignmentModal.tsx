@@ -65,17 +65,6 @@ export default function AddAssignmentModal({ userId }: { userId: string }) {
     const needsUrl = taskType === 'quiz' || taskType === 'online_test'
     const needsLocation = taskType === 'physical_test'
 
-    // Close on outside click
-    useEffect(() => {
-        const handler = (e: MouseEvent) => {
-            if (popoutRef.current && !popoutRef.current.contains(e.target as Node)) {
-                handleClose()
-            }
-        }
-        if (isOpen) document.addEventListener('mousedown', handler)
-        return () => document.removeEventListener('mousedown', handler)
-    }, [isOpen])
-
     const handleClose = () => {
         setIsOpen(false)
         setStep(0)
@@ -89,6 +78,17 @@ export default function AddAssignmentModal({ userId }: { userId: string }) {
         setResourceUrl('')
         setLocation('')
     }
+
+    // Close on outside click
+    useEffect(() => {
+        const handler = (e: MouseEvent) => {
+            if (popoutRef.current && !popoutRef.current.contains(e.target as Node)) {
+                handleClose()
+            }
+        }
+        if (isOpen) document.addEventListener('mousedown', handler)
+        return () => document.removeEventListener('mousedown', handler)
+    }, [isOpen])
 
     const handleFileScan = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0]
