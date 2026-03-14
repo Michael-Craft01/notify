@@ -18,12 +18,16 @@ export default function PWAInstallPrompt() {
         const isStandalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone === true
 
         const handleBeforeInstallPrompt = (e: any) => {
+            console.group('📦 PWA: BeforeInstallPrompt')
+            console.log('Event captured:', e)
+            
             // Prevent the mini-infobar from appearing on mobile
             e.preventDefault()
             // Stash the event so it can be triggered later.
             setDeferredPrompt(e)
             // Update UI notify the user they can install the PWA
             setShowPrompt(true)
+            console.groupEnd()
         }
 
         window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
@@ -37,6 +41,7 @@ export default function PWAInstallPrompt() {
         // 2. For Android, if the event doesn't fire in 8s (e.g. strict browser), show manual menu nudge
         const timer = setTimeout(() => {
             if (isAndroid && !isStandalone && !deferredPrompt) {
+                console.log('📦 PWA: Timeout reached without event. Showing manual nudge.')
                 setShowPrompt(true)
             }
         }, 8000)
@@ -53,12 +58,17 @@ export default function PWAInstallPrompt() {
     }, [deferredPrompt])
 
     const handleInstallClick = async () => {
-        if (!deferredPrompt) return
+        if (!deferredPrompt) {
+            console.log('📦 PWA: No deferred prompt available. This is a manual nudge.')
+            return
+        }
         
+        console.log('📦 PWA: Triggering installation prompt...')
         // Show the install prompt
         deferredPrompt.prompt()
         // Wait for the user to respond to the prompt
         const { outcome } = await deferredPrompt.userChoice
+        console.log('📦 PWA: User response:', outcome)
         if (outcome === 'accepted') setShowPrompt(false)
         setDeferredPrompt(null)
     }

@@ -12,6 +12,7 @@ CREATE TABLE public.programs (
 -- Protect programs table
 ALTER TABLE public.programs ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Anyone can read programs" ON public.programs FOR SELECT TO authenticated, anon USING (true);
+CREATE POLICY "Authenticated users can create programs" ON public.programs FOR INSERT TO authenticated WITH CHECK (true);
 
 -- Seed some initial programs (Optional, can be done via Dashboard)
 INSERT INTO public.programs (id, name, department) VALUES 

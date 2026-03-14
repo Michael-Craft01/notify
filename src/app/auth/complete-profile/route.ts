@@ -5,14 +5,39 @@ export async function POST(request: Request) {
     const formData = await request.formData()
     const fullName = String(formData.get('full_name'))
     const cohortYear = parseInt(String(formData.get('cohort_year')), 10)
-    const programId = String(formData.get('program_id'))
+    const isCreatingNew = String(formData.get('is_creating_new')) === 'true'
+    let programId = String(formData.get('program_id'))
 
     // Basic validation
-    if (!fullName || !cohortYear || isNaN(cohortYear) || !programId) {
+    if (!fullName || !cohortYear || isNaN(cohortYear)) {
         return NextResponse.redirect(new URL('/onboarding?error=Invalid_Input', request.url))
     }
 
     const supabase = await createClient()
+
+    // Handle new program creation
+    if (isCreatingNew) {
+        const newProgramName = String(formData.get('new_program_name'))
+        const newProgramId = String(formData.get('new_program_id')).toUpperCase()
+
+        if (!newProgramName || !newProgramId) {
+            return NextResponse.redirect(new URL('/onboarding?error=Missing_Program_Details', request.url))
+        }
+
+        const { error: progError } = await supabase
+            .from('programs')
+            .upsert({ id: newProgramId, name: newProgramName }, { onConflict: 'id' })
+
+        if (progError) {
+            console.error('Error creating program:', progError)
+            return NextResponse.redirect(new URL('/onboarding?error=Program_Creation_Failed', request.url))
+        }
+        programId = newProgramId
+    }
+
+    if (!programId || programId === 'undefined') {
+        return NextResponse.redirect(new URL('/onboarding?error=No_Program_Selected', request.url))
+    }
 
     // Verify auth session
     const { data: { user }, error: authError } = await supabase.auth.getUser()
