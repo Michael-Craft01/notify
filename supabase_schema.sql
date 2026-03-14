@@ -23,6 +23,11 @@ ON public.users FOR UPDATE
 TO authenticated, anon 
 USING (auth.uid() = id);
 
+CREATE POLICY "Users can insert own profile" 
+ON public.users FOR INSERT 
+TO authenticated 
+WITH CHECK (auth.uid() = id);
+
 -- Trigger to automatically create a user profile when a new user signs up
 CREATE OR REPLACE FUNCTION public.handle_new_user() 
 RETURNS TRIGGER AS $$

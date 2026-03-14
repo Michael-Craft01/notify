@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, Suspense } from 'react'
-import { Loader2, Mail, Terminal } from 'lucide-react'
+import { Loader2, Mail, Terminal, Sparkles, TrendingUp, Users } from 'lucide-react'
 import { sendOTP, verifyOTP } from './actions'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
@@ -23,14 +23,16 @@ function LoginContent() {
 
     const handleOAuth = async (provider: 'google') => {
         setIsLoading(true)
-        const { error } = await supabase.auth.signInWithOAuth({
-            provider,
-            options: {
-                redirectTo: `${window.location.origin}/auth/confirm`,
-            },
-        })
-        if (error) {
-            setError(error.message)
+        setError(null)
+        try {
+            const { signInWithOAuth } = await import('./actions')
+            const result = await signInWithOAuth(provider)
+            if (result?.error) {
+                setError(result.error)
+                setIsLoading(false)
+            }
+        } catch (err: any) {
+            setError(err.message || 'Failed to initiate login')
             setIsLoading(false)
         }
     }

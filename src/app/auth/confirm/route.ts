@@ -57,8 +57,21 @@ export async function GET(request: NextRequest) {
 
             if (data.user) {
                 console.log('Auth: Session established, upserting user profile...')
-                // Automatically upsert a basic user record to satisfy foreign key constraints
-                const { error: upsertError } = await supabase
+                
+                // Use service role to bypass RLS and guarantee the user record is created
+                // if the Supabase trigger fails.
+                const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+                const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+
+                if (!supabaseUrl || !serviceRoleKey) {
+                    console.error('Critical Error: Missing Supabase environment variables in auth callback.')
+                    return NextResponse.redirect(new URL('/login?message=Configuration+Error:+Service+Role+Key+missing', request.url))
+                }
+
+                const { createClient: createServiceClient } = await import('@supabase/supabase-js')
+                const serviceClient = createServiceClient(supabaseUrl, serviceRoleKey)
+
+                const { error: upsertError } = await serviceClient
                     .from('users')
                     .upsert({
                         id: data.user.id,
@@ -67,10 +80,14 @@ export async function GET(request: NextRequest) {
                     }, { onConflict: 'id' })
 
                 if (upsertError) {
-                    console.error('Upsert Error:', upsertError)
-                    // We record the error but continue to redirect if the session is valid
-                    // This prevents a hard lock if RLS is blocking the insert
+                    console.error('Upsert Error (Service Role):', upsertError)
+                    // If the user record is missing, everything else fails. 
+                    // Let's redirect back with a helpful message instead of proceeding to the dashboard.
+                    const errorMessage = `Database Error: Failed to create user profile. ${upsertError.message}`
+                    return NextResponse.redirect(new URL(`/login?message=${encodeURIComponent(errorMessage)}`, request.url))
                 }
+
+                console.log('Auth: Profile verified, session active.')
 
                 console.log('Auth: Redirecting to:', next)
                 const redirectUrl = request.nextUrl.clone()

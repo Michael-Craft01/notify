@@ -55,7 +55,7 @@ export async function verifyOTP(email: string, token: string) {
         return { success: true }
     }
 
-    const { error } = await supabase.auth.verifyOtp({
+    const { data: { user }, error } = await supabase.auth.verifyOtp({
         email,
         token,
         type: 'email',
@@ -66,6 +66,52 @@ export async function verifyOTP(email: string, token: string) {
         return { error: error.message }
     }
 
+    // Ensure user profile exists in public.users
+    if (user) {
+        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+        const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+
+        if (supabaseUrl && serviceRoleKey) {
+            const { createClient: createServiceClient } = await import('@supabase/supabase-js')
+            const serviceClient = createServiceClient(supabaseUrl, serviceRoleKey)
+            
+            await serviceClient.from('users').upsert({
+                id: user.id,
+                email: user.email!,
+                full_name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'User',
+            }, { onConflict: 'id' })
+        }
+    }
+
     revalidatePath('/', 'layout')
+    return { success: true }
+}
+
+export async function signInWithOAuth(provider: 'google') {
+    const supabase = await createClient()
+    
+    // Use SITE_URL if available, otherwise fallback to standard Vercel/Local detection
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL 
+        || (process.env.NEXT_PUBLIC_VERCEL_URL ? `https://${process.env.NEXT_PUBLIC_VERCEL_URL}` : 'http://localhost:3000')
+    
+    const redirectUrl = `${siteUrl.endsWith('/') ? siteUrl.slice(0, -1) : siteUrl}/auth/confirm`
+
+    const { data, error } = await supabase.auth.signInWithOAuth({
+        provider,
+        options: {
+            redirectTo: redirectUrl,
+            skipBrowserRedirect: false
+        },
+    })
+
+    if (error) {
+        console.error(`${provider} Sign In Error:`, error)
+        return { error: error.message }
+    }
+
+    if (data.url) {
+        redirect(data.url)
+    }
+
     return { success: true }
 }
