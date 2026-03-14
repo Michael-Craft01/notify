@@ -31,6 +31,11 @@ export async function updateSession(request: NextRequest) {
     // supabase.auth.getUser(). A simple mistake could make it very hard to debug
     // issues with users being randomly logged out.
 
+    // Do NOT call getUser on the auth confirmation route to avoid consuming the PKCE verifier.
+    if (request.nextUrl.pathname.startsWith('/auth/confirm')) {
+        return supabaseResponse
+    }
+
     const {
         data: { user },
     } = await supabase.auth.getUser()

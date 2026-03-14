@@ -1,7 +1,7 @@
 import { type EmailOtpType } from '@supabase/supabase-js'
 import { type NextRequest, NextResponse } from 'next/server'
 
-import { createClient } from '@/utils/supabase/server'
+import { createClient, createAdminClient } from '@/utils/supabase/server'
 
 export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
@@ -31,8 +31,9 @@ export async function GET(request: NextRequest) {
             token_hash,
         })
         if (!error && data?.user) {
-            // Ensure user exists in public.users
-            await supabase.from('users').upsert({
+            // Ensure user exists in public.users using admin client to bypass RLS initially
+            const adminSupabase = await createAdminClient()
+            await adminSupabase.from('users').upsert({
                 id: data.user.id,
                 email: data.user.email,
                 full_name: data.user.user_metadata?.full_name || data.user.user_metadata?.name || ''
@@ -48,8 +49,9 @@ export async function GET(request: NextRequest) {
         const supabase = await createClient()
         const { data, error } = await supabase.auth.exchangeCodeForSession(code)
         if (!error && data?.user) {
-            // Ensure user exists in public.users
-            await supabase.from('users').upsert({
+            // Ensure user exists in public.users using admin client to bypass RLS initially
+            const adminSupabase = await createAdminClient()
+            await adminSupabase.from('users').upsert({
                 id: data.user.id,
                 email: data.user.email,
                 full_name: data.user.user_metadata?.full_name || data.user.user_metadata?.name || ''
