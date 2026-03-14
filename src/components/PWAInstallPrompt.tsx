@@ -34,13 +34,6 @@ export default function PWAInstallPrompt() {
             setShowPrompt(true)
         }
 
-        // 2. For Android, if the event doesn't fire in 8s (e.g. strict browser), show manual menu nudge
-        const timer = setTimeout(() => {
-            if (isAndroid && !isStandalone && !deferredPrompt) {
-                setShowPrompt(true)
-            }
-        }, 8000)
-
         // Check if already installed
         if (isStandalone) {
             setShowPrompt(false)
@@ -48,9 +41,8 @@ export default function PWAInstallPrompt() {
 
         return () => {
             window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
-            clearTimeout(timer)
         }
-    }, [deferredPrompt])
+    }, [])
 
     const handleInstallClick = async () => {
         if (!deferredPrompt) return
