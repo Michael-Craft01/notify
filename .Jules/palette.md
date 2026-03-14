@@ -1,0 +1,3 @@
+## 2024-03-14 - ARIA attributes on Icon-only Buttons
+**Learning:** Icon-only interactive elements in this app frequently lack accessible names (e.g., Edit, Delete, Expand, View toggle). For toggle buttons, using `aria-pressed` or `aria-expanded` in combination with `aria-label` provides crucial context to screen reader users about the current state of the UI.
+**Action:** Always include an `aria-label` on icon-only buttons. Furthermore, if the button toggles state (like expanding a section or switching between list/grid view), include the appropriate stateful ARIA attribute (such as `aria-expanded` or `aria-pressed`) to convey the current state clearly.
