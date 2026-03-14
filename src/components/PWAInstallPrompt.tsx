@@ -66,7 +66,7 @@ export default function PWAInstallPrompt() {
     if (!showPrompt) return null
 
     return (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[100] animate-slide-up w-[calc(100%-48px)] sm:w-auto">
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[500] animate-slide-up w-[calc(100%-48px)] sm:w-auto">
             <div className="bg-[#111] border border-[var(--color-border)] p-3 pr-4 rounded-2xl shadow-2xl flex items-center gap-4">
                 <div className="h-10 w-10 rounded-xl overflow-hidden shrink-0 shadow-md">
                     <Image src="/favicon.png" alt="Notify Logo" width={40} height={40} className="w-full h-full object-cover" />
