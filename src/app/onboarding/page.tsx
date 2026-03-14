@@ -16,13 +16,18 @@ export default async function OnboardingPage() {
 
     const { data: profile } = await supabase
         .from('users')
-        .select('full_name, cohort_year')
+        .select('full_name, cohort_year, program_id')
         .eq('id', user.id)
         .single()
 
-    if (profile?.full_name && profile?.cohort_year) {
+    if (profile?.full_name && profile?.cohort_year && profile?.program_id) {
         redirect('/') // Already onboarded
     }
+
+    const { data: programs } = await supabase
+        .from('programs')
+        .select('*')
+        .order('name')
 
     return (
         <div className="flex min-h-screen flex-col items-center justify-center p-6 bg-[#0b0b0b] font-sans selection:bg-[var(--color-primary)]/30">
@@ -42,7 +47,7 @@ export default async function OnboardingPage() {
                     </p>
                 </div>
 
-                <OnboardingForm />
+                <OnboardingForm programs={programs || []} />
 
                 <div className="text-[10px] font-bold text-neutral-800 uppercase tracking-[0.4em] relative z-10">
                     Notify Intelligent Systems

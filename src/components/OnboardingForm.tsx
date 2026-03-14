@@ -3,9 +3,10 @@
 import { useState } from 'react'
 import AIEnhanceButton from './AIEnhanceButton'
 
-export default function OnboardingForm() {
+export default function OnboardingForm({ programs }: { programs: any[] }) {
     const [fullName, setFullName] = useState('')
     const [cohortYear, setCohortYear] = useState('')
+    const [programId, setProgramId] = useState('')
 
     return (
         <form action="/auth/complete-profile" method="POST" className="w-full flex flex-col gap-6 relative z-10">
@@ -74,6 +75,29 @@ export default function OnboardingForm() {
                     required
                     className="input-field w-full h-12 px-4 shadow-inner"
                 />
+            </div>
+
+            <div className="space-y-2 text-left">
+                <div className="flex items-center justify-between px-1">
+                    <label htmlFor="program_id" className="text-[11px] font-bold text-neutral-500 uppercase tracking-wider">
+                        Academic Program
+                    </label>
+                </div>
+                <select
+                    id="program_id"
+                    name="program_id"
+                    value={programId}
+                    onChange={(e) => setProgramId(e.target.value)}
+                    required
+                    className="input-field w-full h-12 px-4 shadow-inner bg-[#1a1a1a] text-white border border-white/10 rounded-xl"
+                >
+                    <option value="" disabled>Select your program</option>
+                    {programs.map((p) => (
+                        <option key={p.id} value={p.id}>
+                            {p.name}
+                        </option>
+                    ))}
+                </select>
             </div>
 
             <button

@@ -8,7 +8,10 @@ const outfit = Outfit({ subsets: ["latin"], variable: "--font-outfit" });
 
 export const metadata: Metadata = {
   title: "Notify | Intelligent Schedule Assistant",
-  description: "Professional schedule management and deadline tracking.",
+  description: "Professional schedule management and deadline tracking for academic cohorts.",
+  applicationName: "Notify",
+  authors: [{ name: "Notify Development Team" }],
+  keywords: ["academic", "schedule", "deadline", "tracker", "AI assistant", "university"],
   manifest: "/manifest.json",
   icons: {
     icon: "/favicon.png",
@@ -17,7 +20,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Notify",
     description: "Professional schedule management and deadline tracking.",
-    url: "https://notify.example.com",
+    url: "https://notify-7xs6.vercel.app",
     siteName: "Notify",
     images: [
       {

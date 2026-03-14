@@ -1,12 +1,31 @@
 -- Enable UUID generation
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
+-- 0. Programs Table (New)
+CREATE TABLE public.programs (
+  id TEXT PRIMARY KEY, -- e.g., 'CS-2024', 'LAW-2025'
+  name TEXT NOT NULL,
+  department TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Protect programs table
+ALTER TABLE public.programs ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Anyone can read programs" ON public.programs FOR SELECT TO authenticated, anon USING (true);
+
+-- Seed some initial programs (Optional, can be done via Dashboard)
+INSERT INTO public.programs (id, name, department) VALUES 
+('CS-2028', 'Computer Science 2028', 'Science'),
+('SE-2028', 'Software Engineering 2028', 'Engineering')
+ON CONFLICT (id) DO NOTHING;
+
 -- 1. Users Table (Extends Supabase Auth)
 CREATE TABLE public.users (
   id UUID REFERENCES auth.users(id) ON DELETE CASCADE PRIMARY KEY,
   email TEXT NOT NULL UNIQUE,
   full_name TEXT,
   cohort_year INTEGER,
+  program_id TEXT REFERENCES public.programs(id) ON DELETE SET NULL,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -53,6 +72,7 @@ CREATE TABLE public.assignments (
   due_date TIMESTAMPTZ NOT NULL,
   difficulty_score INTEGER DEFAULT 5 CHECK (difficulty_score >= 1 AND difficulty_score <= 10),
   status assignment_status DEFAULT 'pending',
+  program_id TEXT REFERENCES public.programs(id) ON DELETE CASCADE,
   created_by UUID REFERENCES public.users(id) ON DELETE SET NULL,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -63,7 +83,10 @@ ALTER TABLE public.assignments ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Anyone authenticated can read assignments" 
 ON public.assignments FOR SELECT 
 TO authenticated, anon 
-USING (true);
+USING (
+  program_id IS NULL OR 
+  program_id = (SELECT program_id FROM public.users WHERE id = auth.uid())
+);
 
 CREATE POLICY "Authenticated users can propose assignments" 
 ON public.assignments FOR INSERT 

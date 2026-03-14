@@ -5,9 +5,10 @@ export async function POST(request: Request) {
     const formData = await request.formData()
     const fullName = String(formData.get('full_name'))
     const cohortYear = parseInt(String(formData.get('cohort_year')), 10)
+    const programId = String(formData.get('program_id'))
 
     // Basic validation
-    if (!fullName || !cohortYear || isNaN(cohortYear)) {
+    if (!fullName || !cohortYear || isNaN(cohortYear) || !programId) {
         return NextResponse.redirect(new URL('/onboarding?error=Invalid_Input', request.url))
     }
 
@@ -27,7 +28,8 @@ export async function POST(request: Request) {
             id: user.id,
             email: user.email,
             full_name: fullName,
-            cohort_year: cohortYear
+            cohort_year: cohortYear,
+            program_id: programId
         }, { onConflict: 'id' })
 
     if (updateError) {
