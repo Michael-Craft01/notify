@@ -76,9 +76,7 @@ export default function PWAInstallPrompt() {
                     <p className="text-[11px] text-[var(--color-text-muted)] leading-tight mt-0.5">
                         {/iphone|ipad|ipod/.test(navigator.userAgent.toLowerCase()) 
                             ? "Tap 'Share' then 'Add to Home Screen'"
-                            : deferredPrompt 
-                                ? "Get the full app experience"
-                                : "Tap ⋮ then 'Install app'"}
+                            : "Get the full app experience"}
                     </p>
                 </div>
                 {deferredPrompt && (
