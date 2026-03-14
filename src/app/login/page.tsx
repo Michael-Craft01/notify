@@ -25,10 +25,16 @@ function LoginContent() {
         setIsLoading(true)
         setError(null)
         try {
-            const { signInWithOAuth } = await import('./actions')
-            const result = await signInWithOAuth(provider)
-            if (result?.error) {
-                setError(result.error)
+            // Client-side OAuth initiation prevents PKCE cookie race conditions in Next.js Server Actions
+            const { data, error } = await supabase.auth.signInWithOAuth({
+                provider,
+                options: {
+                    redirectTo: `${window.location.origin}/auth/confirm`,
+                },
+            })
+
+            if (error) {
+                setError(error.message)
                 setIsLoading(false)
             }
         } catch (err: any) {
