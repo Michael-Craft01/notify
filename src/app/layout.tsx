@@ -1,12 +1,12 @@
 import type { Metadata, Viewport } from "next";
 import { Inter, Outfit } from "next/font/google";
 import "./globals.css";
+import InstallPrompt from "@/components/InstallPrompt";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 const outfit = Outfit({ subsets: ["latin"], variable: "--font-outfit" });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://notify-7xs6.vercel.app"),
   title: "Notify | Intelligent Schedule Assistant",
   description: "Professional schedule management and deadline tracking for academic cohorts.",
   applicationName: "Notify",

@@ -18,16 +18,12 @@ export default function PWAInstallPrompt() {
         const isStandalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone === true
 
         const handleBeforeInstallPrompt = (e: any) => {
-            console.group('📦 PWA: BeforeInstallPrompt')
-            console.log('Event captured:', e)
-            
             // Prevent the mini-infobar from appearing on mobile
             e.preventDefault()
             // Stash the event so it can be triggered later.
             setDeferredPrompt(e)
             // Update UI notify the user they can install the PWA
             setShowPrompt(true)
-            console.groupEnd()
         }
 
         window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
@@ -41,7 +37,6 @@ export default function PWAInstallPrompt() {
         // 2. For Android, if the event doesn't fire in 8s (e.g. strict browser), show manual menu nudge
         const timer = setTimeout(() => {
             if (isAndroid && !isStandalone && !deferredPrompt) {
-                console.log('📦 PWA: Timeout reached without event. Showing manual nudge.')
                 setShowPrompt(true)
             }
         }, 8000)
@@ -58,17 +53,12 @@ export default function PWAInstallPrompt() {
     }, [deferredPrompt])
 
     const handleInstallClick = async () => {
-        if (!deferredPrompt) {
-            console.log('📦 PWA: No deferred prompt available. This is a manual nudge.')
-            return
-        }
+        if (!deferredPrompt) return
         
-        console.log('📦 PWA: Triggering installation prompt...')
         // Show the install prompt
         deferredPrompt.prompt()
         // Wait for the user to respond to the prompt
         const { outcome } = await deferredPrompt.userChoice
-        console.log('📦 PWA: User response:', outcome)
         if (outcome === 'accepted') setShowPrompt(false)
         setDeferredPrompt(null)
     }
@@ -76,7 +66,7 @@ export default function PWAInstallPrompt() {
     if (!showPrompt) return null
 
     return (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[500] animate-slide-up w-[calc(100%-48px)] sm:w-auto">
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[100] animate-slide-up w-[calc(100%-48px)] sm:w-auto">
             <div className="bg-[#111] border border-[var(--color-border)] p-3 pr-4 rounded-2xl shadow-2xl flex items-center gap-4">
                 <div className="h-10 w-10 rounded-xl overflow-hidden shrink-0 shadow-md">
                     <Image src="/favicon.png" alt="Notify Logo" width={40} height={40} className="w-full h-full object-cover" />

@@ -12,7 +12,6 @@ CREATE TABLE public.programs (
 -- Protect programs table
 ALTER TABLE public.programs ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Anyone can read programs" ON public.programs FOR SELECT TO authenticated, anon USING (true);
-CREATE POLICY "Authenticated users can create programs" ON public.programs FOR INSERT TO authenticated WITH CHECK (true);
 
 -- Seed some initial programs (Optional, can be done via Dashboard)
 INSERT INTO public.programs (id, name, department) VALUES 
@@ -84,10 +83,7 @@ ALTER TABLE public.assignments ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Anyone authenticated can read assignments" 
 ON public.assignments FOR SELECT 
 TO authenticated, anon 
-USING (
-  program_id IS NULL OR 
-  program_id = (SELECT program_id FROM public.users WHERE id = auth.uid())
-);
+USING (true);
 
 CREATE POLICY "Authenticated users can propose assignments" 
 ON public.assignments FOR INSERT 

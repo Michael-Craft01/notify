@@ -27,8 +27,11 @@ export default function NotificationToggle() {
                 setPermission(Notification.permission)
                 console.log('[NotificationToggle] Current permission:', Notification.permission)
 
-                // next-pwa handles registration via next.config.ts, so we just wait for it to be ready
-                console.log('[NotificationToggle] Waiting for SW to be ready...')
+                // Try to register, but don't hang if it's already managed by next-pwa
+                console.log('[NotificationToggle] Registering SW...')
+                const registration = await navigator.serviceWorker.register('/sw.js', { scope: '/' })
+                console.log('[NotificationToggle] SW registered:', registration.scope)
+
                 const reg = await Promise.race([
                     navigator.serviceWorker.ready,
                     new Promise((_, reject) => setTimeout(() => reject(new Error('SW ready timeout')), 5000))

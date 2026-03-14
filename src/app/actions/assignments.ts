@@ -28,21 +28,11 @@ async function getAuthUser() {
         }
     }
 
-    let programId = null
-    if (user) {
-        const { data: profile } = await supabase
-            .from('users')
-            .select('program_id')
-            .eq('id', user.id)
-            .single()
-        programId = profile?.program_id
-    }
-
-    return { supabase, user, programId }
+    return { supabase, user }
 }
 
 export async function createAssignment(formData: FormData) {
-    const { supabase, user, programId } = await getAuthUser()
+    const { supabase, user } = await getAuthUser()
 
     if (!user) {
         return { error: 'Unauthorized: You must be logged in.' }
@@ -92,7 +82,6 @@ export async function createAssignment(formData: FormData) {
         created_by: user.id,
         difficulty_score: 5,
         task_type: validated.data.task_type,
-        program_id: programId,
     }
 
     // Only include fields if they exist in DB — graceful fallback

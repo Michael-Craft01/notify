@@ -38,21 +38,6 @@ export async function GET(request: NextRequest) {
             token_hash,
         })
         if (!error && data?.user) {
-            // Use service role to guarantee profile creation
-            const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-            const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-
-            if (supabaseUrl && serviceRoleKey) {
-                const { createClient: createServiceClient } = await import('@supabase/supabase-js')
-                const serviceClient = createServiceClient(supabaseUrl, serviceRoleKey)
-                
-                await serviceClient.from('users').upsert({
-                    id: data.user.id,
-                    email: data.user.email!,
-                    full_name: data.user.user_metadata?.full_name || data.user.email?.split('@')[0] || 'User',
-                }, { onConflict: 'id' })
-            }
-
             const redirectUrl = request.nextUrl.clone()
             redirectUrl.pathname = next
             redirectUrl.searchParams.delete('token_hash')
@@ -105,9 +90,7 @@ export async function GET(request: NextRequest) {
                 console.log('Auth: Profile verified, session active.')
 
                 console.log('Auth: Redirecting to:', next)
-                const redirectUrl = request.nextUrl.clone()
-                redirectUrl.pathname = next
-                redirectUrl.searchParams.delete('code')
+                const redirectUrl = new URL(next, request.url)
                 return NextResponse.redirect(redirectUrl)
             }
         } catch (err: any) {
