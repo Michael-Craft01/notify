@@ -86,3 +86,30 @@ export async function verifyOTP(email: string, token: string) {
     revalidatePath('/', 'layout')
     return { success: true }
 }
+
+export async function signInWithOAuth(provider: 'google') {
+    const supabase = await createClient()
+    
+    // Explicitly use the new custom domain as the primary redirect target
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://notify.logichq.tech'
+    const redirectUrl = `${siteUrl.endsWith('/') ? siteUrl.slice(0, -1) : siteUrl}/auth/confirm`
+
+    const { data, error } = await supabase.auth.signInWithOAuth({
+        provider,
+        options: {
+            redirectTo: redirectUrl,
+            skipBrowserRedirect: false
+        },
+    })
+
+    if (error) {
+        console.error(`${provider} Sign In Error:`, error)
+        return { error: error.message }
+    }
+
+    if (data.url) {
+        redirect(data.url)
+    }
+
+    return { success: true }
+}

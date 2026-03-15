@@ -2,4 +2,4 @@ User-agent: *
 Allow: /
 Allow: /api/og
 
-Sitemap: https://notify-7xs6.vercel.app/sitemap.xml
+Sitemap: https://notify.logichq.tech/sitemap.xml

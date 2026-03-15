@@ -20,7 +20,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Notify",
     description: "Professional schedule management and deadline tracking.",
-    url: "https://notify-7xs6.vercel.app",
+    url: "https://notify.logichq.tech",
     siteName: "Notify",
     images: [
       {
