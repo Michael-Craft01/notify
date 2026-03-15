@@ -8,6 +8,7 @@ import SettingsModal from "@/components/SettingsModal";
 import NotifyAIChat from "@/components/NotifyAIChat";
 import { Clock, CheckCircle2, AlertTriangle, TrendingUp, Users } from "lucide-react";
 import Image from "next/image";
+import JoinClassOverlay from "@/components/JoinClassOverlay";
 
 export default async function Home() {
   const supabase = await createClient();
@@ -22,9 +23,13 @@ export default async function Home() {
   }
   if (!user) redirect("/login");
 
+  const { data: userProfile } = await supabase
+    .from("users").select("full_name, program_id").eq("id", user.id).single();
+
   const { data: assignments } = await supabase
     .from("assignments")
     .select(`*, users!created_by (full_name), user_progress (status, user_id)`)
+    .eq("program_id", userProfile?.program_id) // SCOPED FETCHING
     .gte("due_date", new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString())
     .order("due_date", { ascending: true });
 
@@ -41,9 +46,6 @@ export default async function Home() {
   const upcoming = allTasks.filter((a) => a.myProgress !== "finished" && new Date(a.due_date).getTime() >= now);
   const overdue  = allTasks.filter((a) => a.myProgress !== "finished" && new Date(a.due_date).getTime() < now);
   const done     = allTasks.filter((a) => a.myProgress === "finished");
-
-  const { data: userProfile } = await supabase
-    .from("users").select("full_name, cohort_year").eq("id", user.id).single();
 
   const displayName = userProfile?.full_name || user.email?.split("@")[0] || "User";
   const firstName   = displayName.split(" ")[0];
@@ -62,6 +64,10 @@ export default async function Home() {
 
   return (
     <div className="min-h-screen bg-[var(--color-bg)] font-[family-name:var(--font-inter)]">
+      {/* ── SAFETY NET OVERLAY ────────────────────────────────────────────── */}
+      {!userProfile?.program_id && (
+        <JoinClassOverlay userId={user.id} />
+      )}
 
       {/* ── NAV ─────────────────────────────────────────────────────────────── */}
       <nav className="sticky top-0 z-50 bg-[#070707]/80 backdrop-blur-xl border-b border-[var(--color-border)] transition-all">
@@ -86,7 +92,7 @@ export default async function Home() {
               id: user.id,
               email: user.email!,
               full_name: userProfile?.full_name || null,
-              cohort_year: userProfile?.cohort_year || null
+              program_id: userProfile?.program_id || null
             }} />
           </div>
         </div>

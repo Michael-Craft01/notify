@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useTransition } from 'react'
 import { createPortal } from 'react-dom'
-import { Settings, X, User, GraduationCap, Bell, Loader2, Save, LogOut } from 'lucide-react'
+import { Settings, X, User, Bell, Loader2, Save, LogOut } from 'lucide-react'
 import { updateUserProfile } from '@/app/actions/profile'
 import { signOut } from '@/app/actions/auth'
 import { useRouter } from 'next/navigation'
@@ -12,7 +12,7 @@ type SettingsModalProps = {
         id: string
         email: string
         full_name: string | null
-        cohort_year: number | null
+        program_id: string | null
     }
 }
 
@@ -23,7 +23,6 @@ export default function SettingsModal({ user }: SettingsModalProps) {
     const router = useRouter()
     const [formData, setFormData] = useState({
         full_name: user.full_name || '',
-        cohort_year: user.cohort_year?.toString() || '',
     })
 
     const [mounted, setMounted] = useState(false)
@@ -42,7 +41,6 @@ export default function SettingsModal({ user }: SettingsModalProps) {
         e.preventDefault()
         const data = new FormData()
         data.append('full_name', formData.full_name)
-        data.append('cohort_year', formData.cohort_year)
 
         startTransition(async () => {
             const res = await updateUserProfile(data)
@@ -99,22 +97,6 @@ export default function SettingsModal({ user }: SettingsModalProps) {
                                                     onChange={e => setFormData({ ...formData, full_name: e.target.value })}
                                                     placeholder="Your full name"
                                                     required
-                                                />
-                                            </div>
-                                        </div>
-
-                                        <div className="space-y-1.5">
-                                            <label className="text-[11px] font-bold text-white/50 ml-1 uppercase tracking-wider">Cohort Year</label>
-                                            <div className="relative group">
-                                                <GraduationCap className="absolute left-4 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-orange transition-colors" size={16} />
-                                                <input 
-                                                    className="w-full h-11 bg-white/5 border border-white/10 rounded-xl pl-12 pr-4 text-[13px] text-white focus:border-orange/30 outline-none transition-all"
-                                                    type="number"
-                                                    min="2020"
-                                                    max="2030"
-                                                    value={formData.cohort_year}
-                                                    onChange={e => setFormData({ ...formData, cohort_year: e.target.value })}
-                                                    placeholder="e.g. 2024"
                                                 />
                                             </div>
                                         </div>

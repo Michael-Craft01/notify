@@ -110,7 +110,7 @@ export async function GET(req: NextRequest) {
     let totalPruned = 0
     const log: string[] = []
 
-    // Fetch all subscriptions once (shared across all windows)
+    // Fetch all subscriptions with user program association
     const { data: subs, error: subErr } = await supabase
         .from('user_subscriptions')
         .select(`
@@ -119,7 +119,8 @@ export async function GET(req: NextRequest) {
             device_type,
             users (
                 full_name,
-                email
+                email,
+                program_id
             )
         `)
 
@@ -133,13 +134,16 @@ export async function GET(req: NextRequest) {
 
         const { data: assignments } = await supabase
             .from('assignments')
-            .select('id, title, resource_url, task_type')
+            .select('id, title, resource_url, task_type, program_id')
             .gte('due_date', windowStart)
             .lte('due_date', windowEnd)
 
         if (!assignments?.length) continue
 
         for (const assignment of assignments) {
+            // Filter subscriptions to only those in the same program
+            const scopedSubs = subs.filter((s: any) => s.users?.program_id === assignment.program_id)
+            if (!scopedSubs.length) continue
             // Fetch cohort completion % for social proof messaging
             const { data: pulse } = await supabase
                 .from('assignment_pulse_stats')
@@ -151,7 +155,7 @@ export async function GET(req: NextRequest) {
             const toDelete: string[] = []
 
             await Promise.allSettled(
-                subs.map(async (row: any) => {
+                scopedSubs.map(async (row: any) => {
                     // ADHD-Resilient Origin Filtering
                     // In migration from vercel.app -> logichq.tech, allow both to ensure alerts aren't dropped.
                     const subOrigin = row.device_type?.split('browser:')[1]

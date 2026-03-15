@@ -7,7 +7,6 @@ import { cookies } from 'next/headers'
 
 const ProfileSchema = z.object({
     full_name: z.string().min(2, "Name is too short").max(50),
-    cohort_year: z.number().int().min(2020).max(2030).optional(),
 })
 
 async function getAuthUser() {
@@ -32,7 +31,6 @@ export async function updateUserProfile(formData: FormData) {
 
     const rawData = {
         full_name: formData.get('full_name'),
-        cohort_year: formData.get('cohort_year') ? parseInt(formData.get('cohort_year') as string) : undefined,
     }
 
     const validated = ProfileSchema.safeParse(rawData)
@@ -44,7 +42,6 @@ export async function updateUserProfile(formData: FormData) {
             id: user.id,
             email: user.email!,
             full_name: validated.data.full_name,
-            cohort_year: validated.data.cohort_year,
         }, { onConflict: 'id' })
 
     if (error) {

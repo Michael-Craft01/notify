@@ -56,10 +56,11 @@ export async function GET(request: NextRequest) {
             }
 
             if (data.user) {
-                console.log('Auth: Session established, upserting user profile...')
+                console.log('Auth: Session established, checking for pending invites...')
                 
-                // Use service role to bypass RLS and guarantee the user record is created
-                // if the Supabase trigger fails.
+                const pendingInviteCode = request.cookies.get('pending_invite_code')?.value
+                let programId = null
+
                 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
                 const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
@@ -71,27 +72,47 @@ export async function GET(request: NextRequest) {
                 const { createClient: createServiceClient } = await import('@supabase/supabase-js')
                 const serviceClient = createServiceClient(supabaseUrl, serviceRoleKey)
 
+                // 1. Resolve Program ID if invite code exists
+                if (pendingInviteCode) {
+                    const { data: programData } = await serviceClient
+                        .from('programs')
+                        .select('id')
+                        .eq('invite_code', pendingInviteCode.toUpperCase())
+                        .single()
+                    
+                    if (programData) {
+                        programId = programData.id
+                        console.log(`[auth] Auto-assigning program ${programId} via code ${pendingInviteCode}`)
+                    }
+                }
+
+                // 2. Upsert user with program_id
                 const { error: upsertError } = await serviceClient
                     .from('users')
                     .upsert({
                         id: data.user.id,
                         email: data.user.email!,
                         full_name: data.user.user_metadata?.full_name || data.user.email?.split('@')[0] || 'User',
+                        program_id: programId,
                     }, { onConflict: 'id' })
 
                 if (upsertError) {
                     console.error('Upsert Error (Service Role):', upsertError)
-                    // If the user record is missing, everything else fails. 
-                    // Let's redirect back with a helpful message instead of proceeding to the dashboard.
                     const errorMessage = `Database Error: Failed to create user profile. ${upsertError.message}`
                     return NextResponse.redirect(new URL(`/login?message=${encodeURIComponent(errorMessage)}`, request.url))
                 }
 
                 console.log('Auth: Profile verified, session active.')
 
-                console.log('Auth: Redirecting to:', next)
+                // 3. Prepare response and clear cookie
                 const redirectUrl = new URL(next, request.url)
-                return NextResponse.redirect(redirectUrl)
+                const response = NextResponse.redirect(redirectUrl)
+                
+                if (pendingInviteCode) {
+                    response.cookies.delete('pending_invite_code')
+                }
+
+                return response
             }
         } catch (err: any) {
             console.error('Critical Auth Flow Error:', err)

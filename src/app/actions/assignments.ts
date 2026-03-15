@@ -74,6 +74,13 @@ export async function createAssignment(formData: FormData) {
         return { error: `Validation Failed: ${validated.error.issues[0].message}` }
     }
 
+    // Fetch user's program_id
+    const { data: profile } = await supabase
+        .from('users')
+        .select('program_id')
+        .eq('id', user.id)
+        .single()
+
     const insertData: Record<string, any> = {
         course_code: validated.data.course_code.toUpperCase(),
         title: validated.data.title,
@@ -82,6 +89,7 @@ export async function createAssignment(formData: FormData) {
         created_by: user.id,
         difficulty_score: 5,
         task_type: validated.data.task_type,
+        program_id: profile?.program_id, // Automatic tagging
     }
 
     // Only include fields if they exist in DB — graceful fallback

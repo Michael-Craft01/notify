@@ -1,51 +1,46 @@
 -- Enable UUID generation
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
--- 0. Programs Table (New)
-CREATE TABLE public.programs (
-  id TEXT PRIMARY KEY, -- e.g., 'CS-2024', 'LAW-2025'
+-- 0. Roles Enum
+DO $$ BEGIN
+    CREATE TYPE user_role AS ENUM ('student', 'rep', 'admin');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+
+-- 1. Programs Table
+CREATE TABLE IF NOT EXISTS public.programs (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
   name TEXT NOT NULL,
-  department TEXT,
+  invite_code TEXT UNIQUE NOT NULL, -- e.g., 'CS-2028'
+  is_public BOOLEAN DEFAULT true,
+  created_by UUID, -- REFERENCES public.users(id) - Added later due to chicken-egg
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Protect programs table
-ALTER TABLE public.programs ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Anyone can read programs" ON public.programs FOR SELECT TO authenticated, anon USING (true);
+-- Seed initial programs
+INSERT INTO public.programs (name, invite_code, is_public) VALUES 
+('Computer Science 2028', 'CS-2028', true),
+('Software Engineering 2028', 'SE-2028', true)
+ON CONFLICT (invite_code) DO NOTHING;
 
--- Seed some initial programs (Optional, can be done via Dashboard)
-INSERT INTO public.programs (id, name, department) VALUES 
-('CS-2028', 'Computer Science 2028', 'Science'),
-('SE-2028', 'Software Engineering 2028', 'Engineering')
-ON CONFLICT (id) DO NOTHING;
-
--- 1. Users Table (Extends Supabase Auth)
-CREATE TABLE public.users (
+-- 2. Users Table
+CREATE TABLE IF NOT EXISTS public.users (
   id UUID REFERENCES auth.users(id) ON DELETE CASCADE PRIMARY KEY,
   email TEXT NOT NULL UNIQUE,
   full_name TEXT,
-  cohort_year INTEGER,
-  program_id TEXT REFERENCES public.programs(id) ON DELETE SET NULL,
+  role user_role DEFAULT 'student',
+  program_id UUID REFERENCES public.programs(id) ON DELETE SET NULL,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- Protect users table with RLS
+-- RLS
 ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Users can read all profiles" 
-ON public.users FOR SELECT 
-TO authenticated, anon 
-USING (true);
-
-CREATE POLICY "Users can update own profile" 
-ON public.users FOR UPDATE 
-TO authenticated, anon 
-USING (auth.uid() = id);
-
-CREATE POLICY "Users can insert own profile" 
-ON public.users FOR INSERT 
-TO authenticated 
-WITH CHECK (auth.uid() = id);
+CREATE POLICY "Users can read all profiles" ON public.users FOR SELECT TO authenticated USING (true);
+CREATE POLICY "Users can update own profile" ON public.users FOR UPDATE TO authenticated USING (auth.uid() = id);
+CREATE POLICY "Users can insert own profile" ON public.users FOR INSERT TO authenticated WITH CHECK (auth.uid() = id);
 
 -- Trigger to automatically create a user profile when a new user signs up
 CREATE OR REPLACE FUNCTION public.handle_new_user() 
@@ -64,7 +59,8 @@ CREATE TRIGGER on_auth_user_created
 -- 2. Assignments Table (The Core Engine)
 CREATE TYPE assignment_status AS ENUM ('pending', 'verified');
 
-CREATE TABLE public.assignments (
+-- 3. Assignments Table
+CREATE TABLE IF NOT EXISTS public.assignments (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
   course_code TEXT NOT NULL,
   title TEXT NOT NULL,
@@ -72,27 +68,28 @@ CREATE TABLE public.assignments (
   due_date TIMESTAMPTZ NOT NULL,
   difficulty_score INTEGER DEFAULT 5 CHECK (difficulty_score >= 1 AND difficulty_score <= 10),
   status assignment_status DEFAULT 'pending',
-  program_id TEXT REFERENCES public.programs(id) ON DELETE CASCADE,
+  program_id UUID REFERENCES public.programs(id) ON DELETE CASCADE,
   created_by UUID REFERENCES public.users(id) ON DELETE SET NULL,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- Protect assignments table with RLS
+-- RLS Scoped by Program
 ALTER TABLE public.assignments ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Anyone authenticated can read assignments" 
-ON public.assignments FOR SELECT 
-TO authenticated, anon 
-USING (true);
+CREATE POLICY "Users can read assignments in their program" 
+ON public.assignments FOR SELECT TO authenticated 
+USING (program_id = (SELECT program_id FROM users WHERE id = auth.uid()));
 
-CREATE POLICY "Authenticated users can propose assignments" 
-ON public.assignments FOR INSERT 
-TO authenticated 
-WITH CHECK (auth.uid() = created_by);
+CREATE POLICY "Users can create assignments in their program" 
+ON public.assignments FOR INSERT TO authenticated 
+WITH CHECK (
+  auth.uid() = created_by AND 
+  program_id = (SELECT program_id FROM users WHERE id = auth.uid())
+);
 
 CREATE POLICY "Creators can update their pending assignments" 
-ON public.assignments FOR UPDATE 
-TO authenticated 
+ON public.assignments FOR UPDATE TO authenticated 
 USING (auth.uid() = created_by AND status = 'pending');
 
 -- 3. Verifications Table
@@ -175,16 +172,16 @@ USING (auth.uid() = user_id);
 CREATE OR REPLACE VIEW public.assignment_pulse_stats AS
 SELECT 
   a.id AS assignment_id,
-  COUNT(up.user_id) FILTER (WHERE up.status = 'finished') AS finished_count,
-  COUNT(up.user_id) FILTER (WHERE up.status = 'in_progress') AS started_count,
-  (SELECT COUNT(*) FROM public.users) AS total_cohort,
+  COUNT(DISTINCT u.id) FILTER (WHERE up.status = 'finished') AS finished_count,
+  COUNT(DISTINCT u.id) FILTER (WHERE up.status = 'in_progress') AS started_count,
+  COUNT(DISTINCT u.id) AS total_cohort_in_program,
   CASE 
-    WHEN (SELECT COUNT(*) FROM public.users) = 0 THEN 0
-    ELSE ROUND((COUNT(up.user_id) FILTER (WHERE up.status = 'finished')::NUMERIC / (SELECT COUNT(*) FROM public.users)) * 100)
+    WHEN COUNT(DISTINCT u.id) = 0 THEN 0
+    ELSE ROUND((COUNT(DISTINCT u.id) FILTER (WHERE up.status = 'finished')::NUMERIC / COUNT(DISTINCT u.id)) * 100)
   END AS finished_percentage,
   CASE 
-    WHEN (SELECT COUNT(*) FROM public.users) = 0 THEN 0
-    ELSE ROUND((COUNT(up.user_id) FILTER (WHERE up.status IN ('in_progress', 'finished'))::NUMERIC / (SELECT COUNT(*) FROM public.users)) * 100)
+    WHEN COUNT(DISTINCT u.id) = 0 THEN 0
+    ELSE ROUND((COUNT(DISTINCT u.id) FILTER (WHERE up.status IN ('in_progress', 'finished'))::NUMERIC / COUNT(DISTINCT u.id)) * 100)
   END AS involvement_percentage
 FROM 
   public.assignments a
