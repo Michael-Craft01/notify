@@ -18,6 +18,12 @@ export const metadata: Metadata = {
     icon: "/favicon.png",
     apple: "/favicon.png",
   },
+  twitter: {
+    card: "summary_large_image",
+    title: "Notify | Intelligent Schedule Assistant",
+    description: "Professional schedule management and deadline tracking for academic cohorts.",
+    images: ["/og-image.png"],
+  },
   openGraph: {
     title: "Notify",
     description: "Professional schedule management and deadline tracking.",
@@ -28,6 +34,7 @@ export const metadata: Metadata = {
         url: "/og-image.png",
         width: 1200,
         height: 630,
+        alt: "Notify Dashboard Preview"
       },
     ],
     locale: "en_US",
