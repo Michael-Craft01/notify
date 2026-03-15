@@ -7,6 +7,7 @@ const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 const outfit = Outfit({ subsets: ["latin"], variable: "--font-outfit" });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://notify.logichq.tech"),
   title: "Notify | Intelligent Schedule Assistant",
   description: "Professional schedule management and deadline tracking for academic cohorts.",
   applicationName: "Notify",
