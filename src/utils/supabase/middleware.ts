@@ -43,8 +43,18 @@ export async function updateSession(request: NextRequest) {
     */
     const authenticated = user // Prioritize real session
 
+    const isPublicAsset = 
+        request.nextUrl.pathname === '/sw.js' ||
+        request.nextUrl.pathname === '/manifest.json' ||
+        request.nextUrl.pathname === '/robots.txt' ||
+        request.nextUrl.pathname === '/sitemap.xml' ||
+        request.nextUrl.pathname.startsWith('/favicon') ||
+        request.nextUrl.pathname.startsWith('/icon-') ||
+        request.nextUrl.pathname.startsWith('/og-image')
+
     if (
         !authenticated &&
+        !isPublicAsset &&
         !request.nextUrl.pathname.startsWith('/login') &&
         !request.nextUrl.pathname.startsWith('/auth')
     ) {
