@@ -25,8 +25,13 @@ export default async function Home() {
   }
   if (!user) redirect("/login");
 
-  const { data: userProfile, error: profileError } = await supabase
-    .from("users").select("full_name, program_id, role").eq("id", user.id).single();
+  const { data: userProfile } = await supabase
+    .from("users")
+    .select("full_name, program_id, role, programs(name)")
+    .eq("id", user.id)
+    .single();
+
+  const programName = (userProfile as any)?.programs?.name || "your class";
 
   const { data: assignments } = await supabase
     .from("assignments")
@@ -88,7 +93,7 @@ export default async function Home() {
           <div className="flex items-center gap-3">
             <NotificationToggle />
             <div className="w-[1px] h-5 bg-[var(--color-border)]" />
-            <NotifyAIChat currentAssignments={allTasks} />
+            <NotifyAIChat currentAssignments={allTasks} programName={programName} />
             <AddAssignmentModal userId={user.id} />
             <SettingsModal user={{
               id: user.id,

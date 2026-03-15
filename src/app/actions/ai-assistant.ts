@@ -97,7 +97,8 @@ export async function enhanceFormAction(partialData: Record<string, string>) {
 export async function askNotifyAI(
     message: string, 
     currentAssignments: any[], 
-    history: { role: 'user' | 'ai', content: string }[] = []
+    history: { role: 'user' | 'ai', content: string }[] = [],
+    programName: string = "this class"
 ) {
     try {
         const model = genAI.getGenerativeModel({ model: AI_MODEL })
@@ -120,6 +121,7 @@ You are "NotifyAI", the intelligent backbone of the Notify productivity app.
 Your goal is to help students manage their assignments using natural language.
 
 CURRENT CONTEXT:
+- Academic Program: ${programName}
 - Current Time: ${new Date().toLocaleString()}
 - Assignments in View: ${JSON.stringify(contextAssignments)}
 
@@ -132,6 +134,8 @@ CAPABILITIES:
 4. QUERY: Filter, find, or analyze tasks.
 
 STRICT INSTRUCTIONS:
+- You are strictly operating within the context of "${programName}". 
+- All tasks you create or modify belong only to this group.
 - You must return a SINGLE JSON object. No other text.
 - For CREATE/UPDATE:
     - course_code: Uppercase (e.g., "CSC301")

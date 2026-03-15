@@ -19,10 +19,10 @@ type Message = {
     actionData?: any
 }
 
-export default function NotifyAIChat({ currentAssignments }: { currentAssignments: any[] }) {
+export default function NotifyAIChat({ currentAssignments, programName }: { currentAssignments: any[], programName: string }) {
     const [isOpen, setIsOpen] = useState(false)
     const [messages, setMessages] = useState<Message[]>([
-        { role: 'ai', content: "Hey! I'm NotifyAI. I can help you add tasks, find what's due, or update your schedule. Just say something like 'Add a quiz for MP201 tomorrow'." }
+        { role: 'ai', content: `Hey! I'm NotifyAI. I'm here to help with **${programName}**. I can add tasks, find what's due, or update your schedule. Just say something like 'Add a quiz for MP201 tomorrow'.` }
     ])
     const [input, setInput] = useState('')
     const [isPending, startTransition] = useTransition()
@@ -51,7 +51,7 @@ export default function NotifyAIChat({ currentAssignments }: { currentAssignment
         setMessages(prev => [...prev, { role: 'user', content: userMsg }])
 
         startTransition(async () => {
-            const res = await askNotifyAI(userMsg, currentAssignments, currentHistory)
+            const res = await askNotifyAI(userMsg, currentAssignments, currentHistory, programName)
             
             if (res.error) {
                 setMessages(prev => [...prev, { role: 'ai', content: res.error }])
