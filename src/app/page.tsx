@@ -28,15 +28,6 @@ export default async function Home() {
   const { data: userProfile, error: profileError } = await supabase
     .from("users").select("full_name, program_id, role").eq("id", user.id).single();
 
-  console.log('--- DASHBOARD DIAGNOSTIC ---');
-  console.log('User ID:', user.id);
-  console.log('User Email:', user.email);
-  console.log('Profile Found:', !!userProfile);
-  console.log('Program ID:', userProfile?.program_id);
-  console.log('User Role:', userProfile?.role);
-  if (profileError) console.log('Profile Error:', profileError);
-  console.log('---------------------------');
-
   const { data: assignments } = await supabase
     .from("assignments")
     .select(`*, users!created_by (full_name), user_progress (status, user_id)`)
@@ -76,7 +67,9 @@ export default async function Home() {
   return (
     <div className="min-h-screen bg-[var(--color-bg)] font-[family-name:var(--font-inter)]">
       {/* ── SAFETY NET OVERLAY ────────────────────────────────────────────── */}
-      <JoinClassOverlay userId={user.id} />
+      {!userProfile?.program_id && (
+        <JoinClassOverlay userId={user.id} />
+      )}
 
       {/* ── NAV ─────────────────────────────────────────────────────────────── */}
       <nav className="sticky top-0 z-50 bg-[#070707]/80 backdrop-blur-xl border-b border-[var(--color-border)] transition-all">

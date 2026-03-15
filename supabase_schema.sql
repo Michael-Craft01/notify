@@ -24,6 +24,29 @@ INSERT INTO public.programs (name, invite_code, is_public) VALUES
 ('Software Engineering 2028', 'SE-2028', true)
 ON CONFLICT (invite_code) DO NOTHING;
 
+-- Protect programs table with RLS
+ALTER TABLE public.programs ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Anyone authenticated can read programs" 
+ON public.programs FOR SELECT 
+TO authenticated 
+USING (true);
+
+CREATE POLICY "Reps and Admins can create programs" 
+ON public.programs FOR INSERT 
+TO authenticated 
+WITH CHECK (
+  (SELECT role FROM users WHERE id = auth.uid()) IN ('rep', 'admin')
+);
+
+CREATE POLICY "Creators can update their programs" 
+ON public.programs FOR UPDATE 
+TO authenticated 
+USING (
+  created_by = auth.uid() OR 
+  (SELECT role FROM users WHERE id = auth.uid()) = 'admin'
+);
+
 -- 2. Users Table
 CREATE TABLE IF NOT EXISTS public.users (
   id UUID REFERENCES auth.users(id) ON DELETE CASCADE PRIMARY KEY,

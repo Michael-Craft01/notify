@@ -31,7 +31,10 @@ export default function JoinClassOverlay({ userId }: { userId: string }) {
                 .eq('is_public', true)
                 .order('name')
             
-            if (!error && data) {
+            if (error) {
+                console.error('Fetch Programs Error:', error)
+                setError('Could not load classes. Check database permissions.')
+            } else if (data) {
                 setPrograms(data)
             }
         }
