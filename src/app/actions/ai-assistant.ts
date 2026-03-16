@@ -195,16 +195,18 @@ export async function extractTimetableAction(formData: FormData) {
             You are "Notify AI Eye", a specialized OCR tool for university timetables.
             Extract the weekly lecture schedule from this ${file.type.startsWith('image') ? 'image' : 'document'}.
             
-            Return ONLY a JSON array of objects, where each object represents a single slot:
-            - day_of_week: Integer (1 for Monday, 2 for Tuesday... 5 for Friday, 6 for Saturday, 0 for Sunday)
+            CRITICAL: Use the legend (CODE/COURSE/LECTURER) usually found at the bottom to resolve course codes (e.g., "ICS2205") into their "Full Name of Module" (e.g., "Applied Statistics").
+            
+            Return ONLY a JSON array of objects, where each object represents a single entry (lecture, BREAK, or LUNCH):
+            - day_of_week: Integer (1 for Monday, 2 for Tuesday, 3 for Wednesday, 4 for Thursday, 5 for Friday, 6 for Saturday, 0 for Sunday)
             - start_time: "HH:mm" (24h format)
             - end_time: "HH:mm" (24h format)
-            - module_name: "Full Name of Module"
-            - course_code: "CSC 301" (if available)
-            - venue: "Room/Hall Name"
+            - module_name: "Full Name" (Use "BREAK" or "LUNCH" if that's the entry)
+            - course_code: "Course Code" (e.g., "ICS2205", or null for breaks)
+            - venue: "Room/Hall Name" (or null for breaks)
             
-            Strictly follow this structure. If a value is missing, use null.
-            Return ONLY the JSON. No other text.
+            If a lecture spans multiple hours, capture the full duration. Include "BREAK" and "LUNCH" rows as entries.
+            Strictly follow this structure. Return ONLY the JSON. No other text.
         `
 
         const result = await model.generateContent([
