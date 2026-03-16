@@ -5,7 +5,7 @@ import { GoogleGenerativeAI } from "@google/generative-ai"
 // Use the new Gemini_API_Key provided by the user
 const genAI = new GoogleGenerativeAI(process.env.Gemini_API_Key || process.env.GOOGLE_AI_API_KEY || "")
 const AI_MODEL = "gemma-3-27b-it"
-const VISION_MODEL = "gemma-3-27b-it"
+const VISION_MODEL = "gemini-1.5-flash"
 
 export async function extractAssignmentAction(formData: FormData) {
     const file = formData.get('file') as File
@@ -207,24 +207,17 @@ export async function extractTimetableAction(formData: FormData) {
             Strictly follow this structure. Return ONLY the JSON. No other text.
         `
 
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro" })
+        const model = genAI.getGenerativeModel({ model: VISION_MODEL })
 
         // 30-second timeout for the AI call
-        const extractionPromise = model.generateContent([
-            timetablePrompt,
-            {
-                inlineData: {
-                    data: base64Data,
-                    mimeType: file.type
-                }
-            }
-        ])
+        const result = await Promise.race([
+            model.generateContent([
+                timetablePrompt,
+                { inlineData: { data: base64Data, mimeType: file.type } }
+            ]),
+            new Promise((_, reject) => setTimeout(() => reject(new Error('AI Request Timed Out')), 30000))
+        ]) as any
 
-        const timeoutPromise = new Promise((_, reject) => 
-            setTimeout(() => reject(new Error('AI Request Timed Out (30s)')), 30000)
-        )
-
-        const result = await Promise.race([extractionPromise, timeoutPromise]) as any
         const text = result.response.text()
         
         // Robust JSON cleaning
@@ -237,40 +230,13 @@ export async function extractTimetableAction(formData: FormData) {
         const processedText = cleanJson(text)
         const jsonMatch = processedText.match(/\[[\s\S]*\]/)
         
-        if (!jsonMatch) {
-            console.error('[AI EYE] No array found. Raw:', text)
-            return { 
-                error: 'AI failed to format timetable correctly.', 
-                debug: text.slice(0, 500) 
-            }
-        }
+        if (!jsonMatch) throw new Error('AI failed to format timetable correctly.')
 
-        try {
-            const extractedData = JSON.parse(jsonMatch[0])
-            return { success: true, data: extractedData }
-        } catch (e) {
-            console.error('[AI EYE] JSON Parse Error:', e)
-            return { 
-                error: 'Failed to parse AI response.', 
-                debug: jsonMatch[0].slice(0, 500) 
-            }
-        }
+        const extractedData = JSON.parse(jsonMatch[0])
+        return { success: true, data: extractedData }
 
     } catch (error: any) {
         console.error('Timetable Extraction Error:', error)
-        
-        // Log available models to help debug the 404
-        let modelList = ""
-        try {
-            const listMatch = await (genAI as any).listModels()
-            modelList = listMatch.models.map((m: any) => m.name).join(', ')
-        } catch (e) {
-            modelList = "Could not fetch model list."
-        }
-
-        return { 
-            error: 'Extraction failed: ' + (error.message || 'Unknown error'),
-            debug: `Available Models: ${modelList}`
-        }
+        return { error: 'Extraction failed: ' + (error.message || 'Unknown error') }
     }
 }
