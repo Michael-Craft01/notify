@@ -220,18 +220,38 @@ export async function extractTimetableAction(formData: FormData) {
         ])
 
         const text = result.response.text()
-        console.log('[AI EYE] Raw Response:', text)
-        const jsonMatch = text.match(/\[[\s\S]*\]/)
-        if (!jsonMatch) {
-            console.error('[AI EYE] Regex mismatch. Text:', text)
-            throw new Error('No valid timetable data found.')
+        
+        // Robust JSON cleaning
+        const cleanJson = (str: string) => {
+            let cleared = str.trim()
+            if (cleared.startsWith('```')) cleared = cleared.split('\n').slice(1, -1).join('\n')
+            return cleared.trim()
         }
 
-        const extractedData = JSON.parse(jsonMatch[0])
-        return { success: true, data: extractedData }
+        const processedText = cleanJson(text)
+        const jsonMatch = processedText.match(/\[[\s\S]*\]/)
+        
+        if (!jsonMatch) {
+            console.error('[AI EYE] No array found. Raw:', text)
+            return { 
+                error: 'AI failed to format timetable correctly.', 
+                debug: text.slice(0, 500) 
+            }
+        }
+
+        try {
+            const extractedData = JSON.parse(jsonMatch[0])
+            return { success: true, data: extractedData }
+        } catch (e) {
+            console.error('[AI EYE] JSON Parse Error:', e)
+            return { 
+                error: 'Failed to parse AI response.', 
+                debug: jsonMatch[0].slice(0, 500) 
+            }
+        }
 
     } catch (error: any) {
         console.error('Timetable Extraction Error:', error)
-        return { error: 'Failed to parse timetable. Please try a clearer photo.' }
+        return { error: 'Extraction failed: ' + (error.message || 'Unknown error') }
     }
 }

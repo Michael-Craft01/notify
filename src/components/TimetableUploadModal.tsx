@@ -36,7 +36,7 @@ export default function TimetableUploadModal() {
     const [isOpen, setIsOpen] = useState(false)
     const [isExtracting, setIsExtracting] = useState(false)
     const [lectures, setLectures] = useState<any[]>([])
-    const [error, setError] = useState<string | null>(null)
+    const [error, setError] = useState<any>(null)
     const [isSaving, startSaving] = useTransition()
     const [success, setSuccess] = useState(false)
     const [mounted, setMounted] = useState(false)
@@ -70,7 +70,7 @@ export default function TimetableUploadModal() {
         if (result.success && result.data) {
             setLectures(result.data)
         } else {
-            setError(result.error || "Failed to parse timetable.")
+            setError(result)
         }
     }
 
@@ -208,9 +208,19 @@ export default function TimetableUploadModal() {
                             )}
 
                             {error && (
-                                <div className="mt-4 p-4 rounded-xl bg-red-500/5 border border-red-500/10 flex items-center gap-3 text-red-500 text-xs font-medium">
-                                    <AlertTriangle size={16} />
-                                    {error}
+                                <div className="mt-4 p-4 rounded-xl bg-red-500/5 border border-red-500/10 space-y-2">
+                                    <div className="flex items-center gap-3 text-red-500 text-xs font-medium">
+                                        <AlertTriangle size={16} />
+                                        {typeof error === 'string' ? error : error.error}
+                                    </div>
+                                    {error.debug && (
+                                        <div className="space-y-1">
+                                            <p className="text-[9px] text-white/40 uppercase font-black">AI Debug Context:</p>
+                                            <pre className="text-[10px] text-white/20 bg-black/40 p-3 rounded-lg overflow-x-auto font-mono whitespace-pre-wrap">
+                                                {error.debug}
+                                            </pre>
+                                        </div>
+                                    )}
                                 </div>
                             )}
                         </div>
