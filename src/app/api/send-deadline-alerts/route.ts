@@ -28,77 +28,74 @@ const ALERT_WINDOWS = [
         label: '7d',
         ms: 7 * 24 * 60 * 60 * 1000,
         urgency: 'normal' as const,
-        title: (t: string, name: string) => `📅 ${name}, On Your Radar: "${t}"`,
-        body: (t: string, cohortPct: number) =>
-            `Due in 7 days${cohortPct > 0 ? ` · ${cohortPct}% of your cohort has already started` : ''}. Add it to your plan now.`,
+        title: (t: string, name: string) => `📅 On your radar, ${name}`,
+        body: (t: string, pct: number) => `"${t}" is due in a week. ${pct > 0 ? `${pct}% of your cohort is already on it.` : "Just a soft nudge."}`,
     },
     {
         label: '3d',
         ms: 3 * 24 * 60 * 60 * 1000,
         urgency: 'normal' as const,
-        title: (t: string, name: string) => `⏳ ${name}, 3 Days Left — "${t}"`,
-        body: (t: string, cohortPct: number) =>
-            cohortPct > 50
-                ? `More than half your class is already on this. Don't let yourself fall behind.`
-                : `Still 3 days — but they go fast. Open it, even for 5 minutes.`,
-    },
-    {
-        label: '48h',
-        ms: 48 * 60 * 60 * 1000,
-        urgency: 'normal' as const,
-        title: (t: string, name: string) => `🟡 ${name}, 48h Heads Up — "${t}"`,
-        body: (t: string, cohortPct: number) =>
-            cohortPct > 0
-                ? `${cohortPct}% of your cohort have already finished this. Clock is ticking.`
-                : `Two days. Seriously — start now, even a rough draft counts.`,
+        title: (t: string, name: string) => `⏳ ${name}, 3 Days Left`,
+        body: (t: string, pct: number) => `"${t}" is coming up. Open it today, even for 5 minutes.`,
     },
     {
         label: '24h',
         ms: 24 * 60 * 60 * 1000,
         urgency: 'high' as const,
-        title: (t: string, name: string) => `🔴 Tomorrow, ${name} — "${t}"`,
-        body: (_t: string, cohortPct: number) =>
-            cohortPct > 60
-                ? `${cohortPct}% done. You can catch up — open it now.`
-                : `Due tomorrow. No more "later." This is the moment.`,
-    },
-    {
-        label: '12h',
-        ms: 12 * 60 * 60 * 1000,
-        urgency: 'high' as const,
-        title: (t: string, name: string) => `⚡ ${name}, 12 Hours — "${t}"`,
-        body: (_t: string, _cohortPct: number) =>
-            `Half a day left. Brain, this is not a drill. Open it.`,
-    },
-    {
-        label: '6h',
-        ms: 6 * 60 * 60 * 1000,
-        urgency: 'high' as const,
-        title: (t: string, name: string) => `🚨 ${name}, 6h Left — "${t}"`,
-        body: (_t: string, cohortPct: number) =>
-            cohortPct > 0
-                ? `${cohortPct}% of your cohort finished. You have 6 hours. Go.`
-                : `6 hours. Do not wait for the "right time." Now is it.`,
+        title: (t: string, name: string) => `⚡ Tomorrow, ${name}`,
+        body: (t: string, pct: number) => `"${t}" deadline is tomorrow. This is the moment to lock in.`,
     },
     {
         label: '2h',
         ms: 2 * 60 * 60 * 1000,
         urgency: 'critical' as const,
-        title: (t: string, name: string) => `🔥 ${name}, "${t}" — 2h`,
-        body: (_t: string, _cohortPct: number) =>
-            `2 hours. Everything else can wait. Focus here now.`,
-    },
-    {
-        label: '30m',
-        ms: 30 * 60 * 1000,
-        urgency: 'critical' as const,
-        title: (t: string, name: string) => `💀 ${name}, 30 Minutes — "${t}"`,
-        body: (_t: string, _cohortPct: number) =>
-            `THIRTY MINUTES. Submit what you have. Done beats perfect.`,
+        title: (t: string, name: string) => `🔥 ${name}, Finish Strong!`,
+        body: (t: string, pct: number) => `2 hours until "${t}" is due. Everything else can wait.`,
     },
 ]
 
 const TOLERANCE_MS = 30 * 60 * 1000 // ±30 min per window check
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Personalization / Human Vibes
+// ─────────────────────────────────────────────────────────────────────────────
+
+function getWardenVibe(name: string, module: string, venue: string) {
+    const isSpecial = module.toUpperCase() === 'LUNCH' || module.toUpperCase() === 'BREAK'
+    
+    if (isSpecial) {
+        const vibes = [
+            { title: `✨ Time to refuel, ${name}`, body: `${module} starts in 10 mins. Enjoy the downtime.` },
+            { title: `☕ Quick break?`, body: `${module} is about to start. Go stretch those legs.` },
+            { title: `🔋 Reset Mode`, body: `${module} starts in 10. You've earned this.` }
+        ]
+        return vibes[Math.floor(Math.random() * vibes.length)]
+    }
+
+    const vibes = [
+        { title: `🎒 Time to move, ${name}!`, body: `${module} starts in 10 mins @ ${venue || 'LT'}. Let's go.` },
+        { title: `⚡ Heads up, ${name}`, body: `${module} is about to begin. See you in ${venue || 'the hall'}?` },
+        { title: `🎯 Focus mode: ON`, body: `10 mins until ${module}. Everything packed?` },
+        { title: `🚶‍♂️ Almost time, ${name}`, body: `${module} starts soon. Don't be the one walking in late!` }
+    ]
+    return vibes[Math.floor(Math.random() * vibes.length)]
+}
+
+function getAssignmentVibe(name: string, title: string, windowLabel: string, cohortPct: number) {
+    const vibes: Record<string, any[]> = {
+        '7d': [
+            { title: `📅 On your radar, ${name}`, body: `"${title}" is due in a week. Just a soft nudge.` },
+            { title: `👋 Future ${name} here`, body: `Just reminding you about "${title}" (7 days left).` }
+        ],
+        '24h': [
+            { title: `🔴 Tomorrow, ${name}`, body: `"${title}" is due. This is the moment to lock in.` },
+            { title: `⚡ Final stretch!`, body: `"${title}" deadline is in 24h. You've got this.` }
+        ]
+    }
+    
+    const defaults = vibes[windowLabel] || [{ title: `⏳ Nudge for ${name}`, body: `"${title}" is coming up soon.` }]
+    return defaults[Math.floor(Math.random() * defaults.length)]
+}
 
 export async function GET(req: NextRequest) {
     if (!isAuthorised(req)) {
@@ -160,9 +157,10 @@ export async function GET(req: NextRequest) {
             await Promise.allSettled(
                 scopedSubs.map(async (row: any) => {
                     const firstName = (row.users?.full_name || row.users?.email?.split('@')[0] || 'there').split(' ')[0]
+                    const vibe = getWardenVibe(firstName, lecture.module_name, lecture.venue || 'the hall')
                     const payload = JSON.stringify({
-                        title: `🎒 ${firstName}, Time to move!`,
-                        body: `${lecture.module_name} starts in 10 mins @ ${lecture.venue || 'LT'}. Pack your bags.`,
+                        title: vibe.title,
+                        body: vibe.body,
                         url: '/',
                         urgency: 'high',
                     })
