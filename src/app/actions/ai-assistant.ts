@@ -186,12 +186,10 @@ export async function extractTimetableAction(formData: FormData) {
     if (!file) return { error: 'No file provided' }
 
     try {
-        const model = genAI.getGenerativeModel({ model: VISION_MODEL })
-
         const buffer = await file.arrayBuffer()
         const base64Data = Buffer.from(buffer).toString('base64')
 
-        const prompt = `
+        const timetablePrompt = `
             You are "Notify AI Eye", a specialized OCR tool for university timetables.
             Extract the weekly lecture schedule from this ${file.type.startsWith('image') ? 'image' : 'document'}.
             
@@ -209,8 +207,11 @@ export async function extractTimetableAction(formData: FormData) {
             Strictly follow this structure. Return ONLY the JSON. No other text.
         `
 
-        const result = await model.generateContent([
-            prompt,
+        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" })
+
+        // 30-second timeout for the AI call
+        const extractionPromise = model.generateContent([
+            timetablePrompt,
             {
                 inlineData: {
                     data: base64Data,
@@ -219,6 +220,11 @@ export async function extractTimetableAction(formData: FormData) {
             }
         ])
 
+        const timeoutPromise = new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('AI Request Timed Out (30s)')), 30000)
+        )
+
+        const result = await Promise.race([extractionPromise, timeoutPromise]) as any
         const text = result.response.text()
         
         // Robust JSON cleaning
@@ -252,6 +258,19 @@ export async function extractTimetableAction(formData: FormData) {
 
     } catch (error: any) {
         console.error('Timetable Extraction Error:', error)
-        return { error: 'Extraction failed: ' + (error.message || 'Unknown error') }
+        
+        // Log available models to help debug the 404
+        let modelList = ""
+        try {
+            const listMatch = await (genAI as any).listModels()
+            modelList = listMatch.models.map((m: any) => m.name).join(', ')
+        } catch (e) {
+            modelList = "Could not fetch model list."
+        }
+
+        return { 
+            error: 'Extraction failed: ' + (error.message || 'Unknown error'),
+            debug: `Available Models: ${modelList}`
+        }
     }
 }
