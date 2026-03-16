@@ -218,13 +218,29 @@ export async function extractTimetableAction(formData: FormData) {
         const model = genAI.getGenerativeModel({ model: VISION_MODEL })
 
         // 60-second timeout for the AI call (high quality takes time)
-        const result = await Promise.race([
-            model.generateContent([
-                timetablePrompt,
-                { inlineData: { data: base64Data, mimeType: file.type } }
-            ]),
-            new Promise((_, reject) => setTimeout(() => reject(new Error('AI Request Timed Out')), 60000))
-        ]) as any
+        let result: any
+        let retries = 2
+        
+        while (retries >= 0) {
+            try {
+                result = await Promise.race([
+                    model.generateContent([
+                        timetablePrompt,
+                        { inlineData: { data: base64Data, mimeType: file.type } }
+                    ]),
+                    new Promise((_, reject) => setTimeout(() => reject(new Error('AI Request Timed Out')), 60000))
+                ]) as any
+                break // Success!
+            } catch (err: any) {
+                if (err.message?.includes('429') && retries > 0) {
+                    console.log(`[AI EYE] Rate limited. Retrying in 2s... (${retries} left)`)
+                    await new Promise(resolve => setTimeout(resolve, 2000))
+                    retries--
+                    continue
+                }
+                throw err
+            }
+        }
 
         const text = result.response.text()
         
@@ -248,7 +264,7 @@ export async function extractTimetableAction(formData: FormData) {
 
     } catch (error: any) {
         if (error.message?.includes('429')) {
-             return { error: 'Google Quota Limit (429): Please wait 60 seconds and try again. Vision tasks are heavily rate-limited on free projects.' }
+             return { error: 'Google Quota Limit (429): You have hit the limit for this minute. Please wait 60 seconds and try again. Free projects are very strictly limited.' }
         }
         console.error('Timetable Extraction Error:', error)
         return { error: 'Extraction failed: ' + (error.message || 'Unknown error') }

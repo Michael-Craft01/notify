@@ -19,7 +19,7 @@ async function compressImage(file: File): Promise<File> {
     await new Promise(resolve => img.onload = resolve)
     
     const canvas = document.createElement('canvas')
-    const MAX_WIDTH = 800
+    const MAX_WIDTH = 600
     const scale = Math.min(1, MAX_WIDTH / img.width)
     canvas.width = img.width * scale
     canvas.height = img.height * scale
@@ -27,7 +27,7 @@ async function compressImage(file: File): Promise<File> {
     const ctx = canvas.getContext('2d')
     ctx?.drawImage(img, 0, 0, canvas.width, canvas.height)
     
-    const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.8))
+    const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.6))
     if (!blob) return file
     return new File([blob], file.name, { type: 'image/jpeg' })
 }
