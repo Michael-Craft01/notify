@@ -4,31 +4,24 @@ import { GoogleGenerativeAI } from "@google/generative-ai"
 
 // Use the new Gemini_API_Key provided by the user
 const genAI = new GoogleGenerativeAI(process.env.Gemini_API_Key || process.env.GOOGLE_AI_API_KEY || "")
-const AI_MODEL = "gemini-2.5-flash"
-const VISION_MODEL = "gemini-2.5-flash"
+const AI_MODEL = "gemma-3-27b-it"
+const VISION_MODEL = "gemma-3-27b-it"
 
 export async function extractAssignmentAction(formData: FormData) {
     const file = formData.get('file') as File
     if (!file) return { error: 'No file provided' }
 
     try {
-        const model = genAI.getGenerativeModel({ model: VISION_MODEL })
+        const model = genAI.getGenerativeModel({ 
+            model: VISION_MODEL,
+            generationConfig: { temperature: 0.1, topP: 0.1 }
+        })
 
         // Convert file to base64
         const buffer = await file.arrayBuffer()
         const base64Data = Buffer.from(buffer).toString('base64')
 
-        const prompt = `
-      Extract assignment details from this ${file.type.startsWith('image') ? 'image' : 'document'}.
-      Return ONLY a JSON object with these keys:
-      - course_code (e.g., CSC 301)
-      - title (short, descriptive)
-      - description (brief summary)
-      - due_date (ISO 8601 string, guess the year if missing based on current time: ${new Date().toISOString()})
-      
-      If you cannot find a value, use null.
-      Strictly follow the JSON format, no other text.
-    `
+        const prompt = `Extract assignment JSON: {"course_code": "", "title": "", "description": "", "due_date": "ISO-8601"}. Return ONLY JSON.`
 
         const result = await model.generateContent([
             prompt,
@@ -50,35 +43,20 @@ export async function extractAssignmentAction(formData: FormData) {
         return { success: true, data: extractedData }
 
     } catch (error: any) {
-        if (error.message?.includes('429')) {
-             return { error: 'Google Quota Limit (429): Please wait 60 seconds before trying again.' }
-        }
         console.error('Assistant Extraction Error:', error)
-        return { error: error.message || 'Failed to extract data from document.' }
+        return { error: 'Extraction failed. Make sure the photo is clear.' }
     }
 }
 
 /**
- * Enhances partial form data using gemini-2.0-flash
+ * Enhances partial form data using gemma-3-27b-it
  */
 export async function enhanceFormAction(partialData: Record<string, string>) {
     try {
         const model = genAI.getGenerativeModel({ model: AI_MODEL })
 
         const context = JSON.stringify(partialData)
-        const prompt = `
-            You are the "Notify AI Assistant", a professional productivity tool for university students.
-            Given these partial schedule details: ${context}
-            
-            Improve and complete the missing details. 
-            - If it's a course code like "CSC101", suggest a professional full title and a descriptive summary.
-            - Provide a plausible deadline if missing, aligned with a standard academic schedule.
-            - Ensure the tone is professional, technical, and premium SaaS-style.
-            
-            Return ONLY a JSON object with keys like 'title', 'course_code', 'description', 'due_date'.
-            Only include fields that you have improved or completed.
-            No conversational text.
-        `
+        const prompt = `Refine this schedule JSON: ${context}. Suggest titles/descriptions. Return ONLY JSON.`
 
         const result = await model.generateContent(prompt)
         const response = await result.response
@@ -89,11 +67,8 @@ export async function enhanceFormAction(partialData: Record<string, string>) {
 
         return { success: true, data: JSON.parse(jsonMatch[0]) }
     } catch (error: any) {
-        if (error.message?.includes('429')) {
-             return { error: 'AI busy. Try again in a minute.' }
-        }
         console.error('Assistant Enhance Error:', error)
-        return { error: 'Assistant unavailable at this moment.' }
+        return { error: 'Assistant unavailable.' }
     }
 }
 
@@ -119,71 +94,30 @@ export async function askNotifyAI(
         }))
 
         const chatContext = history.length > 0 
-            ? `CONVERSATION HISTORY:\n${history.map(h => `${h.role === 'user' ? 'User' : 'NotifyAI'}: ${h.content}`).join('\n')}`
+            ? `HISTORY:\n${history.map(h => `${h.role === 'user' ? 'U' : 'AI'}: ${h.content}`).join('\n')}`
             : ''
 
         const systemPrompt = `
-You are "NotifyAI", the intelligent backbone of the Notify productivity app. 
-Your goal is to help students manage their assignments using natural language.
-
-CURRENT CONTEXT:
-- Academic Program: ${programName}
-- Current Time: ${new Date().toLocaleString()}
-- Assignments in View: ${JSON.stringify(contextAssignments)}
-
+You are "NotifyAI". Help students manage assignments.
+CONTEXT: Class: ${programName}, Time: ${new Date().toLocaleString()}, Data: ${JSON.stringify(contextAssignments)}
 ${chatContext}
-
-CAPABILITIES:
-1. CREATE: Add new assignments/quizzes/tests.
-2. UPDATE: Change details or status (e.g., "mark MP201 as done").
-3. DELETE: Remove tasks.
-4. QUERY: Filter, find, or analyze tasks.
-
-STRICT INSTRUCTIONS:
-- You are strictly operating within the context of "${programName}". 
-- All tasks you create or modify belong only to this group.
-- You must return a SINGLE JSON object. No other text.
-- For CREATE/UPDATE:
-    - course_code: Uppercase (e.g., "CSC301")
-    - title: Clear, concise title
-    - due_date: MUST be a valid ISO-8601 string.
-    - task_type: MUST be exactly one of: 'assignment', 'quiz', 'online_test', 'physical_test'.
-- Use the CONVERSATION HISTORY to resolve pronouns ("it", "that") and follow-ups ("yes", "do it").
-- If the user says "add a quiz", set task_type to 'quiz'.
-
-RESPONSE SCHEMA:
-{
-    "intent": "create" | "update" | "delete" | "query" | "chat",
-    "actionData": {
-        "id": "UUID (only for update/delete)",
-        "course_code": "...",
-        "title": "...",
-        "description": "...",
-        "due_date": "ISO-TIMESTAMP",
-        "task_type": "assignment" | "quiz" | "online_test" | "physical_test"
-    },
-    "message": "A professional and friendly response explaining the action."
-}
-
-Ensure the message confirms what was done (e.g., "I've added the quiz for you.").
+CAPABILITIES: CREATE, UPDATE, DELETE, QUERY.
+STRICT: Return ONLY JSON. 
+SCHEMA: {"intent": "...", "actionData": {...}, "message": "..."}
 `
-        const prompt = `${systemPrompt}\n\nUSER REQUEST: ${message}`
+        const prompt = `${systemPrompt}\n\nUSER: ${message}`
         const result = await model.generateContent(prompt)
 
         const text = result.response.text()
         const jsonMatch = text.match(/\{[\s\S]*\}/)
-        if (!jsonMatch) return { error: "I couldn't process that request. Try being more specific." }
-
+        if (!jsonMatch) return { error: "I couldn't process that. Try being more specific." }
 
         const aiResponse = JSON.parse(jsonMatch[0])
         return { success: true, ...aiResponse }
         
     } catch (error: any) {
-        if (error.message?.includes('429')) {
-             return { error: 'NotifyAI Chat is rate-limited. Wait a minute!' }
-        }
         console.error('NotifyAI Error:', error)
-        return { error: 'NotifyAI is having a moment. Please try again later.' }
+        return { error: 'NotifyAI is busy. Try again later.' }
     }
 }
 
@@ -199,27 +133,18 @@ export async function extractTimetableAction(formData: FormData) {
         const base64Data = Buffer.from(buffer).toString('base64')
 
         const timetablePrompt = `
-            OCR this university timetable.
-            Convert lectures and breaks/lunch to JSON.
-            Use legend to resolve codes (e.g. CSC101 -> Title).
-            
-            Schema: [{
-              "day_of_week": 1-7 (Mon-Sun, 0 for Sun),
-              "start_time": "HH:mm",
-              "end_time": "HH:mm",
-              "module_name": "Full Name",
-              "course_code": "Code/null",
-              "venue": "Room/null"
-            }]
-            
-            Return ONLY JSON array. No text.
+            Extract timetable to JSON array: [{"day_of_week":0-6,"start_time":"HH:mm","end_time":"HH:mm","module_name":"Full Name","course_code":"Code/null","venue":"Room/null"}]. 
+            Use legend to resolve codes. Include BREAK/LUNCH. Return ONLY JSON. No text.
         `
 
-        const model = genAI.getGenerativeModel({ model: VISION_MODEL })
+        const model = genAI.getGenerativeModel({ 
+            model: VISION_MODEL,
+            generationConfig: { temperature: 0.1, topP: 0.1 }
+        })
 
-        // 60-second timeout for the AI call (high quality takes time)
+        // 60-second timeout
         let result: any
-        let retries = 2
+        let retries = 1
         
         while (retries >= 0) {
             try {
@@ -228,13 +153,12 @@ export async function extractTimetableAction(formData: FormData) {
                         timetablePrompt,
                         { inlineData: { data: base64Data, mimeType: file.type } }
                     ]),
-                    new Promise((_, reject) => setTimeout(() => reject(new Error('AI Request Timed Out')), 60000))
+                    new Promise((_, reject) => setTimeout(() => reject(new Error('AI Timed Out')), 60000))
                 ]) as any
-                break // Success!
+                break
             } catch (err: any) {
-                if (err.message?.includes('429') && retries > 0) {
-                    console.log(`[AI EYE] Rate limited. Retrying in 2s... (${retries} left)`)
-                    await new Promise(resolve => setTimeout(resolve, 2000))
+                if (retries > 0) {
+                    await new Promise(resolve => setTimeout(resolve, 1000))
                     retries--
                     continue
                 }
@@ -243,30 +167,16 @@ export async function extractTimetableAction(formData: FormData) {
         }
 
         const text = result.response.text()
+        const jsonMatch = text.match(/\[[\s\S]*\]/)
         
-        // Robust JSON cleaning
-        const cleanJson = (str: string) => {
-            let cleared = str.trim()
-            if (cleared.startsWith('```')) {
-                const lines = cleared.split('\n')
-                cleared = lines.slice(1, -1).join('\n')
-            }
-            return cleared.trim()
-        }
-
-        const processedText = cleanJson(text)
-        const jsonMatch = processedText.match(/\[[\s\S]*\]/)
-        
-        if (!jsonMatch) throw new Error('AI failed to format timetable correctly. Please try a clearer photo or wait a minute.')
+        if (!jsonMatch) throw new Error('AI parsing failed. Please try a clearer photo or check your API quota.')
 
         const extractedData = JSON.parse(jsonMatch[0])
         return { success: true, data: extractedData }
 
     } catch (error: any) {
-        if (error.message?.includes('429')) {
-             return { error: 'Google Quota Limit (429): You have hit the limit for this minute. Please wait 60 seconds and try again. Free projects are very strictly limited.' }
-        }
         console.error('Timetable Extraction Error:', error)
+        if (error.message?.includes('429')) return { error: 'API Limit: Please wait 60s.' }
         return { error: 'Extraction failed: ' + (error.message || 'Unknown error') }
     }
 }
