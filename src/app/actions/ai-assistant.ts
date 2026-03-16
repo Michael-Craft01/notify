@@ -4,8 +4,8 @@ import { GoogleGenerativeAI } from "@google/generative-ai"
 
 // Use the new Gemini_API_Key provided by the user
 const genAI = new GoogleGenerativeAI(process.env.Gemini_API_Key || process.env.GOOGLE_AI_API_KEY || "")
-const AI_MODEL = "gemini-2.0-flash"
-const VISION_MODEL = "gemini-2.0-flash"
+const AI_MODEL = "gemma-3-12b-it"
+const VISION_MODEL = "gemma-3-12b-it"
 
 export async function extractAssignmentAction(formData: FormData) {
     const file = formData.get('file') as File
@@ -23,7 +23,7 @@ export async function extractAssignmentAction(formData: FormData) {
         const prompt = `Extract assignment JSON: {"course_code": "", "title": "", "description": "", "due_date": "ISO-8601"}. Return ONLY JSON.`
 
         const result = await model.generateContent([
-            prompt,
+            { text: prompt },
             { inlineData: { data: base64Data, mimeType: file.type } }
         ])
 
@@ -34,19 +34,19 @@ export async function extractAssignmentAction(formData: FormData) {
         return { success: true, data: JSON.parse(jsonMatch[0]) }
 
     } catch (error: any) {
-        if (error.message?.includes('429')) return { error: 'Quota hit. Wait 30s.' }
+        console.error('Assignment Extraction Error:', error)
         return { error: 'Extraction failed. Try a clearer photo.' }
     }
 }
 
 /**
- * Enhances partial form data using gemini-2.0-flash
+ * Enhances partial form data using gemma-3-12b-it
  */
 export async function enhanceFormAction(partialData: Record<string, string>) {
     try {
         const model = genAI.getGenerativeModel({ model: AI_MODEL })
         const context = JSON.stringify(partialData)
-        const prompt = `Refine this schedule JSON: ${context}. Return ONLY updated JSON.`
+        const prompt = `Refine schedule JSON: ${context}. Return ONLY updated JSON.`
 
         const result = await model.generateContent(prompt)
         const text = result.response.text()
@@ -60,7 +60,7 @@ export async function enhanceFormAction(partialData: Record<string, string>) {
 }
 
 /**
- * NotifyAI Chat - Handles natural language database commands with conversation history
+ * NotifyAI Chat - Handles natural language database commands
  */
 export async function askNotifyAI(
     message: string, 
@@ -88,7 +88,7 @@ export async function askNotifyAI(
 
         return { success: true, ...JSON.parse(jsonMatch[0]) }
     } catch (error: any) {
-        return { error: 'NotifyAI Chat is rate-limited. Wait a minute!' }
+        return { error: 'NotifyAI Chat is unavailable.' }
     }
 }
 
@@ -113,29 +113,13 @@ export async function extractTimetableAction(formData: FormData) {
             generationConfig: { temperature: 0.1 }
         })
 
-        let result: any
-        let retries = 2
-        
-        while (retries >= 0) {
-            try {
-                result = await Promise.race([
-                    model.generateContent([
-                        timetablePrompt,
-                        { inlineData: { data: base64Data, mimeType: file.type } }
-                    ]),
-                    new Promise((_, reject) => setTimeout(() => reject(new Error('AI Timed Out')), 60000))
-                ]) as any
-                break 
-            } catch (err: any) {
-                if (err.message?.includes('429') && retries > 0) {
-                    console.log(`[Rate Limit] Retrying in 3s... (${retries} left)`)
-                    await new Promise(resolve => setTimeout(resolve, 3000))
-                    retries--
-                    continue
-                }
-                throw err
-            }
-        }
+        const result = await Promise.race([
+            model.generateContent([
+                { text: timetablePrompt },
+                { inlineData: { data: base64Data, mimeType: file.type } }
+            ]),
+            new Promise((_, reject) => setTimeout(() => reject(new Error('AI Timed Out')), 60000))
+        ]) as any
 
         const text = result.response.text()
         const jsonMatch = text.match(/\[[\s\S]*\]/)
@@ -145,7 +129,6 @@ export async function extractTimetableAction(formData: FormData) {
 
     } catch (error: any) {
         console.error('Timetable Extraction Error:', error)
-        if (error.message?.includes('429')) return { error: 'Google Rate Limit: Please wait 60 seconds and try again.' }
-        return { error: 'Extraction failed: ' + (error.message || 'Check your internet or API key.') }
+        return { error: 'Extraction failed: ' + (error.message || 'Please try again.') }
     }
 }
