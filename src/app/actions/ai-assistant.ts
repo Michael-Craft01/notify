@@ -4,8 +4,8 @@ import { GoogleGenerativeAI } from "@google/generative-ai"
 
 // Use the new Gemini_API_Key provided by the user
 const genAI = new GoogleGenerativeAI(process.env.Gemini_API_Key || process.env.GOOGLE_AI_API_KEY || "")
-const AI_MODEL = "gemini-2.0-flash"
-const VISION_MODEL = "gemini-2.0-flash"
+const AI_MODEL = "gemini-2.5-flash"
+const VISION_MODEL = "gemini-2.5-flash"
 
 export async function extractAssignmentAction(formData: FormData) {
     const file = formData.get('file') as File
@@ -199,21 +199,20 @@ export async function extractTimetableAction(formData: FormData) {
         const base64Data = Buffer.from(buffer).toString('base64')
 
         const timetablePrompt = `
-            You are "Notify AI Eye", a specialized OCR tool for university timetables.
-            Extract the weekly lecture schedule from this ${file.type.startsWith('image') ? 'image' : 'document'}.
+            OCR this university timetable.
+            Convert lectures and breaks/lunch to JSON.
+            Use legend to resolve codes (e.g. CSC101 -> Title).
             
-            CRITICAL: Use the legend (CODE/COURSE/LECTURER) usually found at the bottom to resolve course codes (e.g., "ICS2205") into their "Full Name of Module" (e.g., "Applied Statistics").
+            Schema: [{
+              "day_of_week": 1-7 (Mon-Sun, 0 for Sun),
+              "start_time": "HH:mm",
+              "end_time": "HH:mm",
+              "module_name": "Full Name",
+              "course_code": "Code/null",
+              "venue": "Room/null"
+            }]
             
-            Return ONLY a JSON array of objects, where each object represents a single entry (lecture, BREAK, or LUNCH):
-            - day_of_week: Integer (1 for Monday, 2 for Tuesday, 3 for Wednesday, 4 for Thursday, 5 for Friday, 6 for Saturday, 0 for Sunday)
-            - start_time: "HH:mm" (24h format)
-            - end_time: "HH:mm" (24h format)
-            - module_name: "Full Name" (Use "BREAK" or "LUNCH" if that's the entry)
-            - course_code: "Course Code" (e.g., "ICS2205", or null for breaks)
-            - venue: "Room/Hall Name" (or null for breaks)
-            
-            If a lecture spans multiple hours, capture the full duration. Include "BREAK" and "LUNCH" rows as entries.
-            Strictly follow this structure. Return ONLY the JSON. No other text.
+            Return ONLY JSON array. No text.
         `
 
         const model = genAI.getGenerativeModel({ model: VISION_MODEL })
