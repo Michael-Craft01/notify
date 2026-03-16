@@ -4,8 +4,8 @@ import { GoogleGenerativeAI } from "@google/generative-ai"
 
 // Use the new Gemini_API_Key provided by the user
 const genAI = new GoogleGenerativeAI(process.env.Gemini_API_Key || process.env.GOOGLE_AI_API_KEY || "")
-const AI_MODEL = "gemini-2.0-flash"
-const VISION_MODEL = "gemini-2.0-flash"
+const AI_MODEL = "gemini-1.5-flash-8b"
+const VISION_MODEL = "gemini-1.5-flash-8b"
 
 export async function extractAssignmentAction(formData: FormData) {
     const file = formData.get('file') as File
