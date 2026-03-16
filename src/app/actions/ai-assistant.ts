@@ -4,8 +4,8 @@ import { GoogleGenerativeAI } from "@google/generative-ai"
 
 // Use the new Gemini_API_Key provided by the user
 const genAI = new GoogleGenerativeAI(process.env.Gemini_API_Key || process.env.GOOGLE_AI_API_KEY || "")
-const AI_MODEL = "gemini-1.5-flash-8b"
-const VISION_MODEL = "gemini-1.5-flash-8b"
+const AI_MODEL = "gemini-2.0-flash"
+const VISION_MODEL = "gemini-2.0-flash"
 
 export async function extractAssignmentAction(formData: FormData) {
     const file = formData.get('file') as File
@@ -50,13 +50,16 @@ export async function extractAssignmentAction(formData: FormData) {
         return { success: true, data: extractedData }
 
     } catch (error: any) {
+        if (error.message?.includes('429')) {
+             return { error: 'Google Quota Limit (429): Please wait 60 seconds before trying again.' }
+        }
         console.error('Assistant Extraction Error:', error)
         return { error: error.message || 'Failed to extract data from document.' }
     }
 }
 
 /**
- * Enhances partial form data using gemma-3-27b-it
+ * Enhances partial form data using gemini-2.0-flash
  */
 export async function enhanceFormAction(partialData: Record<string, string>) {
     try {
@@ -86,6 +89,9 @@ export async function enhanceFormAction(partialData: Record<string, string>) {
 
         return { success: true, data: JSON.parse(jsonMatch[0]) }
     } catch (error: any) {
+        if (error.message?.includes('429')) {
+             return { error: 'AI busy. Try again in a minute.' }
+        }
         console.error('Assistant Enhance Error:', error)
         return { error: 'Assistant unavailable at this moment.' }
     }
@@ -173,6 +179,9 @@ Ensure the message confirms what was done (e.g., "I've added the quiz for you.")
         return { success: true, ...aiResponse }
         
     } catch (error: any) {
+        if (error.message?.includes('429')) {
+             return { error: 'NotifyAI Chat is rate-limited. Wait a minute!' }
+        }
         console.error('NotifyAI Error:', error)
         return { error: 'NotifyAI is having a moment. Please try again later.' }
     }
@@ -209,13 +218,13 @@ export async function extractTimetableAction(formData: FormData) {
 
         const model = genAI.getGenerativeModel({ model: VISION_MODEL })
 
-        // 30-second timeout for the AI call
+        // 60-second timeout for the AI call (high quality takes time)
         const result = await Promise.race([
             model.generateContent([
                 timetablePrompt,
                 { inlineData: { data: base64Data, mimeType: file.type } }
             ]),
-            new Promise((_, reject) => setTimeout(() => reject(new Error('AI Request Timed Out')), 30000))
+            new Promise((_, reject) => setTimeout(() => reject(new Error('AI Request Timed Out')), 60000))
         ]) as any
 
         const text = result.response.text()
@@ -223,19 +232,25 @@ export async function extractTimetableAction(formData: FormData) {
         // Robust JSON cleaning
         const cleanJson = (str: string) => {
             let cleared = str.trim()
-            if (cleared.startsWith('```')) cleared = cleared.split('\n').slice(1, -1).join('\n')
+            if (cleared.startsWith('```')) {
+                const lines = cleared.split('\n')
+                cleared = lines.slice(1, -1).join('\n')
+            }
             return cleared.trim()
         }
 
         const processedText = cleanJson(text)
         const jsonMatch = processedText.match(/\[[\s\S]*\]/)
         
-        if (!jsonMatch) throw new Error('AI failed to format timetable correctly.')
+        if (!jsonMatch) throw new Error('AI failed to format timetable correctly. Please try a clearer photo or wait a minute.')
 
         const extractedData = JSON.parse(jsonMatch[0])
         return { success: true, data: extractedData }
 
     } catch (error: any) {
+        if (error.message?.includes('429')) {
+             return { error: 'Google Quota Limit (429): Please wait 60 seconds and try again. Vision tasks are heavily rate-limited on free projects.' }
+        }
         console.error('Timetable Extraction Error:', error)
         return { error: 'Extraction failed: ' + (error.message || 'Unknown error') }
     }

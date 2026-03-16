@@ -19,7 +19,7 @@ async function compressImage(file: File): Promise<File> {
     await new Promise(resolve => img.onload = resolve)
     
     const canvas = document.createElement('canvas')
-    const MAX_WIDTH = 1200
+    const MAX_WIDTH = 800
     const scale = Math.min(1, MAX_WIDTH / img.width)
     canvas.width = img.width * scale
     canvas.height = img.height * scale
