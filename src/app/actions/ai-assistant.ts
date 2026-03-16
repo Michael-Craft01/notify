@@ -12,7 +12,7 @@ export async function extractAssignmentAction(formData: FormData) {
     if (!file) return { error: 'No file provided' }
 
     try {
-        const model = genAI.getGenerativeModel({ model: AI_MODEL })
+        const model = genAI.getGenerativeModel({ model: VISION_MODEL })
 
         // Convert file to base64
         const buffer = await file.arrayBuffer()
