@@ -220,8 +220,12 @@ export async function extractTimetableAction(formData: FormData) {
         ])
 
         const text = result.response.text()
+        console.log('[AI EYE] Raw Response:', text)
         const jsonMatch = text.match(/\[[\s\S]*\]/)
-        if (!jsonMatch) throw new Error('No valid timetable data found.')
+        if (!jsonMatch) {
+            console.error('[AI EYE] Regex mismatch. Text:', text)
+            throw new Error('No valid timetable data found.')
+        }
 
         const extractedData = JSON.parse(jsonMatch[0])
         return { success: true, data: extractedData }
