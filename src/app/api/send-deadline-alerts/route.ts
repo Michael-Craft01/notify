@@ -106,9 +106,15 @@ export async function GET(req: NextRequest) {
     }
 
     const now = Date.now()
+    const nowTime = new Date(now)
     let totalSent = 0
     let totalPruned = 0
     const log: string[] = []
+
+    const currentDay = nowTime.getDay()
+    const tenMinsFromNow = new Date(now + 10 * 60 * 1000)
+    const tenMinsTimeStr = tenMinsFromNow.toTimeString().slice(0, 5) // "HH:mm"
+    const dateStr = nowTime.toISOString().split('T')[0]
 
     // Fetch all subscriptions with user program association
     const { data: subs, error: subErr } = await supabase
@@ -128,6 +134,54 @@ export async function GET(req: NextRequest) {
         return NextResponse.json({ ok: true, sent: 0, reason: 'No subscriptions', subErr })
     }
 
+    // ── 1. WARDEN SCHEDULE ALERTS (10m before class) ─────────────────────
+    const { data: lectures } = await supabase
+        .from('schedules')
+        .select('*')
+        .eq('day_of_week', currentDay)
+        .gte('start_time', tenMinsTimeStr + ':00')
+        .lte('start_time', tenMinsTimeStr + ':59')
+
+    if (lectures?.length) {
+        for (const lecture of lectures) {
+            // Check for cancellation
+            const { data: override } = await supabase
+                .from('schedule_overrides')
+                .select('is_cancelled')
+                .eq('schedule_id', lecture.id)
+                .eq('override_date', dateStr)
+                .single()
+
+            if (override?.is_cancelled) continue
+
+            const scopedSubs = subs.filter((s: any) => s.users?.program_id === lecture.program_id)
+            if (!scopedSubs.length) continue
+
+            await Promise.allSettled(
+                scopedSubs.map(async (row: any) => {
+                    const firstName = (row.users?.full_name || row.users?.email?.split('@')[0] || 'there').split(' ')[0]
+                    const payload = JSON.stringify({
+                        title: `🎒 ${firstName}, Time to move!`,
+                        body: `${lecture.module_name} starts in 10 mins @ ${lecture.venue || 'LT'}. Pack your bags.`,
+                        url: '/',
+                        urgency: 'high',
+                    })
+                    try {
+                        await webpush.sendNotification(row.subscription, payload)
+                        totalSent++
+                    } catch (err: any) {
+                        if (err?.statusCode === 410 || err?.statusCode === 404) {
+                            await supabase.from('user_subscriptions').delete().eq('id', row.id)
+                            totalPruned++
+                        }
+                    }
+                })
+            )
+            log.push(`[warden] "${lecture.module_name}" → ${scopedSubs.length} subs`)
+        }
+    }
+
+    // ── 2. ASSIGNMENT DEADLINE ALERTS ─────────────────────────────────────
     for (const window of ALERT_WINDOWS) {
         const windowStart = new Date(now + window.ms - TOLERANCE_MS).toISOString()
         const windowEnd   = new Date(now + window.ms + TOLERANCE_MS).toISOString()

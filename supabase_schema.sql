@@ -248,3 +248,57 @@ ALTER TABLE public.assignments
   ADD COLUMN IF NOT EXISTS resource_url TEXT,
   ADD COLUMN IF NOT EXISTS location TEXT;
 
+
+-- 8. Schedules Table (The AI Eye)
+CREATE TABLE IF NOT EXISTS public.schedules (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  program_id UUID REFERENCES public.programs(id) ON DELETE CASCADE,
+  day_of_week INTEGER NOT NULL CHECK (day_of_week >= 0 AND day_of_week <= 6), -- 0=Sun, 1=Mon, 2=Tue, 3=Wed, 4=Thu, 5=Fri, 6=Sat
+  start_time TIME NOT NULL,
+  end_time TIME NOT NULL,
+  module_name TEXT NOT NULL,
+  course_code TEXT,
+  venue TEXT,
+  created_by UUID REFERENCES public.users(id) ON DELETE SET NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE public.schedules ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can read schedules in their program" 
+ON public.schedules FOR SELECT 
+TO authenticated 
+USING (program_id = (SELECT program_id FROM users WHERE id = auth.uid()));
+
+CREATE POLICY "Reps can manage schedules" 
+ON public.schedules FOR ALL 
+TO authenticated 
+USING (
+  (SELECT role FROM users WHERE id = auth.uid()) IN ('rep', 'admin')
+);
+
+-- 9. Schedule Overrides (Cancellations)
+CREATE TABLE IF NOT EXISTS public.schedule_overrides (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  schedule_id UUID REFERENCES public.schedules(id) ON DELETE CASCADE,
+  override_date DATE NOT NULL,
+  is_cancelled BOOLEAN DEFAULT false,
+  reason TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(schedule_id, override_date)
+);
+
+ALTER TABLE public.schedule_overrides ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can read overrides" 
+ON public.schedule_overrides FOR SELECT 
+TO authenticated 
+USING (true);
+
+CREATE POLICY "Reps can manage overrides" 
+ON public.schedule_overrides FOR ALL 
+TO authenticated 
+USING (
+  (SELECT role FROM users WHERE id = auth.uid()) IN ('rep', 'admin')
+);
+

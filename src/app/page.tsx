@@ -9,6 +9,8 @@ import NotifyAIChat from "@/components/NotifyAIChat";
 import { Clock, CheckCircle2, AlertTriangle, TrendingUp, Users } from "lucide-react";
 import Image from "next/image";
 import JoinClassOverlay from "@/components/JoinClassOverlay";
+import TimetableUploadModal from "@/components/TimetableUploadModal";
+import NextUpWidget from "@/components/NextUpWidget";
 
 export const dynamic = "force-dynamic";
 
@@ -69,6 +71,18 @@ export default async function Home() {
     { label: "Efficiency", value: `${productivity}%`, icon: TrendingUp },
   ];
 
+  const { data: schedules } = await supabase
+    .from("schedules")
+    .select("*")
+    .eq("program_id", userProfile?.program_id);
+
+  const { data: overrides } = await supabase
+    .from("schedule_overrides")
+    .select("*")
+    .gte("override_date", new Date().toISOString().split('T')[0]);
+
+  const isRep = userProfile?.role === 'rep' || userProfile?.role === 'admin';
+
   return (
     <div className="min-h-screen bg-[var(--color-bg)] font-[family-name:var(--font-inter)]">
       {/* ── SAFETY NET OVERLAY ────────────────────────────────────────────── */}
@@ -94,6 +108,7 @@ export default async function Home() {
             <NotificationToggle />
             <div className="w-[1px] h-5 bg-[var(--color-border)]" />
             <NotifyAIChat currentAssignments={allTasks} programName={programName} />
+            <TimetableUploadModal />
             <AddAssignmentModal userId={user.id} />
             <SettingsModal user={{
               id: user.id,
@@ -141,6 +156,13 @@ export default async function Home() {
             </p>
           </div>
         </section>
+
+        {/* ── NEXT UP (THE WARDEN) ─────────────────────────────────────────── */}
+        <NextUpWidget 
+          schedules={schedules || []} 
+          overrides={overrides || []} 
+          isRep={isRep} 
+        />
 
         {/* ── STATS ROW (2x2 Mobile First) ─────────────────────────────────── */}
         <section className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 animate-fade-up stagger relative">

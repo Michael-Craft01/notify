@@ -168,11 +168,64 @@ Ensure the message confirms what was done (e.g., "I've added the quiz for you.")
         const jsonMatch = text.match(/\{[\s\S]*\}/)
         if (!jsonMatch) return { error: "I couldn't process that request. Try being more specific." }
 
+
         const aiResponse = JSON.parse(jsonMatch[0])
         return { success: true, ...aiResponse }
         
     } catch (error: any) {
         console.error('NotifyAI Error:', error)
         return { error: 'NotifyAI is having a moment. Please try again later.' }
+    }
+}
+
+/**
+ * Extracts weekly schedule from a timetable image/PDF
+ */
+export async function extractTimetableAction(formData: FormData) {
+    const file = formData.get('file') as File
+    if (!file) return { error: 'No file provided' }
+
+    try {
+        const model = genAI.getGenerativeModel({ model: AI_MODEL })
+
+        const buffer = await file.arrayBuffer()
+        const base64Data = Buffer.from(buffer).toString('base64')
+
+        const prompt = `
+            You are "Notify AI Eye", a specialized OCR tool for university timetables.
+            Extract the weekly lecture schedule from this ${file.type.startsWith('image') ? 'image' : 'document'}.
+            
+            Return ONLY a JSON array of objects, where each object represents a single slot:
+            - day_of_week: Integer (1 for Monday, 2 for Tuesday... 5 for Friday, 6 for Saturday, 0 for Sunday)
+            - start_time: "HH:mm" (24h format)
+            - end_time: "HH:mm" (24h format)
+            - module_name: "Full Name of Module"
+            - course_code: "CSC 301" (if available)
+            - venue: "Room/Hall Name"
+            
+            Strictly follow this structure. If a value is missing, use null.
+            Return ONLY the JSON. No other text.
+        `
+
+        const result = await model.generateContent([
+            prompt,
+            {
+                inlineData: {
+                    data: base64Data,
+                    mimeType: file.type
+                }
+            }
+        ])
+
+        const text = result.response.text()
+        const jsonMatch = text.match(/\[[\s\S]*\]/)
+        if (!jsonMatch) throw new Error('No valid timetable data found.')
+
+        const extractedData = JSON.parse(jsonMatch[0])
+        return { success: true, data: extractedData }
+
+    } catch (error: any) {
+        console.error('Timetable Extraction Error:', error)
+        return { error: 'Failed to parse timetable. Please try a clearer photo.' }
     }
 }
