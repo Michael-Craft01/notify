@@ -207,7 +207,7 @@ export async function extractTimetableAction(formData: FormData) {
             Strictly follow this structure. Return ONLY the JSON. No other text.
         `
 
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" })
+        const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro" })
 
         // 30-second timeout for the AI call
         const extractionPromise = model.generateContent([
