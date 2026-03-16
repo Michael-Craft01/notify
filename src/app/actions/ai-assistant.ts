@@ -4,8 +4,8 @@ import { GoogleGenerativeAI } from "@google/generative-ai"
 
 // Use the new Gemini_API_Key provided by the user
 const genAI = new GoogleGenerativeAI(process.env.Gemini_API_Key || process.env.GOOGLE_AI_API_KEY || "")
-// Requested model: gemma-3-27b-it
 const AI_MODEL = "gemma-3-27b-it"
+const VISION_MODEL = "gemini-1.5-flash"
 
 export async function extractAssignmentAction(formData: FormData) {
     const file = formData.get('file') as File
@@ -186,7 +186,7 @@ export async function extractTimetableAction(formData: FormData) {
     if (!file) return { error: 'No file provided' }
 
     try {
-        const model = genAI.getGenerativeModel({ model: AI_MODEL })
+        const model = genAI.getGenerativeModel({ model: VISION_MODEL })
 
         const buffer = await file.arrayBuffer()
         const base64Data = Buffer.from(buffer).toString('base64')

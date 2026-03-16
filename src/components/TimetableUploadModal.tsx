@@ -13,6 +13,25 @@ import { saveExtractedSchedule } from '@/app/actions/schedules'
 
 const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
 
+async function compressImage(file: File): Promise<File> {
+    const img = document.createElement('img')
+    img.src = URL.createObjectURL(file)
+    await new Promise(resolve => img.onload = resolve)
+    
+    const canvas = document.createElement('canvas')
+    const MAX_WIDTH = 1200
+    const scale = Math.min(1, MAX_WIDTH / img.width)
+    canvas.width = img.width * scale
+    canvas.height = img.height * scale
+    
+    const ctx = canvas.getContext('2d')
+    ctx?.drawImage(img, 0, 0, canvas.width, canvas.height)
+    
+    const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.8))
+    if (!blob) return file
+    return new File([blob], file.name, { type: 'image/jpeg' })
+}
+
 export default function TimetableUploadModal() {
     const [isOpen, setIsOpen] = useState(false)
     const [isExtracting, setIsExtracting] = useState(false)
@@ -32,8 +51,18 @@ export default function TimetableUploadModal() {
 
         setIsExtracting(true)
         setError(null)
+        
+        let fileToUpload = file
+        if (file.type.startsWith('image/')) {
+            try {
+                fileToUpload = await compressImage(file)
+            } catch (e) {
+                console.error("Compression failed", e)
+            }
+        }
+
         const fd = new FormData()
-        fd.append('file', file)
+        fd.append('file', fileToUpload)
 
         const result = await extractTimetableAction(fd)
         setIsExtracting(false)
