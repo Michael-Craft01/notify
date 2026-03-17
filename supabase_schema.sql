@@ -259,6 +259,7 @@ CREATE TABLE IF NOT EXISTS public.schedules (
   module_name TEXT NOT NULL,
   course_code TEXT,
   venue TEXT,
+  lecturer TEXT,
   created_by UUID REFERENCES public.users(id) ON DELETE SET NULL,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );

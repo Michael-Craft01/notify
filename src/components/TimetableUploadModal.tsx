@@ -293,6 +293,11 @@ export default function TimetableUploadModal() {
                                                         <span className="flex items-center gap-1 text-[11px] text-white/40">
                                                             <MapPin size={10} /> {lecture.venue || "TBA"}
                                                         </span>
+                                                        {lecture.lecturer && (
+                                                            <span className="flex items-center gap-1 text-[11px] text-white/40 italic">
+                                                                • {lecture.lecturer}
+                                                            </span>
+                                                        )}
                                                     </div>
                                                 </div>
 

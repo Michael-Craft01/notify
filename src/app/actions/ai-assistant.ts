@@ -96,6 +96,7 @@ export async function extractTimetableAction(formData: FormData) {
             - "module_name": string (Full name of the subject/module)
             - "course_code": string or null (e.g., "CS101")
             - "venue": string or null (Room number or hall name)
+            - "lecturer": string or null (Name of the lecturer)
 
             RULES:
             1. If a value is unclear, use null.

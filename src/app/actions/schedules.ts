@@ -30,6 +30,7 @@ export async function saveExtractedSchedule(lectures: any[]) {
         module_name: l.module_name,
         course_code: l.course_code?.toUpperCase(),
         venue: l.venue,
+        lecturer: l.lecturer,
         created_by: user.id
     }))
 
