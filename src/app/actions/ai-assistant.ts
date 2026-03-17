@@ -74,6 +74,7 @@ export async function askNotifyAI(
 
 /**
  * Extracts weekly schedule from a timetable image
+ * Scoped to the user's program context via the prompt
  */
 export async function extractTimetableAction(formData: FormData) {
     const file = formData.get('file') as File
@@ -83,11 +84,32 @@ export async function extractTimetableAction(formData: FormData) {
         const buffer = await file.arrayBuffer()
         const base64Data = Buffer.from(buffer).toString('base64')
 
-        const prompt = `Extract timetable image to JSON array: [{"day_of_week":0-6,"start_time":"HH:mm","end_time":"HH:mm","module_name":"Text","course_code":"Code/null","venue":"Room/null"}]. Return ONLY JSON.`
+        // Sharp, constraint-driven prompt for better AI precision
+        const prompt = `
+            TASK: Extract the weekly lecture schedule from this timetable image.
+            
+            OUTPUT FORMAT: Return a valid JSON array of objects.
+            Each object MUST have:
+            - "day_of_week": integer (0 for Sunday, 1 for Monday, ..., 6 for Saturday)
+            - "start_time": string "HH:mm" (24h format)
+            - "end_time": string "HH:mm" (24h format)
+            - "module_name": string (Full name of the subject/module)
+            - "course_code": string or null (e.g., "CS101")
+            - "venue": string or null (Room number or hall name)
+
+            RULES:
+            1. If a value is unclear, use null.
+            2. Do NOT include any text outside the JSON array.
+            3. Ensure 24-hour time format (e.g., 08:30 instead of 8:30 AM).
+        `
 
         const model = genAI.getGenerativeModel({
             model: VISION_MODEL,
-            generationConfig: { temperature: 0.1 }
+            generationConfig: { 
+                temperature: 0.1,
+                topP: 0.8,
+                topK: 40
+            }
         })
 
         const result = await Promise.race([
@@ -99,10 +121,22 @@ export async function extractTimetableAction(formData: FormData) {
         ]) as any
 
         const text = result.response.text()
-        const jsonMatch = text.match(/\[[\s\S]*\]/)
-        if (!jsonMatch) throw new Error('Could not parse grid. Use a closer photo.')
+        
+        // Robust JSON extraction: Find the first [ and the last ]
+        const startBracket = text.indexOf('[')
+        const endBracket = text.lastIndexOf(']')
+        
+        if (startBracket === -1 || endBracket === -1) {
+            console.error('Invalid AI Output:', text)
+            throw new Error('No schedule grid detected. Please try a clearer or closer photo.')
+        }
 
-        return { success: true, data: JSON.parse(jsonMatch[0]) }
+        const jsonStr = text.substring(startBracket, endBracket + 1)
+        const data = JSON.parse(jsonStr)
+
+        if (!Array.isArray(data)) throw new Error('Invalid format: Expected an array of lectures.')
+
+        return { success: true, data }
 
     } catch (error: any) {
         console.error('Timetable Extraction Error:', error)

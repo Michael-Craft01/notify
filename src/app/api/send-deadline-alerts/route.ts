@@ -28,50 +28,31 @@ const ALERT_WINDOWS = [
         label: '7d',
         ms: 7 * 24 * 60 * 60 * 1000,
         urgency: 'normal' as const,
-        title: (t: string, name: string) => `📅 On your radar, ${name}`,
-        body: (t: string, pct: number) => `"${t}" is due in a week. ${pct > 0 ? `${pct}% of your cohort is already on it.` : "Just a soft nudge."}`,
     },
     {
         label: '3d',
         ms: 3 * 24 * 60 * 60 * 1000,
         urgency: 'normal' as const,
-        title: (t: string, name: string) => `⏳ ${name}, 3 Days Left`,
-        body: (t: string, pct: number) => `"${t}" is coming up. Open it today, even for 5 minutes.`,
     },
     {
         label: '48h',
         ms: 48 * 60 * 60 * 1000,
         urgency: 'high' as const,
-        title: (t: string, name: string) => `🕒 48 Hours, ${name}`,
-        body: (t: string, pct: number) => `"${t}" deadline is in 2 days. Time to plan your final push!`,
-    },
-    {
-        label: '39.5h',
-        ms: 39.5 * 60 * 60 * 1000,
-        urgency: 'high' as const,
-        title: (t: string, name: string) => `🔔 Verification: ${name}`,
-        body: (t: string, pct: number) => `Triggering alert for "${t}" via test window.`,
     },
     {
         label: '24h',
         ms: 24 * 60 * 60 * 1000,
         urgency: 'high' as const,
-        title: (t: string, name: string) => `⚡ Tomorrow, ${name}`,
-        body: (t: string, pct: number) => `"${t}" deadline is tomorrow. This is the moment to lock in.`,
     },
     {
         label: '12h',
         ms: 12 * 60 * 60 * 1000,
         urgency: 'high' as const,
-        title: (t: string, name: string) => `⚠️ ${name}, 12h Left`,
-        body: (t: string, pct: number) => `"${t}" is due in 12 hours. Wrap up those final details.`,
     },
     {
         label: '2h',
         ms: 2 * 60 * 60 * 1000,
         urgency: 'critical' as const,
-        title: (t: string, name: string) => `🔥 ${name}, Finish Strong!`,
-        body: (t: string, pct: number) => `2 hours until "${t}" is due. Everything else can wait.`,
     },
 ]
 
@@ -86,18 +67,18 @@ function getWardenVibe(name: string, module: string, venue: string) {
     
     if (isSpecial) {
         const vibes = [
-            { title: `✨ Time to refuel, ${name}`, body: `${module} starts in 10 mins. Enjoy the downtime.` },
-            { title: `☕ Quick break?`, body: `${module} is about to start. Go stretch those legs.` },
-            { title: `🔋 Reset Mode`, body: `${module} starts in 10. You've earned this.` }
+            { title: `✨ Break Time, ${name}`, body: `${module} starts in 10 mins. Reset mode: ON.` },
+            { title: `☕ Time to refuel?`, body: `${module} is starting. Go grab a coffee.` },
+            { title: `🔋 Recharge, ${name}`, body: `10 mins until ${module}. You've earned this.` }
         ]
         return vibes[Math.floor(Math.random() * vibes.length)]
     }
 
     const vibes = [
-        { title: `🎒 Time to move, ${name}!`, body: `${module} starts in 10 mins @ ${venue || 'LT'}. Let's go.` },
-        { title: `⚡ Heads up, ${name}`, body: `${module} is about to begin. See you in ${venue || 'the hall'}?` },
-        { title: `🎯 Focus mode: ON`, body: `10 mins until ${module}. Everything packed?` },
-        { title: `🚶‍♂️ Almost time, ${name}`, body: `${module} starts soon. Don't be the one walking in late!` }
+        { title: `🎒 Class in 10, ${name}!`, body: `${module} @ ${venue || 'LT'}. Let's move.` },
+        { title: `⚡ Heads up: ${module}`, body: `Starts in 10 mins. See you in ${venue || 'the hall'}?` },
+        { title: `🎯 Focus: ${module}`, body: `10 mins to go. Everything in your bag?` },
+        { title: `🚶‍♂️ Almost time, ${name}`, body: `${module} starts soon. Don't be late!` }
     ]
     return vibes[Math.floor(Math.random() * vibes.length)]
 }
@@ -105,16 +86,32 @@ function getWardenVibe(name: string, module: string, venue: string) {
 function getAssignmentVibe(name: string, title: string, windowLabel: string, cohortPct: number) {
     const vibes: Record<string, any[]> = {
         '7d': [
-            { title: `📅 On your radar, ${name}`, body: `"${title}" is due in a week. Just a soft nudge.` },
-            { title: `👋 Future ${name} here`, body: `Just reminding you about "${title}" (7 days left).` }
+            { title: `📅 7 Days: ${title}`, body: `Due in a week, ${name}. ${cohortPct > 0 ? `${cohortPct}% are already done.` : "Just a soft nudge."}` },
+            { title: `👋 Radar Check: ${name}`, body: `"${title}" is due in 7 days. No rush, just keeping you posted.` }
+        ],
+        '3d': [
+            { title: `⏳ 3 Days: ${title}`, body: `Due soon, ${name}. Open it for 5 mins today?` },
+            { title: `🗓️ 3-Day Countdown`, body: `Hey ${name}, "${title}" is due in 3 days. Got a plan?` }
+        ],
+        '48h': [
+            { title: `🕒 48h Left: ${title}`, body: `2 days to go, ${name}. Time for the final push!` },
+            { title: `🚀 T-Minus 2 Days`, body: `Final 48h for "${title}". You've got this.` }
         ],
         '24h': [
-            { title: `🔴 Tomorrow, ${name}`, body: `"${title}" is due. This is the moment to lock in.` },
-            { title: `⚡ Final stretch!`, body: `"${title}" deadline is in 24h. You've got this.` }
+            { title: `🔴 TOMORROW: ${title}`, body: `24 hours left, ${name}. Let's lock in.` },
+            { title: `⚡ Final 24h!`, body: `"${title}" is due tomorrow. Finish line is close.` }
+        ],
+        '12h': [
+            { title: `⚠️ 12h Left: ${title}`, body: `Wrap it up, ${name}. 12 hours until it's due.` },
+            { title: `🕛 The 12h Mark`, body: `Almost there! 12 hours left for "${title}".` }
+        ],
+        '2h': [
+            { title: `🔥 2h LEFT: ${title}`, body: `Due in 2 hours, ${name}. Focus Mode: ON.` },
+            { title: `🚨 CRITICAL: 2 Hours`, body: `"${title}" is due NOW. Drop everything else!` }
         ]
     }
     
-    const defaults = vibes[windowLabel] || [{ title: `⏳ Nudge for ${name}`, body: `"${title}" is coming up soon.` }]
+    const defaults = vibes[windowLabel] || [{ title: `⏳ Nudge: ${name}`, body: `"${title}" is coming up.` }]
     return defaults[Math.floor(Math.random() * defaults.length)]
 }
 
@@ -150,6 +147,11 @@ export async function GET(req: NextRequest) {
 
     if (subErr || !subs?.length) {
         return NextResponse.json({ ok: true, sent: 0, reason: 'No subscriptions', subErr })
+    }
+
+    const isBroadcast = req.nextUrl.searchParams.get('broadcast') === 'true'
+    if (isBroadcast) {
+        return NextResponse.json({ error: 'Global broadcast is disabled for privacy. Notifications are now program-specific.' }, { status: 403 })
     }
 
     // ── 1. WARDEN SCHEDULE ALERTS (10m before class) ─────────────────────
@@ -260,9 +262,11 @@ export async function GET(req: NextRequest) {
                     const fullName = row.users?.full_name || row.users?.email?.split('@')[0] || 'there'
                     const firstName = fullName.split(' ')[0]
 
+                    const vibe = getAssignmentVibe(firstName, assignment.title, window.label, cohortPct)
+
                     const payload = JSON.stringify({
-                        title: window.title(assignment.title, firstName),
-                        body: window.body(assignment.title, cohortPct),
+                        title: vibe.title,
+                        body: vibe.body,
                         url: assignment.resource_url || '/',
                         urgency: window.urgency,
                     })
@@ -283,7 +287,7 @@ export async function GET(req: NextRequest) {
                 await supabase.from('user_subscriptions').delete().in('id', toDelete)
             }
 
-            log.push(`[${window.label}] "${assignment.title}" → ${subs.length - toDelete.length} subs`)
+            log.push(`[${window.label}] "${assignment.title}" → ${scopedSubs.length - toDelete.length} scoped subs`)
         }
     }
 

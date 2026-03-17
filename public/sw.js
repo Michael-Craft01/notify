@@ -37,11 +37,11 @@ self.addEventListener('push', (event) => {
 
     const { title = 'Notify', body = '', url = '/', urgency = 'normal' } = payload;
 
-    // Vibration pattern based on urgency
+    // Signature "Notify" Vibration Patterns (ADHD-friendly haptics)
     const vibrate =
-        urgency === 'critical' ? [200, 50, 200, 50, 200] :
-        urgency === 'high'     ? [150, 50, 150] :
-                                  [100, 50, 100];
+        urgency === 'critical' ? [200, 100, 200, 100, 200] : // Triple long pulse
+        urgency === 'high'     ? [150, 100, 150]           : // Distinct double pulse
+                                  [100, 50, 100];            // Soft double tap
 
     const options = {
         body,

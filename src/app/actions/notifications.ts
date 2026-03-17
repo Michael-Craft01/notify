@@ -35,40 +35,64 @@ async function getAuthContext() {
         )
         : supabase
 
+    // Self-healing: Ensure mock user exists in public.users to avoid FK errors
+    if (isDevUser && user) {
+        await writeClient.from('users').upsert({
+            id: MOCK_USER_ID,
+            email: user.email!,
+            full_name: 'Notify Developer',
+            program_id: 'a673dab5-294b-42bd-b07c-b468cffa8563' // CS 2.1 Program ID
+        }, { onConflict: 'id' })
+    }
+
     return { supabase, writeClient, user, isDevUser }
 }
 
 export async function saveSubscription(subscription: any) {
     const { writeClient, user } = await getAuthContext()
-    if (!user) return { error: 'Unauthorized' }
+    if (!user) {
+        console.error('[notifications] saveSubscription: No authenticated user found.')
+        return { error: 'Unauthorized' }
+    }
 
     // Validate the subscription shape before saving
     if (!subscription?.endpoint || !subscription?.keys?.p256dh || !subscription?.keys?.auth) {
+        console.error('[notifications] saveSubscription: Invalid subscription shape:', subscription)
         return { error: 'Invalid subscription object. Please try enabling alerts again.' }
     }
 
-    const { data: existing } = await writeClient
+    console.log(`[notifications] Saving sub for user ${user.id} (${subscription.origin || 'unknown origin'})`)
+
+    const { data: existing, error: existErr } = await writeClient
         .from('user_subscriptions')
         .select('id')
         .eq('user_id', user.id)
         .contains('subscription', { endpoint: subscription.endpoint })
         .single()
 
-    const { error } = await writeClient
+    if (existErr && existErr.code !== 'PGRST116') {
+        console.warn('[notifications] Check existing error:', existErr.message)
+    }
+
+    const { data: savedData, error } = await writeClient
         .from('user_subscriptions')
         .upsert(
             { 
+                id: existing?.id, // If it doesn't exist, this is undefined → Insert. If it does → Update.
                 user_id: user.id, 
                 subscription, 
                 device_type: subscription.origin ? `browser:${subscription.origin}` : 'browser' 
-            },
-            { onConflict: 'user_id, subscription' }
+            }
         )
+        .select()
+        .single()
 
     if (error) {
-        console.error('[notifications] saveSubscription error:', error)
+        console.error('[notifications] saveSubscription DB error:', error.message)
         return { error: `Failed to save subscription: ${error.message}` }
     }
+
+    console.log(`[notifications] Sub saved successfully for ${user.id}`)
 
     // Send Welcome Notification if this is the first time
     if (!existing) {
@@ -91,7 +115,7 @@ export async function saveSubscription(subscription: any) {
     }
 
     revalidatePath('/')
-    return { success: true }
+    return { success: true, saved: savedData }
 }
 
 export async function removeSubscription(endpoint: string) {

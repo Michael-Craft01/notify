@@ -290,10 +290,16 @@ CREATE TABLE IF NOT EXISTS public.schedule_overrides (
 
 ALTER TABLE public.schedule_overrides ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Users can read overrides" 
+CREATE POLICY "Users can read overrides in their program" 
 ON public.schedule_overrides FOR SELECT 
 TO authenticated 
-USING (true);
+USING (
+  EXISTS (
+    SELECT 1 FROM public.schedules s
+    WHERE s.id = schedule_id
+    AND s.program_id = (SELECT program_id FROM public.users WHERE id = auth.uid())
+  )
+);
 
 CREATE POLICY "Reps can manage overrides" 
 ON public.schedule_overrides FOR ALL 
