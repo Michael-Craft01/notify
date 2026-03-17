@@ -235,6 +235,7 @@ export async function GET(req: NextRequest) {
                     })
 
                     try {
+                        await webpush.sendNotification(row.subscription, payload)
                         totalSent++
                     } catch (err: any) {
                         if (err?.statusCode === 410 || err?.statusCode === 404) {
