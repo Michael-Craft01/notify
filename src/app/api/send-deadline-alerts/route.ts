@@ -128,8 +128,12 @@ export async function GET(req: NextRequest) {
 
     const currentDay = nowTime.getDay()
     const fifteenMinsFromNow = new Date(now + 15 * 60 * 1000)
+    const tenMinsAgo = new Date(now - 10 * 60 * 1000)
+    
     const nowTimeStr = nowTime.toTimeString().slice(0, 5)
     const fifteenMinsTimeStr = fifteenMinsFromNow.toTimeString().slice(0, 5)
+    const tenMinsAgoStr = tenMinsAgo.toTimeString().slice(0, 5)
+    
     const dateStr = nowTime.toISOString().split('T')[0]
 
     // Fetch all subscriptions with user program association
@@ -155,12 +159,12 @@ export async function GET(req: NextRequest) {
         return NextResponse.json({ error: 'Global broadcast is disabled for privacy. Notifications are now program-specific.' }, { status: 403 })
     }
 
-    // ── 1. WARDEN SCHEDULE ALERTS (Next 15 mins) ─────────────────────
+    // ── 1. WARDEN SCHEDULE ALERTS (Just started or upcoming) ────────
     const { data: lectures } = await supabase
         .from('schedules')
         .select('*')
         .eq('day_of_week', currentDay)
-        .gte('start_time', nowTimeStr + ':00')
+        .gte('start_time', tenMinsAgoStr + ':00')
         .lte('start_time', fifteenMinsTimeStr + ':59')
 
     if (lectures?.length) {
@@ -189,7 +193,12 @@ export async function GET(req: NextRequest) {
                         urgency: 'high',
                     })
                     try {
-                        await webpush.sendNotification(row.subscription, payload)
+                        await webpush.sendNotification(row.subscription, payload, {
+                            headers: {
+                                'Urgency': 'high',
+                                'TTL': 60 * 60 // 1 hour
+                            }
+                        })
                         totalSent++
                     } catch (err: any) {
                         if (err?.statusCode === 410 || err?.statusCode === 404) {
@@ -273,7 +282,12 @@ export async function GET(req: NextRequest) {
                     })
 
                     try {
-                        await webpush.sendNotification(row.subscription, payload)
+                        await webpush.sendNotification(row.subscription, payload, {
+                            headers: {
+                                'Urgency': (window.urgency === 'high' || (window as any).urgency === 'critical') ? 'high' : 'normal',
+                                'TTL': 60 * 60 // 1 hour
+                            }
+                        })
                         totalSent++
                     } catch (err: any) {
                         if (err?.statusCode === 410 || err?.statusCode === 404) {
