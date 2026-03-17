@@ -46,6 +46,13 @@ const ALERT_WINDOWS = [
         body: (t: string, pct: number) => `"${t}" deadline is in 2 days. Time to plan your final push!`,
     },
     {
+        label: '40h',
+        ms: 40 * 60 * 60 * 1000,
+        urgency: 'high' as const,
+        title: (t: string, name: string) => `🔔 Verification: ${name}`,
+        body: (t: string, pct: number) => `Triggering alert for "${t}" via test window.`,
+    },
+    {
         label: '24h',
         ms: 24 * 60 * 60 * 1000,
         urgency: 'high' as const,
@@ -198,11 +205,27 @@ export async function GET(req: NextRequest) {
         const windowStart = new Date(now + window.ms - TOLERANCE_MS).toISOString()
         const windowEnd   = new Date(now + window.ms + TOLERANCE_MS).toISOString()
 
-        const { data: assignments } = await supabase
+        const debugMsg = `[cron] Checking window ${window.label}: ${windowStart} TO ${windowEnd}`
+        console.log(debugMsg)
+        log.push(debugMsg)
+
+        const { data: assignments, error: assErr } = await supabase
             .from('assignments')
-            .select('id, title, resource_url, task_type, program_id')
+            .select('id, title, resource_url, task_type, program_id, due_date')
             .gte('due_date', windowStart)
             .lte('due_date', windowEnd)
+
+        if (assErr) {
+            const errLog = `[cron] Query error for ${window.label}: ${assErr.message}`
+            console.error(errLog)
+            log.push(errLog)
+        }
+        
+        if (assignments?.length) {
+            const matchMsg = `[cron] Found ${assignments.length} assignments in ${window.label} window`
+            console.log(matchMsg)
+            log.push(matchMsg)
+        }
 
         if (!assignments?.length) continue
 
