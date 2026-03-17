@@ -19,7 +19,7 @@ async function compressImage(file: File): Promise<File> {
     await new Promise(resolve => img.onload = resolve)
     
     const canvas = document.createElement('canvas')
-    const MAX_WIDTH = 512
+    const MAX_WIDTH = 440
     const scale = Math.min(1, MAX_WIDTH / img.width)
     canvas.width = img.width * scale
     canvas.height = img.height * scale
@@ -27,7 +27,7 @@ async function compressImage(file: File): Promise<File> {
     const ctx = canvas.getContext('2d')
     ctx?.drawImage(img, 0, 0, canvas.width, canvas.height)
     
-    const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.5))
+    const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.6))
     if (!blob) return file
     return new File([blob], file.name, { type: 'image/jpeg' })
 }
@@ -35,6 +35,8 @@ async function compressImage(file: File): Promise<File> {
 export default function TimetableUploadModal() {
     const [isOpen, setIsOpen] = useState(false)
     const [isExtracting, setIsExtracting] = useState(false)
+    const [extractionMode, setExtractionMode] = useState<'image' | 'paste'>('image')
+    const [pastedText, setPastedText] = useState('')
     const [lectures, setLectures] = useState<any[]>([])
     const [error, setError] = useState<any>(null)
     const [isSaving, startSaving] = useTransition()
@@ -44,6 +46,62 @@ export default function TimetableUploadModal() {
     useEffect(() => {
         setMounted(true)
     }, [])
+
+    const handlePaste = () => {
+        if (!pastedText.trim()) return
+        setError(null)
+        
+        const lines = pastedText.split('\n').map(l => l.trim()).filter(l => l.length > 0)
+        let currentDay = 1 // Default Monday
+        const newLectures: any[] = []
+
+        const daysMap: Record<string, number> = {
+            'monday': 1, 'tuesday': 2, 'wednesday': 3, 'thursday': 4, 'friday': 5, 'saturday': 6, 'sunday': 0,
+            'mon': 1, 'tue': 2, 'wed': 3, 'thu': 4, 'fri': 5, 'sat': 6, 'sun': 0
+        }
+
+        const timeRegex = /(\d{1,2}[:.]\d{2})\s*(?:-|to)\s*(\d{1,2}[:.]\d{2})/i
+
+        lines.forEach(line => {
+            const lowerLine = line.toLowerCase()
+            
+            // Check for Day Marker
+            for (const [dayName, dayIdx] of Object.entries(daysMap)) {
+                if (lowerLine === dayName || lowerLine.startsWith(dayName + ' ')) {
+                    currentDay = dayIdx
+                    return
+                }
+            }
+
+            // Check for Class Entry (Time + Module)
+            const timeMatch = line.match(timeRegex)
+            if (timeMatch) {
+                const startTime = timeMatch[1].replace('.', ':')
+                const endTime = timeMatch[2].replace('.', ':')
+                
+                let moduleInfo = line.replace(timeMatch[0], '').trim()
+                const codeMatch = moduleInfo.match(/[A-Z]{2,4}\s*\d{3,4}/i)
+                const courseCode = codeMatch ? codeMatch[0] : null
+                const moduleName = moduleInfo.replace(courseCode || '', '').trim() || "Untitled Module"
+
+                newLectures.push({
+                    day_of_week: currentDay,
+                    start_time: startTime.padStart(5, '0'),
+                    end_time: endTime.padStart(5, '0'),
+                    module_name: moduleName,
+                    course_code: courseCode,
+                    venue: "Campus"
+                })
+            }
+        })
+
+        if (newLectures.length > 0) {
+            setLectures(newLectures)
+            setPastedText('')
+        } else {
+            setError("Could not detect any classes. Try pasting in 'Time - Module' format (e.g. 08:00-10:00 Maths)")
+        }
+    }
 
     const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0]
@@ -117,42 +175,85 @@ export default function TimetableUploadModal() {
                             <div>
                                 <h3 className="text-lg font-bold text-white flex items-center gap-2">
                                     <Sparkles size={20} className="text-orange" />
-                                    AI Eye: Timetable Scanner
+                                    The Warden's Eye
                                 </h3>
-                                <p className="text-xs text-white/40 mt-0.5">Upload a photo of your schedule to automate reminders</p>
+                                <p className="text-xs text-white/40 mt-0.5">Upload a photo or paste text to automate reminders</p>
                             </div>
                             <button onClick={() => setIsOpen(false)} className="h-8 w-8 rounded-full bg-white/5 flex items-center justify-center hover:bg-white/10 transition-colors">
                                 <X size={18} />
                             </button>
                         </div>
 
+                        {/* Tabs */}
+                        {lectures.length === 0 && (
+                            <div className="flex px-6 pt-4 gap-2">
+                                <button 
+                                    onClick={() => setExtractionMode('image')}
+                                    className={`flex-1 py-2 text-[11px] font-black uppercase tracking-widest rounded-lg border transition-all ${extractionMode === 'image' ? 'bg-orange/10 border-orange/20 text-orange' : 'bg-white/5 border-white/5 text-white/40'}`}
+                                >
+                                    Scan Photo
+                                </button>
+                                <button 
+                                    onClick={() => setExtractionMode('paste')}
+                                    className={`flex-1 py-2 text-[11px] font-black uppercase tracking-widest rounded-lg border transition-all ${extractionMode === 'paste' ? 'bg-orange/10 border-orange/20 text-orange' : 'bg-white/5 border-white/5 text-white/40'}`}
+                                >
+                                    Smart Paste
+                                </button>
+                            </div>
+                        )}
+
                         {/* Content */}
                         <div className="p-6 max-h-[70vh] overflow-y-auto">
                             {lectures.length === 0 ? (
-                                <div className="flex flex-col items-center justify-center py-12 border-2 border-dashed border-white/5 rounded-2xl bg-white/[0.02]">
-                                    {isExtracting ? (
-                                        <div className="flex flex-col items-center gap-4">
-                                            <div className="relative">
-                                                <div className="h-16 w-16 rounded-2xl border-2 border-orange/20 flex items-center justify-center">
-                                                    <Loader2 size={32} className="text-orange animate-spin" />
+                                <div className="flex flex-col gap-4">
+                                    {extractionMode === 'image' ? (
+                                        <div className="flex flex-col items-center justify-center py-12 border-2 border-dashed border-white/5 rounded-2xl bg-white/[0.02]">
+                                            {isExtracting ? (
+                                                <div className="flex flex-col items-center gap-4">
+                                                    <div className="relative">
+                                                        <div className="h-16 w-16 rounded-2xl border-2 border-orange/20 flex items-center justify-center">
+                                                            <Loader2 size={32} className="text-orange animate-spin" />
+                                                        </div>
+                                                        <div className="absolute -inset-4 bg-orange/10 blur-2xl animate-pulse" />
+                                                    </div>
+                                                    <p className="text-sm font-bold text-white uppercase tracking-widest animate-pulse">Flash Scanning...</p>
+                                                    <p className="text-xs text-white/40 text-center">Identifying your lectures with high precision...</p>
                                                 </div>
-                                                <div className="absolute -inset-4 bg-orange/10 blur-2xl animate-pulse" />
-                                            </div>
-                                            <p className="text-sm font-bold text-white uppercase tracking-widest animate-pulse">Analyzing Image...</p>
-                                            <p className="text-xs text-white/40">Gemma-3 is parsing your lectures</p>
+                                            ) : (
+                                                <>
+                                                    <div className="h-16 w-16 rounded-2xl bg-orange/10 flex items-center justify-center mb-4">
+                                                        <Upload size={32} className="text-orange" />
+                                                    </div>
+                                                    <h4 className="text-white font-bold mb-1">Scan Timetable Photo</h4>
+                                                    <p className="text-xs text-white/30 mb-6 font-medium font-inter">Instant high-accuracy OCR</p>
+                                                    <label className="btn-primary flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-black cursor-pointer uppercase tracking-widest hover:scale-[1.05] transition-transform">
+                                                        <span>Select Photo</span>
+                                                        <input type="file" className="hidden" accept="image/*,application/pdf" onChange={handleFileChange} />
+                                                    </label>
+                                                </>
+                                            )}
                                         </div>
                                     ) : (
-                                        <>
-                                            <div className="h-16 w-16 rounded-2xl bg-orange/10 flex items-center justify-center mb-4">
-                                                <Upload size={32} className="text-orange" />
+                                        <div className="space-y-4 animate-fade-up">
+                                            <div className="p-4 rounded-xl bg-orange/5 border border-orange/10">
+                                                <p className="text-[11px] text-orange/80 leading-relaxed font-inter font-medium">
+                                                    <strong>Manual Entry:</strong> Paste text from your portal if you don't have a photo.
+                                                </p>
                                             </div>
-                                            <h4 className="text-white font-bold mb-1">Click to Scan Timetable</h4>
-                                            <p className="text-xs text-white/30 mb-6 font-medium">PNG, JPG or PDF accepted</p>
-                                            <label className="btn-primary flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-black cursor-pointer uppercase tracking-widest hover:scale-[1.05] transition-transform">
-                                                <span>Select Image</span>
-                                                <input type="file" className="hidden" accept="image/*,application/pdf" onChange={handleFileChange} />
-                                            </label>
-                                        </>
+                                            <textarea 
+                                                value={pastedText}
+                                                onChange={(e) => setPastedText(e.target.value)}
+                                                placeholder="Paste your timetable text here..."
+                                                className="w-full h-48 bg-white/5 border border-white/10 rounded-2xl p-4 text-[13px] text-white focus:outline-none focus:border-orange/30 transition-colors resize-none font-inter"
+                                            />
+                                            <button 
+                                                onClick={handlePaste}
+                                                disabled={!pastedText.trim()}
+                                                className="w-full py-3 bg-orange text-black font-black uppercase tracking-widest rounded-xl text-sm hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 disabled:scale-100 shadow-lg shadow-orange/10"
+                                            >
+                                                Extract Instantly
+                                            </button>
+                                        </div>
                                     )}
                                 </div>
                             ) : success ? (
@@ -164,7 +265,7 @@ export default function TimetableUploadModal() {
                                     <p className="text-white/40 mt-2">The Warden is now tracking your lectures.</p>
                                 </div>
                             ) : (
-                                <div className="space-y-4">
+                                <div className="space-y-4 animate-fade-up">
                                     <div className="flex items-center justify-between text-[11px] font-black uppercase tracking-wider text-white/30 px-2">
                                         <span>Detected Lectures ({lectures.length})</span>
                                         <button onClick={() => setLectures([])} className="hover:text-red-400 transition-colors">Reset</button>
