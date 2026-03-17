@@ -127,8 +127,9 @@ export async function GET(req: NextRequest) {
     const log: string[] = []
 
     const currentDay = nowTime.getDay()
-    const tenMinsFromNow = new Date(now + 10 * 60 * 1000)
-    const tenMinsTimeStr = tenMinsFromNow.toTimeString().slice(0, 5) // "HH:mm"
+    const fifteenMinsFromNow = new Date(now + 15 * 60 * 1000)
+    const nowTimeStr = nowTime.toTimeString().slice(0, 5)
+    const fifteenMinsTimeStr = fifteenMinsFromNow.toTimeString().slice(0, 5)
     const dateStr = nowTime.toISOString().split('T')[0]
 
     // Fetch all subscriptions with user program association
@@ -154,13 +155,13 @@ export async function GET(req: NextRequest) {
         return NextResponse.json({ error: 'Global broadcast is disabled for privacy. Notifications are now program-specific.' }, { status: 403 })
     }
 
-    // ── 1. WARDEN SCHEDULE ALERTS (10m before class) ─────────────────────
+    // ── 1. WARDEN SCHEDULE ALERTS (Next 15 mins) ─────────────────────
     const { data: lectures } = await supabase
         .from('schedules')
         .select('*')
         .eq('day_of_week', currentDay)
-        .gte('start_time', tenMinsTimeStr + ':00')
-        .lte('start_time', tenMinsTimeStr + ':59')
+        .gte('start_time', nowTimeStr + ':00')
+        .lte('start_time', fifteenMinsTimeStr + ':59')
 
     if (lectures?.length) {
         for (const lecture of lectures) {
