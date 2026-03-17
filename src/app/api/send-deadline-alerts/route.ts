@@ -62,25 +62,44 @@ const TOLERANCE_MS = 60 * 60 * 1000 // ±60 min per window check
 // Personalization / Human Vibes
 // ─────────────────────────────────────────────────────────────────────────────
 
-function getWardenVibe(name: string, module: string, venue: string) {
+function getWardenVibe(name: string, module: string, venue: string, type: 'upcoming' | 'started') {
     const isSpecial = module.toUpperCase() === 'LUNCH' || module.toUpperCase() === 'BREAK'
+    const isLunch = module.toUpperCase() === 'LUNCH'
     
     if (isSpecial) {
+        if (type === 'upcoming') {
+            const vibes = [
+                { title: `✨ Break Time, ${name}`, body: `${module} starts in 10 mins. Reset mode: ON.` },
+                { title: `☕ Refuel soon?`, body: `${module} is in 10 mins. Go grab that coffee.` },
+                { title: `🔋 Almost recharge time`, body: `10 mins until ${module}. Finish that loop.` }
+            ]
+            return vibes[Math.floor(Math.random() * vibes.length)]
+        } else {
+            const vibes = [
+                { title: `☕ ${isLunch ? 'Lunch' : 'Break'} is HERE!`, body: `Stop working, ${name}. Go recharge now.` },
+                { title: `🔋 Recharge Mode: ON`, body: `${module} has started. Steps: 0, Coffee: 1.` },
+                { title: `✨ Breathe, ${name}`, body: `It's ${module} time. See you in a bit.` }
+            ]
+            return vibes[Math.floor(Math.random() * vibes.length)]
+        }
+    }
+
+    if (type === 'upcoming') {
         const vibes = [
-            { title: `✨ Break Time, ${name}`, body: `${module} starts in 10 mins. Reset mode: ON.` },
-            { title: `☕ Time to refuel?`, body: `${module} is starting. Go grab a coffee.` },
-            { title: `🔋 Recharge, ${name}`, body: `10 mins until ${module}. You've earned this.` }
+            { title: `🎒 Class in 10, ${name}!`, body: `${module} @ ${venue || 'LT'}. Let's move.` },
+            { title: `⚡ Heads up: ${module}`, body: `Starts in 10 mins. See you in ${venue || 'the hall'}?` },
+            { title: `🎯 Focus: ${module}`, body: `10 mins to go. Everything in your bag?` },
+            { title: `🚶‍♂️ Almost time, ${name}`, body: `${module} starts soon. Don't be late!` }
+        ]
+        return vibes[Math.floor(Math.random() * vibes.length)]
+    } else {
+        const vibes = [
+            { title: `🚨 ${module} STARTED!`, body: `Class has begun @ ${venue || 'building'}. RUN! 🏃‍♂️` },
+            { title: `🎒 Time for ${module}`, body: `You're needed in ${venue || 'class'}. Go go go!` },
+            { title: `🎯 In Session: ${module}`, body: `Currently starting. Hope you're already there, ${name}.` }
         ]
         return vibes[Math.floor(Math.random() * vibes.length)]
     }
-
-    const vibes = [
-        { title: `🎒 Class in 10, ${name}!`, body: `${module} @ ${venue || 'LT'}. Let's move.` },
-        { title: `⚡ Heads up: ${module}`, body: `Starts in 10 mins. See you in ${venue || 'the hall'}?` },
-        { title: `🎯 Focus: ${module}`, body: `10 mins to go. Everything in your bag?` },
-        { title: `🚶‍♂️ Almost time, ${name}`, body: `${module} starts soon. Don't be late!` }
-    ]
-    return vibes[Math.floor(Math.random() * vibes.length)]
 }
 
 function getAssignmentVibe(name: string, title: string, windowLabel: string, cohortPct: number) {
@@ -127,13 +146,6 @@ export async function GET(req: NextRequest) {
     const log: string[] = []
 
     const currentDay = nowTime.getDay()
-    const fifteenMinsFromNow = new Date(now + 15 * 60 * 1000)
-    const tenMinsAgo = new Date(now - 10 * 60 * 1000)
-    
-    const nowTimeStr = nowTime.toTimeString().slice(0, 5)
-    const fifteenMinsTimeStr = fifteenMinsFromNow.toTimeString().slice(0, 5)
-    const tenMinsAgoStr = tenMinsAgo.toTimeString().slice(0, 5)
-    
     const dateStr = nowTime.toISOString().split('T')[0]
 
     // Fetch all subscriptions with user program association
@@ -154,18 +166,16 @@ export async function GET(req: NextRequest) {
         return NextResponse.json({ ok: true, sent: 0, reason: 'No subscriptions', subErr })
     }
 
-    const isBroadcast = req.nextUrl.searchParams.get('broadcast') === 'true'
-    if (isBroadcast) {
-        return NextResponse.json({ error: 'Global broadcast is disabled for privacy. Notifications are now program-specific.' }, { status: 403 })
-    }
+    // ── 1. WARDEN SCHEDULE ALERTS (10m before & 0m start) ──────────
+    const tenMinsFromNowTime = new Date(now + 10 * 60 * 1000)
+    const tenMinsFromNowTimeStr = tenMinsFromNowTime.toTimeString().slice(0, 5) // HH:mm
+    const nowTimeStr = nowTime.toTimeString().slice(0, 5) // HH:mm
 
-    // ── 1. WARDEN SCHEDULE ALERTS (Just started or upcoming) ────────
     const { data: lectures } = await supabase
         .from('schedules')
         .select('*')
         .eq('day_of_week', currentDay)
-        .gte('start_time', tenMinsAgoStr + ':00')
-        .lte('start_time', fifteenMinsTimeStr + ':59')
+        .in('start_time', [tenMinsFromNowTimeStr + ':00', nowTimeStr + ':00'])
 
     if (lectures?.length) {
         for (const lecture of lectures) {
@@ -182,10 +192,12 @@ export async function GET(req: NextRequest) {
             const scopedSubs = subs.filter((s: any) => s.users?.program_id === lecture.program_id)
             if (!scopedSubs.length) continue
 
+            const type = lecture.start_time.startsWith(nowTimeStr) ? 'started' : 'upcoming'
+
             await Promise.allSettled(
                 scopedSubs.map(async (row: any) => {
                     const firstName = (row.users?.full_name || row.users?.email?.split('@')[0] || 'there').split(' ')[0]
-                    const vibe = getWardenVibe(firstName, lecture.module_name, lecture.venue || 'the hall')
+                    const vibe = getWardenVibe(firstName, lecture.module_name, lecture.venue || 'the hall', type)
                     const payload = JSON.stringify({
                         title: vibe.title,
                         body: vibe.body,
@@ -208,7 +220,7 @@ export async function GET(req: NextRequest) {
                     }
                 })
             )
-            log.push(`[warden] "${lecture.module_name}" → ${scopedSubs.length} subs`)
+            log.push(`[warden] "${lecture.module_name}" (${type}) → ${scopedSubs.length} subs`)
         }
     }
 
