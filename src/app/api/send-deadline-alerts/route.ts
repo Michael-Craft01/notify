@@ -229,20 +229,32 @@ export async function GET(req: NextRequest) {
 
             await Promise.allSettled(
                 scopedSubs.map(async (row: any) => {
-                    // ADHD-Resilient Origin Filtering
-                    // In migration from vercel.app -> logichq.tech, allow both to ensure alerts aren't dropped.
                     const subOrigin = row.device_type?.split('browser:')[1]
                     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'notify.logichq.tech'
                     
+                    const subProgramId = row.users?.program_id
+                    if (!subProgramId) {
+                        const noProgLog = `[cron] User ${row.id} has no program_id, skipping`
+                        console.log(noProgLog)
+                        log.push(noProgLog)
+                        return
+                    }
+
                     if (siteUrl && subOrigin) {
                         const isLegacyOrigin = subOrigin.includes('vercel.app')
                         const isMainOrigin = subOrigin.includes('logichq.tech')
                         
                         if (!isLegacyOrigin && !isMainOrigin && !subOrigin.includes(siteUrl)) {
-                            console.log(`[cron] Filtering out unknown origin: ${subOrigin}`)
+                            const originLog = `[cron] Filtering out unknown origin: ${subOrigin}`
+                            console.log(originLog)
+                            log.push(originLog)
                             return 
                         }
                     }
+
+                    const sentMsg = `[cron] Sending to ${row.users?.full_name || row.id} (${row.device_type})`
+                    console.log(sentMsg)
+                    log.push(sentMsg)
 
                     // Personalization Fallbacks
                     const fullName = row.users?.full_name || row.users?.email?.split('@')[0] || 'there'
