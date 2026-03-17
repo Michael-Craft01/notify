@@ -58,7 +58,8 @@ export async function updateSession(request: NextRequest) {
         !request.nextUrl.pathname.startsWith('/login') &&
         !request.nextUrl.pathname.startsWith('/auth') &&
         !request.nextUrl.pathname.startsWith('/api/test-notification') &&
-        !request.nextUrl.pathname.startsWith('/api/send-deadline-alerts')
+        !request.nextUrl.pathname.startsWith('/api/send-deadline-alerts') &&
+        !request.nextUrl.pathname.startsWith('/api/send-welcome')
     ) {
         // no user, potentially respond by redirecting the user to the login page
         const url = request.nextUrl.clone()

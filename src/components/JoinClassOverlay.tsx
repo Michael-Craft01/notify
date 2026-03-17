@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 import { Search, Hash, CheckCircle2, ChevronRight, GraduationCap, Loader2 } from 'lucide-react'
 
-import { createProgram } from '@/app/actions/programs'
+import { createProgram, joinProgram } from '@/app/actions/programs'
 
 interface Program {
     id: string
@@ -76,12 +76,8 @@ export default function JoinClassOverlay({ userId }: { userId: string }) {
             }
 
             if (targetProgramId) {
-                const { error: updateError } = await supabase
-                    .from('users')
-                    .update({ program_id: targetProgramId })
-                    .eq('id', userId)
-                
-                if (updateError) throw updateError
+                const res = await joinProgram(targetProgramId)
+                if (res.error) throw new Error(res.error)
                 
                 setStep('joining')
                 setTimeout(() => {

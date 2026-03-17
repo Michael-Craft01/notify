@@ -134,6 +134,23 @@ function getAssignmentVibe(name: string, title: string, windowLabel: string, coh
     return defaults[Math.floor(Math.random() * defaults.length)]
 }
 
+function getBriefingVibe(name: string, type: 'morning' | 'evening', classCount: number, firstModule?: string, firstTime?: string, deadline?: { title: string, days: string }) {
+    if (type === 'morning') {
+        const vibes = [
+            { title: `☀️ Morning Hype, ${name}!`, body: classCount > 0 ? `You have ${classCount} classes today. First: ${firstModule} @ ${firstTime}.` : `No classes today! ☕ Time for a reset or deep work.` },
+            { title: `☕ Ready, ${name}?`, body: classCount > 0 ? `${classCount} sessions ahead. Starting with ${firstModule} at ${firstTime}.` : `Zero classes on the radar. Enjoy the breather!` },
+            { title: `🎒 Today's Gameplan`, body: classCount > 0 ? `${classCount} modules to crush. ${firstModule} is up first.` : `Open schedule today. What's the goal?` }
+        ]
+        return vibes[Math.floor(Math.random() * vibes.length)]
+    } else {
+        const vibes = [
+            { title: `🌙 Day Done, ${name}!`, body: classCount > 0 ? `Tomorrow: ${classCount} classes. ${deadline ? `Heads up: ${deadline.title} due in ${deadline.days}.` : 'Rest up!'}` : `Free day tomorrow! ${deadline ? `Focus on ${deadline.title} (${deadline.days} left).` : 'Clear skies ahead.'}` },
+            { title: `✨ Good Evening`, body: classCount > 0 ? `You've got ${classCount} classes tomorrow. ${deadline ? `${deadline.title} is looming (${deadline.days} to go).` : 'Sleep well!'}` : `No classes tomorrow. ${deadline ? `Perfect time to tackle ${deadline.title}.` : 'Enjoy your night.'}` }
+        ]
+        return vibes[Math.floor(Math.random() * vibes.length)]
+    }
+}
+
 export async function GET(req: NextRequest) {
     if (!isAuthorised(req)) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -315,6 +332,87 @@ export async function GET(req: NextRequest) {
             }
 
             log.push(`[${window.label}] "${assignment.title}" → ${scopedSubs.length - toDelete.length} scoped subs`)
+        }
+    }
+
+    // ── 3. DAILY BRIEFINGS (Morning 07:45 / Evening 18:15) ─────────────
+    const isMorning = nowTimeStr === '07:45'
+    const isEvening = nowTimeStr === '18:15'
+
+    if (isMorning || isEvening) {
+        const briefingDay = isMorning ? currentDay : (currentDay + 1) % 7
+        const briefingDateStr = isMorning ? dateStr : new Date(now + 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+
+        // Group subs by program for efficiency
+        const programMap = new Map<string, any[]>()
+        for (const sub of subs) {
+            const pid = (sub as any).users?.program_id
+            if (!pid) continue
+            if (!programMap.has(pid)) programMap.set(pid, [])
+            programMap.get(pid)!.push(sub)
+        }
+
+        for (const [programId, scopedSubs] of programMap.entries()) {
+            // Fetch schedule for briefing day
+            const { data: daySchedules } = await supabase
+                .from('schedules')
+                .select('module_name, start_time, venue')
+                .eq('program_id', programId)
+                .eq('day_of_week', briefingDay)
+                .order('start_time', { ascending: true })
+
+            // Fetch nearest deadline for evening briefing
+            let nearestDeadline = null
+            if (isEvening) {
+                const { data: nextAss } = await supabase
+                    .from('assignments')
+                    .select('title, due_date')
+                    .eq('program_id', programId)
+                    .gte('due_date', new Date(now).toISOString())
+                    .order('due_date', { ascending: true })
+                    .limit(1)
+                    .single()
+                
+                if (nextAss) {
+                    const daysLeft = Math.ceil((new Date(nextAss.due_date).getTime() - now) / (1000 * 60 * 60 * 24))
+                    nearestDeadline = { title: nextAss.title, days: `${daysLeft}d` }
+                }
+            }
+
+            const classCount = daySchedules?.length || 0
+            const firstClass = daySchedules?.[0]
+
+            await Promise.allSettled(
+                scopedSubs.map(async (row: any) => {
+                    const firstName = (row.users?.full_name || row.users?.email?.split('@')[0] || 'there').split(' ')[0]
+                    const vibe = getBriefingVibe(
+                        firstName, 
+                        isMorning ? 'morning' : 'evening', 
+                        classCount, 
+                        firstClass?.module_name, 
+                        firstClass?.start_time?.slice(0, 5),
+                        nearestDeadline || undefined
+                    )
+
+                    const payload = JSON.stringify({
+                        title: vibe.title,
+                        body: vibe.body,
+                        url: '/',
+                        urgency: 'normal',
+                    })
+
+                    try {
+                        await webpush.sendNotification(row.subscription, payload)
+                        totalSent++
+                    } catch (err: any) {
+                        if (err?.statusCode === 410 || err?.statusCode === 404) {
+                            await supabase.from('user_subscriptions').delete().eq('id', row.id)
+                            totalPruned++
+                        }
+                    }
+                })
+            )
+            log.push(`[briefing] ${isMorning ? 'morning' : 'evening'} for prog ${programId} → ${scopedSubs.length} subs`)
         }
     }
 
