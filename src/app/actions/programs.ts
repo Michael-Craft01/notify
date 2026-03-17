@@ -6,9 +6,8 @@ import { cookies } from 'next/headers'
 import { Resend } from 'resend'
 import { WelcomeNudgeEmail } from '@/emails/WelcomeNudge'
 
-const resend = new Resend(process.env.RESEND_API_Key)
-
 async function sendWelcomeEmail(email: string, firstName: string) {
+    const resend = new Resend(process.env.RESEND_API_Key)
     try {
         await resend.emails.send({
             from: 'onboarding@notify.logichq.tech',

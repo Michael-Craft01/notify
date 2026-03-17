@@ -3,9 +3,10 @@ import { WelcomeNudgeEmail } from '@/emails/WelcomeNudge';
 import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
 
-const resend = new Resend(process.env.RESEND_API_Key);
+export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request) {
+    const resend = new Resend(process.env.RESEND_API_Key);
     const { searchParams } = new URL(request.url);
     const secret = searchParams.get('secret');
 
