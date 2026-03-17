@@ -39,11 +39,25 @@ const ALERT_WINDOWS = [
         body: (t: string, pct: number) => `"${t}" is coming up. Open it today, even for 5 minutes.`,
     },
     {
+        label: '48h',
+        ms: 48 * 60 * 60 * 1000,
+        urgency: 'high' as const,
+        title: (t: string, name: string) => `🕒 48 Hours, ${name}`,
+        body: (t: string, pct: number) => `"${t}" deadline is in 2 days. Time to plan your final push!`,
+    },
+    {
         label: '24h',
         ms: 24 * 60 * 60 * 1000,
         urgency: 'high' as const,
         title: (t: string, name: string) => `⚡ Tomorrow, ${name}`,
         body: (t: string, pct: number) => `"${t}" deadline is tomorrow. This is the moment to lock in.`,
+    },
+    {
+        label: '12h',
+        ms: 12 * 60 * 60 * 1000,
+        urgency: 'high' as const,
+        title: (t: string, name: string) => `⚠️ ${name}, 12h Left`,
+        body: (t: string, pct: number) => `"${t}" is due in 12 hours. Wrap up those final details.`,
     },
     {
         label: '2h',

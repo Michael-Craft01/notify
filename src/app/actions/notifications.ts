@@ -159,3 +159,55 @@ export async function sendTestNotification() {
 
     return { success: true, sent }
 }
+export async function broadcastToEveryone(title: string, body: string, url: string = '/') {
+    const { writeClient, user } = await getAuthContext()
+    if (!user) return { error: 'Unauthorized' }
+
+    // Check if user is a rep or admin
+    const { data: profile } = await writeClient
+        .from('users')
+        .select('role')
+        .eq('id', user.id)
+        .single()
+
+    if (profile?.role !== 'rep' && profile?.role !== 'admin') {
+        return { error: 'Only reps can broadcast to everyone.' }
+    }
+
+    const { data: subs, error } = await writeClient
+        .from('user_subscriptions')
+        .select('id, subscription')
+
+    if (error || !subs?.length) {
+        return { error: 'No active subscriptions found.' }
+    }
+
+    let sent = 0
+    const toDelete: string[] = []
+
+    for (const row of subs) {
+        try {
+            await webpush.sendNotification(
+                row.subscription,
+                JSON.stringify({
+                    title,
+                    body,
+                    url,
+                    urgency: 'high',
+                })
+            )
+            sent++
+        } catch (err: any) {
+            console.error('[notifications] broadcast failed:', err?.statusCode)
+            if (err?.statusCode === 410 || err?.statusCode === 404) {
+                toDelete.push(row.id)
+            }
+        }
+    }
+
+    if (toDelete.length) {
+        await writeClient.from('user_subscriptions').delete().in('id', toDelete)
+    }
+
+    return { success: true, sent }
+}
