@@ -76,6 +76,47 @@ export async function toggleScheduleOverride(scheduleId: string, date: string, i
         return { error: error.message }
     }
 
+    // ── Notify Class-Wide if Cancelled ──────────────────────────────────────
+    if (isCancelled) {
+        try {
+            // Get schedule details for the message
+            const { data: schedule } = await supabase
+                .from('schedules')
+                .select('module_name, program_id')
+                .eq('id', scheduleId)
+                .single()
+
+            if (schedule) {
+                // Get all subscriptions for this program
+                const { data: subs } = await supabase
+                    .from('user_subscriptions')
+                    .select('subscription')
+                    .eq('users.program_id', schedule.program_id)
+
+                const payload = JSON.stringify({
+                    title: `🚨 CLASS CANCELLED`,
+                    body: `${schedule.module_name} is cancelled for today (${date}).`,
+                    url: '/',
+                    urgency: 'high'
+                })
+
+                if (subs && subs.length > 0) {
+                    await Promise.allSettled(
+                        subs.map(row => 
+                            import('@/utils/webpush').then(m => 
+                                m.default.sendNotification(row.subscription, payload, {
+                                    headers: { 'Urgency': 'high', 'TTL': 60 * 60 }
+                                })
+                            )
+                        )
+                    )
+                }
+            }
+        } catch (pushErr) {
+            console.error("Push Notification Error:", pushErr)
+        }
+    }
+
     revalidatePath("/")
     return { success: true }
 }
