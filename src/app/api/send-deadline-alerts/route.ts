@@ -195,20 +195,21 @@ export async function GET(req: NextRequest) {
 
     // ── 1. WARDEN SCHEDULE ALERTS (10m before & 0m start) ──────────
     // We check for any lecture starting "now" or in "10 minutes"
-    // To be robust, we look for anything starting in the next 12 minutes
+    // To be robust, we look for anything starting in the next 15 minutes
     // and filter out anything that was already handled by the previous cron run.
-    const nowPlus12 = new Date(now + 12 * 60 * 1000)
-    const nowPlus12Str = nowPlus12.toTimeString().slice(0, 5) + ':00'
+    const nowPlus15 = new Date(now + 15 * 60 * 1000)
+    const nowPlus15Str = nowPlus15.toTimeString().slice(0, 5) + ':00'
     const nowMinStr = nowTime.toTimeString().slice(0, 5) + ':00'
 
-    const { data: lectures } = await supabase
-        .from('schedules')
-        .select('*')
-        .eq('day_of_week', currentDay)
-        .gte('start_time', nowMinStr)
-        .lte('start_time', nowPlus12Str)
+    try {
+        const { data: lectures } = await supabase
+            .from('schedules')
+            .select('*')
+            .eq('day_of_week', currentDay)
+            .gte('start_time', nowMinStr)
+            .lte('start_time', nowPlus15Str)
 
-    if (lectures?.length) {
+        if (lectures?.length) {
         for (const lecture of lectures) {
             // Check for cancellation
             const { data: override } = await supabase
@@ -282,9 +283,14 @@ export async function GET(req: NextRequest) {
             log.push(`[warden] "${lecture.module_name}" (${type}) → ${scopedSubs.length} push, ${scopedUsers.length} emails`)
         }
     }
+    } catch (e: any) {
+        log.push(`[warden error] ${e.message}`)
+        console.error("Warden error:", e)
+    }
 
     // ── 2. ASSIGNMENT DEADLINE ALERTS ─────────────────────────────────────
-    for (const window of ALERT_WINDOWS) {
+    try {
+        for (const window of ALERT_WINDOWS) {
         const windowStart = new Date(now + window.ms - TOLERANCE_MS).toISOString()
         const windowEnd   = new Date(now + window.ms + TOLERANCE_MS).toISOString()
 
@@ -374,13 +380,18 @@ export async function GET(req: NextRequest) {
             log.push(`[${window.label}] "${assignment.title}" → ${scopedSubs.length - toDelete.length} push, ${scopedUsers.length} emails`)
         }
     }
+    } catch (e: any) {
+        log.push(`[assignment error] ${e.message}`)
+        console.error("Assignment error:", e)
+    }
 
     // ── 3. DAILY BRIEFINGS (Morning 07:45 / Evening 18:15) ─────────────
-    // Use a 10-minute window for briefings to match the cron schedule
-    const isMorning = nowTimeStr >= '07:40' && nowTimeStr <= '07:50'
-    const isEvening = nowTimeStr >= '18:10' && nowTimeStr <= '18:20'
+    // Use a 15-minute window for briefings to match the cron schedule and allow late runs
+    const isMorning = nowTimeStr >= '07:35' && nowTimeStr <= '07:50'
+    const isEvening = nowTimeStr >= '18:05' && nowTimeStr <= '18:20'
 
-    if (isMorning || isEvening) {
+    try {
+        if (isMorning || isEvening) {
         const briefingDay = isMorning ? currentDay : (currentDay + 1) % 7
         const briefingDateStr = isMorning ? dateStr : new Date(now + 24 * 60 * 60 * 1000).toISOString().split('T')[0]
 
@@ -472,6 +483,10 @@ export async function GET(req: NextRequest) {
             await Promise.allSettled(deliveryPromises)
             log.push(`[briefing] ${isMorning ? 'morning' : 'evening'} for prog ${programId} → ${scopedSubs.length} push, ${scopedUsers.length} emails`)
         }
+    }
+    } catch (e: any) {
+        log.push(`[briefing error] ${e.message}`)
+        console.error("Briefing error:", e)
     }
 
     console.log(`[cron/adhd] sent=${totalSent} pruned=${totalPruned}`, log)
