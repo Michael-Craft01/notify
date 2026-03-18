@@ -160,13 +160,18 @@ export async function GET(req: NextRequest) {
 
     const now = Date.now()
     const nowTime = new Date(now)
+    
+    // Shift time exactly to SAST (+02:00) so UTC-based Vercel server strings correctly match the DB TIME fields!
+    const SAST_OFFSET = 2 * 60 * 60 * 1000
+    const sastTime = new Date(now + SAST_OFFSET)
+    
     let totalSent = 0
     let totalPruned = 0
     const log: string[] = []
 
-    const currentDay = nowTime.getDay()
-    const dateStr = nowTime.toISOString().split('T')[0]
-    const nowTimeStr = nowTime.toTimeString().slice(0, 5) // HH:mm
+    const currentDay = sastTime.getUTCDay()
+    const dateStr = sastTime.toISOString().split('T')[0]
+    const nowTimeStr = sastTime.toISOString().split('T')[1].slice(0, 5) // HH:mm
 
     // Fetch all users for email delivery
     const { data: allUsers } = await supabase
@@ -197,9 +202,9 @@ export async function GET(req: NextRequest) {
     // We check for any lecture starting "now" or in "10 minutes"
     // To be robust, we look for anything starting in the next 15 minutes
     // and filter out anything that was already handled by the previous cron run.
-    const nowPlus15 = new Date(now + 15 * 60 * 1000)
-    const nowPlus15Str = nowPlus15.toTimeString().slice(0, 5) + ':00'
-    const nowMinStr = nowTime.toTimeString().slice(0, 5) + ':00'
+    const sastPlus15 = new Date(sastTime.getTime() + 15 * 60 * 1000)
+    const nowPlus15Str = sastPlus15.toISOString().split('T')[1].slice(0, 5) + ':00'
+    const nowMinStr = sastTime.toISOString().split('T')[1].slice(0, 5) + ':00'
 
     try {
         const { data: lectures } = await supabase
