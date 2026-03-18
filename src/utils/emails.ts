@@ -1,7 +1,7 @@
 import { Resend } from 'resend';
 import { NotificationEmail } from '@/emails/NotificationEmail';
 
-const resend = new Resend(process.env.RESEND_API_Key);
+const resend = new Resend(process.env.RESEND_API_Key || 're_dummy_fallback_for_builds');
 
 export async function sendWelcomeEmail(email: string, firstName: string) {
     try {
