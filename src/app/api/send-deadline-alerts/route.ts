@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 export const dynamic = 'force-dynamic'
 import { createClient } from '@supabase/supabase-js'
 import webpush from '@/utils/webpush'
+import { sendNotificationEmail } from '@/utils/emails'
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -167,6 +168,11 @@ export async function GET(req: NextRequest) {
     const dateStr = nowTime.toISOString().split('T')[0]
     const nowTimeStr = nowTime.toTimeString().slice(0, 5) // HH:mm
 
+    // Fetch all users for email delivery
+    const { data: allUsers } = await supabase
+        .from('users')
+        .select('id, full_name, email, program_id')
+
     // Fetch all subscriptions with user program association
     const { data: subs, error: subErr } = await supabase
         .from('user_subscriptions')
@@ -212,21 +218,30 @@ export async function GET(req: NextRequest) {
 
             if (override?.is_cancelled) continue
 
-            const scopedSubs = subs.filter((s: any) => s.users?.program_id === lecture.program_id)
-            if (!scopedSubs.length) continue
+            const scopedSubs = subs.filter((s: any) => {
+                const user = Array.isArray(s.users) ? s.users[0] : s.users
+                return user?.program_id === lecture.program_id
+            })
+            const scopedUsers = allUsers?.filter(u => u.program_id === lecture.program_id) || []
+            
+            if (!scopedSubs.length && !scopedUsers.length) continue
 
             const type = lecture.start_time.startsWith(nowTimeStr) ? 'started' : 'upcoming'
 
-            await Promise.allSettled(
-                scopedSubs.map(async (row: any) => {
-                    const firstName = (row.users?.full_name || row.users?.email?.split('@')[0] || 'there').split(' ')[0]
-                    const vibe = getWardenVibe(firstName, lecture.module_name, lecture.venue || 'the hall', type)
-                    const payload = JSON.stringify({
-                        title: vibe.title,
-                        body: vibe.body,
-                        url: '/',
-                        urgency: 'high',
-                    })
+            const deliveryPromises = []
+
+            // 1. Push Notifications
+            for (const row of scopedSubs) {
+                const user = Array.isArray(row.users) ? row.users[0] : row.users
+                const firstName = (user?.full_name || user?.email?.split('@')[0] || 'there').split(' ')[0]
+                const vibe = getWardenVibe(firstName, lecture.module_name, lecture.venue || 'the hall', type)
+                const payload = JSON.stringify({
+                    title: vibe.title,
+                    body: vibe.body,
+                    url: '/',
+                    urgency: 'high',
+                })
+                deliveryPromises.push((async () => {
                     try {
                         await webpush.sendNotification(row.subscription, payload, {
                             headers: {
@@ -241,9 +256,27 @@ export async function GET(req: NextRequest) {
                             totalPruned++
                         }
                     }
-                })
-            )
-            log.push(`[warden] "${lecture.module_name}" (${type}) → ${scopedSubs.length} subs`)
+                })())
+            }
+
+            // 2. Email Notifications
+            for (const user of scopedUsers) {
+                if (!user.email) continue
+                const firstName = (user.full_name || user.email.split('@')[0] || 'there').split(' ')[0]
+                const vibe = getWardenVibe(firstName, lecture.module_name, lecture.venue || 'the hall', type)
+                deliveryPromises.push(sendNotificationEmail({
+                    email: user.email,
+                    firstName,
+                    subject: vibe.title,
+                    type: 'warden',
+                    moduleName: lecture.module_name,
+                    venue: lecture.venue || undefined,
+                    alertType: type
+                }))
+            }
+
+            await Promise.allSettled(deliveryPromises)
+            log.push(`[warden] "${lecture.module_name}" (${type}) → ${scopedSubs.length} push, ${scopedUsers.length} emails`)
         }
     }
 
@@ -261,9 +294,13 @@ export async function GET(req: NextRequest) {
         if (!assignments?.length) continue
 
         for (const assignment of assignments) {
-            // Filter subscriptions to only those in the same program
+            // Filter push subscriptions
             const scopedSubs = subs.filter((s: any) => s.users?.program_id === assignment.program_id)
-            if (!scopedSubs.length) continue
+            // Filter all users for email
+            const scopedUsers = allUsers?.filter(u => u.program_id === assignment.program_id) || []
+
+            if (!scopedSubs.length && !scopedUsers.length) continue
+
             // Fetch cohort completion % for social proof messaging
             const { data: pulse } = await supabase
                 .from('assignment_pulse_stats')
@@ -273,49 +310,21 @@ export async function GET(req: NextRequest) {
 
             const cohortPct = pulse?.finished_percentage ?? 0
             const toDelete: string[] = []
+            const deliveryPromises = []
 
-            await Promise.allSettled(
-                scopedSubs.map(async (row: any) => {
-                    const subOrigin = row.device_type?.split('browser:')[1]
-                    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'notify.logichq.tech'
-                    
-                    const subProgramId = row.users?.program_id
-                    if (!subProgramId) {
-                        const noProgLog = `[cron] User ${row.id} has no program_id, skipping`
-                        console.log(noProgLog)
-                        log.push(noProgLog)
-                        return
-                    }
-
-                    if (siteUrl && subOrigin) {
-                        const isLegacyOrigin = subOrigin.includes('vercel.app')
-                        const isMainOrigin = subOrigin.includes('logichq.tech')
-                        
-                        if (!isLegacyOrigin && !isMainOrigin && !subOrigin.includes(siteUrl)) {
-                            const originLog = `[cron] Filtering out unknown origin: ${subOrigin}`
-                            console.log(originLog)
-                            log.push(originLog)
-                            return 
-                        }
-                    }
-
-                    const sentMsg = `[cron] Sending to ${row.users?.full_name || row.id} (${row.device_type})`
-                    console.log(sentMsg)
-                    log.push(sentMsg)
-
-                    // Personalization Fallbacks
-                    const fullName = row.users?.full_name || row.users?.email?.split('@')[0] || 'there'
-                    const firstName = fullName.split(' ')[0]
-
-                    const vibe = getAssignmentVibe(firstName, assignment.title, window.label, cohortPct)
-
-                    const payload = JSON.stringify({
-                        title: vibe.title,
-                        body: vibe.body,
-                        url: assignment.resource_url || '/',
-                        urgency: window.urgency,
-                    })
-
+            // Push Delivery
+            for (const row of scopedSubs) {
+                const user = Array.isArray(row.users) ? row.users[0] : row.users
+                const fullName = user?.full_name || user?.email?.split('@')[0] || 'there'
+                const firstName = fullName.split(' ')[0]
+                const vibe = getAssignmentVibe(firstName, assignment.title, window.label, cohortPct)
+                const payload = JSON.stringify({
+                    title: vibe.title,
+                    body: vibe.body,
+                    url: assignment.resource_url || '/',
+                    urgency: window.urgency,
+                })
+                deliveryPromises.push((async () => {
                     try {
                         await webpush.sendNotification(row.subscription, payload, {
                             headers: {
@@ -330,14 +339,32 @@ export async function GET(req: NextRequest) {
                             totalPruned++
                         }
                     }
-                })
-            )
+                })())
+            }
+
+            // Email Delivery
+            for (const user of scopedUsers) {
+                if (!user.email) continue
+                const firstName = (user.full_name || user.email.split('@')[0] || 'there').split(' ')[0]
+                const vibe = getAssignmentVibe(firstName, assignment.title, window.label, cohortPct)
+                deliveryPromises.push(sendNotificationEmail({
+                    email: user.email,
+                    firstName,
+                    subject: vibe.title,
+                    type: 'assignment',
+                    moduleName: assignment.title,
+                    bodyText: vibe.body,
+                    cohortPct
+                }))
+            }
+
+            await Promise.allSettled(deliveryPromises)
 
             if (toDelete.length) {
                 await supabase.from('user_subscriptions').delete().in('id', toDelete)
             }
 
-            log.push(`[${window.label}] "${assignment.title}" → ${scopedSubs.length - toDelete.length} scoped subs`)
+            log.push(`[${window.label}] "${assignment.title}" → ${scopedSubs.length - toDelete.length} push, ${scopedUsers.length} emails`)
         }
     }
 
@@ -360,7 +387,9 @@ export async function GET(req: NextRequest) {
         }
 
         for (const [programId, scopedSubs] of programMap.entries()) {
-            // Fetch schedule for briefing day
+            const scopedUsers = allUsers?.filter(u => u.program_id === programId) || []
+            
+            // ... (Fetch schedules and deadlines)
             const { data: daySchedules } = await supabase
                 .from('schedules')
                 .select('module_name, start_time, venue')
@@ -368,7 +397,6 @@ export async function GET(req: NextRequest) {
                 .eq('day_of_week', briefingDay)
                 .order('start_time', { ascending: true })
 
-            // Fetch nearest deadline for evening briefing
             let nearestDeadline = null
             if (isEvening) {
                 const { data: nextAss } = await supabase
@@ -388,26 +416,20 @@ export async function GET(req: NextRequest) {
 
             const classCount = daySchedules?.length || 0
             const firstClass = daySchedules?.[0]
+            const deliveryPromises = []
 
-            await Promise.allSettled(
-                scopedSubs.map(async (row: any) => {
-                    const firstName = (row.users?.full_name || row.users?.email?.split('@')[0] || 'there').split(' ')[0]
-                    const vibe = getBriefingVibe(
-                        firstName, 
-                        isMorning ? 'morning' : 'evening', 
-                        classCount, 
-                        firstClass?.module_name, 
-                        firstClass?.start_time?.slice(0, 5),
-                        nearestDeadline || undefined
-                    )
-
-                    const payload = JSON.stringify({
-                        title: vibe.title,
-                        body: vibe.body,
-                        url: '/',
-                        urgency: 'normal',
-                    })
-
+            // Push Briefings
+            for (const row of scopedSubs) {
+                const user = Array.isArray(row.users) ? row.users[0] : row.users
+                const firstName = (user?.full_name || user?.email?.split('@')[0] || 'there').split(' ')[0]
+                const vibe = getBriefingVibe(firstName, isMorning ? 'morning' : 'evening', classCount, firstClass?.module_name, firstClass?.start_time?.slice(0, 5), nearestDeadline || undefined)
+                const payload = JSON.stringify({
+                    title: vibe.title,
+                    body: vibe.body,
+                    url: '/',
+                    urgency: 'normal',
+                })
+                deliveryPromises.push((async () => {
                     try {
                         await webpush.sendNotification(row.subscription, payload)
                         totalSent++
@@ -417,9 +439,29 @@ export async function GET(req: NextRequest) {
                             totalPruned++
                         }
                     }
-                })
-            )
-            log.push(`[briefing] ${isMorning ? 'morning' : 'evening'} for prog ${programId} → ${scopedSubs.length} subs`)
+                })())
+            }
+
+            // Email Briefings
+            for (const user of scopedUsers) {
+                if (!user.email) continue
+                const firstName = (user.full_name || user.email.split('@')[0] || 'there').split(' ')[0]
+                const vibe = getBriefingVibe(firstName, isMorning ? 'morning' : 'evening', classCount, firstClass?.module_name, firstClass?.start_time?.slice(0, 5), nearestDeadline || undefined)
+                deliveryPromises.push(sendNotificationEmail({
+                    email: user.email,
+                    firstName,
+                    subject: vibe.title,
+                    type: 'briefing',
+                    briefingType: isMorning ? 'morning' : 'evening',
+                    classCount,
+                    moduleName: firstClass?.module_name,
+                    time: firstClass?.start_time?.slice(0, 5),
+                    deadline: nearestDeadline || undefined
+                }))
+            }
+
+            await Promise.allSettled(deliveryPromises)
+            log.push(`[briefing] ${isMorning ? 'morning' : 'evening'} for prog ${programId} → ${scopedSubs.length} push, ${scopedUsers.length} emails`)
         }
     }
 

@@ -1,5 +1,6 @@
 import { type EmailOtpType } from '@supabase/supabase-js'
 import { type NextRequest, NextResponse } from 'next/server'
+import { sendWelcomeEmail } from '@/utils/emails'
 
 import { createClient } from '@/utils/supabase/server'
 
@@ -100,6 +101,21 @@ export async function GET(request: NextRequest) {
                     console.error('Upsert Error (Service Role):', upsertError)
                     const errorMessage = `Database Error: Failed to create user profile. ${upsertError.message}`
                     return NextResponse.redirect(new URL(`/login?message=${encodeURIComponent(errorMessage)}`, request.url))
+                }
+
+                // 2.5 Send Welcome Email if not already sent
+                const { data: existingUser } = await serviceClient
+                    .from('users')
+                    .select('welcome_sent, full_name')
+                    .eq('id', data.user.id)
+                    .single()
+                
+                if (!existingUser?.welcome_sent) {
+                    const firstName = (existingUser?.full_name || data.user.user_metadata?.full_name || data.user.email?.split('@')[0] || 'there').split(' ')[0]
+                    const emailSent = await sendWelcomeEmail(data.user.email!, firstName)
+                    if (emailSent.success) {
+                        await serviceClient.from('users').update({ welcome_sent: true }).eq('id', data.user.id)
+                    }
                 }
 
                 console.log('Auth: Profile verified, session active.')

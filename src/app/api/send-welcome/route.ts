@@ -1,12 +1,10 @@
-import { Resend } from 'resend';
-import { WelcomeNudgeEmail } from '@/emails/WelcomeNudge';
+import { sendWelcomeEmail } from '@/utils/emails';
 import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request) {
-    const resend = new Resend(process.env.RESEND_API_Key);
     const { searchParams } = new URL(request.url);
     const secret = searchParams.get('secret');
 
@@ -19,17 +17,18 @@ export async function GET(request: Request) {
         process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
 
-    // Fetch all users with their full name and email
+    // Fetch all users who haven't received the welcome email yet
     const { data: users, error } = await supabase
         .from('users')
-        .select('full_name, email');
+        .select('id, full_name, email')
+        .eq('welcome_sent', false);
 
     if (error) {
         return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
     if (!users || users.length === 0) {
-        return NextResponse.json({ message: 'No users found' });
+        return NextResponse.json({ message: 'No pending welcome emails' });
     }
 
     const results = [];
@@ -40,17 +39,13 @@ export async function GET(request: Request) {
         const firstName = (user.full_name || user.email.split('@')[0] || 'there').split(' ')[0];
 
         try {
-            const { data, error: sendError } = await resend.emails.send({
-                from: 'onboarding@notify.logichq.tech',
-                to: [user.email],
-                subject: `Welcome to Notify, ${firstName}! 🧡`,
-                react: WelcomeNudgeEmail({ firstName }),
-            });
+            const emailRes = await sendWelcomeEmail(user.email, firstName);
 
-            if (sendError) {
-                results.push({ email: user.email, status: 'error', error: sendError });
+            if (emailRes.success) {
+                await supabase.from('users').update({ welcome_sent: true }).eq('id', user.id);
+                results.push({ email: user.email, status: 'sent', id: emailRes.id });
             } else {
-                results.push({ email: user.email, status: 'sent', id: data?.id });
+                results.push({ email: user.email, status: 'error', error: emailRes.error });
             }
         } catch (err: any) {
             results.push({ email: user.email, status: 'exception', error: err.message });
@@ -58,7 +53,7 @@ export async function GET(request: Request) {
     }
 
     return NextResponse.json({ 
-        total: users.length, 
+        total_pending: users.length, 
         processed: results.length,
         results 
     });

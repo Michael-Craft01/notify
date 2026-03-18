@@ -54,6 +54,7 @@ CREATE TABLE IF NOT EXISTS public.users (
   full_name TEXT,
   role user_role DEFAULT 'student',
   program_id UUID REFERENCES public.programs(id) ON DELETE SET NULL,
+  welcome_sent BOOLEAN DEFAULT false,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
