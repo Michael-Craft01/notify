@@ -16,7 +16,7 @@ import * as React from "react";
 interface NotificationEmailProps {
   firstName: string;
   subject: string;
-  type: 'warden' | 'briefing' | 'assignment';
+  type: 'warden' | 'briefing' | 'assignment' | 'welcome';
   moduleName?: string;
   venue?: string;
   time?: string;
@@ -58,6 +58,31 @@ export const NotificationEmail = ({
           <Heading style={h1}>Hey {firstName},</Heading>
           
           <Section style={card}>
+            {type === 'welcome' && (
+              <>
+                <Text style={badge}>🍊 WELCOME TO THE INNER CIRCLE</Text>
+                <Heading style={h2}>You're officially part of the Notify family.</Heading>
+                <Text style={text}>
+                  We didn't just build Notify for everyone—we built it for <strong>you</strong>. In the fast-paced world of Computer Science 2028, we know that every second counts. That's why we're here: to take the stress of scheduling off your shoulders.
+                </Text>
+                <Text style={text}>
+                  Think of Notify as your personal academic strategist. Whether it's a timely 10-minute heads-up for a lecture or a motivational nudge for a deadline, we've got your back, every step of the way.
+                </Text>
+                
+                <Hr style={hr} />
+                
+                <Heading style={h3}>Your New Superpowers:</Heading>
+                <ul style={list}>
+                    <li style={listItem}><strong>The Warden:</strong> Instant alerts that find you 10 minutes before class starts.</li>
+                    <li style={listItem}><strong>Daily Hype:</strong> A morning briefing to help you own your day before it even begins.</li>
+                    <li style={listItem}><strong>Social Pulse:</strong> See how the rest of the cohort is faring with assignments so you never feel alone.</li>
+                </ul>
+
+                <Text style={textSmall}>
+                  To experience the full magic, make sure to <strong>enable push notifications</strong>. It's how we transition from "staying informed" to "staying ahead."
+                </Text>
+              </>
+            )}
             {type === 'warden' && (
               <>
                 <Text style={badge}>
@@ -112,7 +137,7 @@ export const NotificationEmail = ({
             )}
 
             <Link href="https://notify.logichq.tech" style={button}>
-              Open Dashboard
+              {type === 'welcome' ? 'Go to My Dashboard' : 'Open Dashboard'}
             </Link>
           </Section>
 
@@ -165,6 +190,15 @@ const h2 = {
   fontWeight: "800",
   margin: "0 0 12px",
   letterSpacing: "-0.02em",
+};
+
+const h3 = {
+  color: "#ffffff",
+  fontSize: "16px",
+  fontWeight: "700",
+  margin: "24px 0 12px",
+  textTransform: "uppercase" as const,
+  letterSpacing: "0.05em",
 };
 
 const badge = {
@@ -220,4 +254,16 @@ const footer = {
   fontSize: "12px",
   marginTop: "40px",
   textAlign: "center" as const,
+};
+
+const list = {
+  paddingLeft: "20px",
+  margin: "0 0 24px",
+};
+
+const listItem = {
+  color: "rgba(255, 255, 255, 0.6)",
+  fontSize: "14px",
+  marginBottom: "12px",
+  lineHeight: "1.4",
 };

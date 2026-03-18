@@ -8,13 +8,11 @@ export async function sendWelcomeEmail(email: string, firstName: string) {
         const { data, error } = await resend.emails.send({
             from: 'onboarding@logichq.tech',
             to: [email],
-            subject: `Welcome to Notify, ${firstName}! 🧡`,
+            subject: `You're in, ${firstName}! Welcome to Notify 🧡`,
             react: NotificationEmail({ 
                 firstName,
-                subject: `Welcome to Notify, ${firstName}! 🧡`,
-                type: 'briefing', // Using briefing styled layout as a base for welcome
-                briefingType: 'morning',
-                bodyText: "You're now part of the Computer Science 2028 alert system. We're here to make sure you never miss a lecture, a break, or a deadline."
+                subject: `You're in, ${firstName}! Welcome to Notify 🧡`,
+                type: 'welcome',
             }),
         });
 
