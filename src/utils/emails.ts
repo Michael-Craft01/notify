@@ -6,7 +6,7 @@ const resend = new Resend(process.env.RESEND_API_Key);
 export async function sendWelcomeEmail(email: string, firstName: string) {
     try {
         const { data, error } = await resend.emails.send({
-            from: 'onboarding@notify.logichq.tech',
+            from: 'onboarding@logichq.tech',
             to: [email],
             subject: `Welcome to Notify, ${firstName}! 🧡`,
             react: NotificationEmail({ 
@@ -46,7 +46,7 @@ export async function sendNotificationEmail(params: {
 }) {
     try {
         const { data, error } = await resend.emails.send({
-            from: 'alerts@notify.logichq.tech',
+            from: 'alerts@logichq.tech',
             to: [params.email],
             subject: params.subject,
             react: NotificationEmail(params),
