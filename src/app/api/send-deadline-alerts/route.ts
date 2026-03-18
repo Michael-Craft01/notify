@@ -165,6 +165,7 @@ export async function GET(req: NextRequest) {
 
     const currentDay = nowTime.getDay()
     const dateStr = nowTime.toISOString().split('T')[0]
+    const nowTimeStr = nowTime.toTimeString().slice(0, 5) // HH:mm
 
     // Fetch all subscriptions with user program association
     const { data: subs, error: subErr } = await supabase
@@ -185,15 +186,19 @@ export async function GET(req: NextRequest) {
     }
 
     // ── 1. WARDEN SCHEDULE ALERTS (10m before & 0m start) ──────────
-    const tenMinsFromNowTime = new Date(now + 10 * 60 * 1000)
-    const tenMinsFromNowTimeStr = tenMinsFromNowTime.toTimeString().slice(0, 5) // HH:mm
-    const nowTimeStr = nowTime.toTimeString().slice(0, 5) // HH:mm
+    // We check for any lecture starting "now" or in "10 minutes"
+    // To be robust, we look for anything starting in the next 12 minutes
+    // and filter out anything that was already handled by the previous cron run.
+    const nowPlus12 = new Date(now + 12 * 60 * 1000)
+    const nowPlus12Str = nowPlus12.toTimeString().slice(0, 5) + ':00'
+    const nowMinStr = nowTime.toTimeString().slice(0, 5) + ':00'
 
     const { data: lectures } = await supabase
         .from('schedules')
         .select('*')
         .eq('day_of_week', currentDay)
-        .in('start_time', [tenMinsFromNowTimeStr + ':00', nowTimeStr + ':00'])
+        .gte('start_time', nowMinStr)
+        .lte('start_time', nowPlus12Str)
 
     if (lectures?.length) {
         for (const lecture of lectures) {
@@ -337,8 +342,9 @@ export async function GET(req: NextRequest) {
     }
 
     // ── 3. DAILY BRIEFINGS (Morning 07:45 / Evening 18:15) ─────────────
-    const isMorning = nowTimeStr === '07:45'
-    const isEvening = nowTimeStr === '18:15'
+    // Use a 10-minute window for briefings to match the cron schedule
+    const isMorning = nowTimeStr >= '07:40' && nowTimeStr <= '07:50'
+    const isEvening = nowTimeStr >= '18:10' && nowTimeStr <= '18:20'
 
     if (isMorning || isEvening) {
         const briefingDay = isMorning ? currentDay : (currentDay + 1) % 7

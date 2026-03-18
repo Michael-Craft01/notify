@@ -1,5 +1,11 @@
 {
   "github": {
     "silent": true
-  }
+  },
+  "crons": [
+    {
+      "path": "/api/send-deadline-alerts",
+      "schedule": "*/10 * * * *"
+    }
+  ]
 }

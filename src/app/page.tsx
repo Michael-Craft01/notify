@@ -9,7 +9,6 @@ import NotifyAIChat from "@/components/NotifyAIChat";
 import { Clock, CheckCircle2, AlertTriangle, TrendingUp, Users } from "lucide-react";
 import Image from "next/image";
 import JoinClassOverlay from "@/components/JoinClassOverlay";
-import TimetableUploadModal from "@/components/TimetableUploadModal";
 import NextUpWidget from "@/components/NextUpWidget";
 
 export const dynamic = "force-dynamic";
@@ -108,7 +107,6 @@ export default async function Home() {
             <NotificationToggle />
             <div className="w-[1px] h-5 bg-[var(--color-border)]" />
             <NotifyAIChat currentAssignments={allTasks} programName={programName} />
-            <TimetableUploadModal />
             <AddAssignmentModal userId={user.id} />
             <SettingsModal user={{
               id: user.id,
