@@ -220,7 +220,7 @@ export async function GET(req: NextRequest) {
             // Calculate minute difference
             const [lH, lM] = lecture.start_time.split(':').map(Number)
             const lectureMinutes = lH * 60 + lM
-            const nowMinutes = sastTime.getHours() * 60 + sastTime.getMinutes()
+            const nowMinutes = sastTime.getUTCHours() * 60 + sastTime.getUTCMinutes()
             const diff = lectureMinutes - nowMinutes
 
             let type: 'upcoming' | 'started' | null = null
