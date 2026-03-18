@@ -127,94 +127,66 @@ export default function NextUpWidget({ schedules, overrides, isRep }: NextUpWidg
     if (!nextClass) return null
 
     return (
-        <section className={`animate-fade-up stagger ${status !== 'Free' && !isCancelled ? 'animate-pulse [animation-duration:3s]' : ''}`}>
-            <div className={`relative group p-[2px] rounded-[32px] overflow-hidden ${status !== 'Free' && !isCancelled ? 'shadow-[0_0_80px_rgba(249,115,22,0.4)]' : ''} transition-shadow duration-700`}>
-                {/* ── Animated Background Gradient ───────────────────────────── */}
-                <div className={`absolute inset-0 transition-all duration-700 blur-[0.5px] ${
-                    isCancelled ? 'bg-gradient-to-br from-red-500/30 to-red-900/40' :
-                    status === 'Active' ? 'bg-gradient-to-br from-orange via-orange/60 to-red-500 animate-gradient-xy' :
-                    status === 'In Transit' ? 'bg-gradient-to-br from-yellow-500/80 via-orange/70 to-orange/40' :
-                    'bg-gradient-to-br from-orange/60 via-orange/20 to-orange/40'
+        <section className="animate-fade-up">
+            <div className={`relative group p-[1px] rounded-[24px] overflow-hidden transition-shadow duration-500`}>
+                {/* ── Subtle Background Gradient ───────────────────────────── */}
+                <div className={`absolute inset-0 transition-opacity duration-700 opacity-50 ${
+                    isCancelled ? 'bg-gradient-to-br from-red-500/20 to-transparent' :
+                    status === 'Active' ? 'bg-gradient-to-br from-orange/40 via-orange/10 to-transparent' :
+                    status === 'In Transit' ? 'bg-gradient-to-br from-yellow-500/40 to-transparent' :
+                    'bg-gradient-to-br from-white/10 to-transparent'
                 }`} />
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(255,255,255,0.4),transparent_60%)] opacity-30 mix-blend-overlay pointer-events-none" />
                 
-                <div className="relative flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-8 p-6 sm:p-12 bg-[#050505]/90 backdrop-blur-3xl border border-white/20 rounded-[30px] shadow-inner">
+                <div className="relative flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-6 p-5 sm:p-6 bg-[#0a0a0a]/95 backdrop-blur-xl border border-white/5 rounded-[23px] shadow-sm">
                     
-                    {/* ── Ambient Glows ────────────────────────────────────────── */}
-                    {status !== 'Free' && !isCancelled && (
-                        <>
-                            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-orange/20 rounded-full blur-[120px] pointer-events-none animate-pulse" />
-                            <div className="absolute -bottom-20 -right-20 w-48 h-48 bg-white/10 rounded-full blur-[80px] pointer-events-none" />
-                        </>
-                    )}
-
                     {/* ── Status Ribbon ────────────────────────────────────────── */}
-                    <div className="absolute top-0 right-8 sm:right-12 px-6 py-2.5 border-x border-b border-white/10 rounded-b-2xl backdrop-blur-3xl z-20 shadow-xl overflow-hidden"
-                         style={{ background: isCancelled ? 'rgba(239, 68, 68, 0.2)' : status === 'Active' ? 'rgba(249, 115, 22, 0.3)' : 'rgba(255, 255, 255, 0.05)' }}>
-                        <div className="absolute inset-0 bg-gradient-to-b from-white/20 to-transparent opacity-50 pointer-events-none" />
-                        <div className="flex items-center gap-3 relative z-10">
-                            <span className={`h-2.5 w-2.5 rounded-full shadow-[0_0_20px_currentColor] ${
-                                isCancelled ? 'text-red-500 bg-red-500' :
-                                status === 'In Transit' ? 'text-yellow-400 bg-yellow-400 animate-ping' :
-                                status === 'Active' ? 'text-green-400 bg-green-400 animate-pulse' : 'text-orange bg-orange'
+                    <div className="absolute top-0 right-6 px-4 py-1.5 border-x border-b border-white/5 rounded-b-xl backdrop-blur-md z-20"
+                         style={{ background: isCancelled ? 'rgba(239, 68, 68, 0.1)' : status === 'Active' ? 'rgba(249, 115, 22, 0.1)' : 'rgba(255, 255, 255, 0.03)' }}>
+                        <div className="flex items-center gap-2 relative z-10">
+                            <span className={`h-1.5 w-1.5 rounded-full ${
+                                isCancelled ? 'bg-red-500' :
+                                status === 'In Transit' ? 'bg-yellow-400' :
+                                status === 'Active' ? 'bg-green-400 animate-pulse' : 'bg-orange'
                             }`} />
-                            <span className="text-[11px] font-black uppercase tracking-[0.3em] font-[family-name:var(--font-outfit)] text-white drop-shadow-md">
+                            <span className="text-[10px] font-bold uppercase tracking-widest text-white/80">
                                 {isCancelled ? 'Cancelled' : status === 'In Transit' ? 'Starts Soon' : status === 'Active' ? 'Live Now' : 'Next Up'}
                             </span>
                         </div>
                     </div>
 
-                    <div className="flex flex-col lg:flex-row items-start lg:items-center gap-8 relative z-10 w-full">
-                        {/* ── Big Icon Container ─────────────────────────────────── */}
-                        <div className={`relative shrink-0 transition-transform duration-700 ${status !== 'Free' ? 'scale-110' : 'group-hover:scale-105'}`}>
-                             <div className={`h-24 w-24 sm:h-32 sm:w-32 rounded-[32px] sm:rounded-[40px] flex items-center justify-center border-2 transition-all duration-500 overflow-hidden ${
-                                isCancelled 
-                                    ? 'bg-red-500/10 border-red-500/30 text-red-500' 
-                                    : status === 'Active'
-                                    ? 'bg-orange/30 border-orange/50 text-white shadow-[0_0_80px_rgba(249,115,22,0.6)]'
-                                    : 'bg-orange/10 border-orange/30 text-orange shadow-[0_0_40px_rgba(249,115,22,0.2)]'
-                            }`}>
-                                <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent" />
-                                {isCancelled ? <Ban size={48} /> : status === 'Active' ? <Zap size={56} className="relative z-10 drop-shadow-[0_0_15px_rgba(255,255,255,0.8)]" /> : <Clock size={48} className="relative z-10" />}
-                            </div>
-                            
-                            {/* Orbital Rings for Urgency */}
-                            {!isCancelled && status !== 'Free' && (
-                                <>
-                                    <div className="absolute -inset-4 border border-orange/30 rounded-[50px] animate-[spin_4s_linear_infinite]" />
-                                    <div className="absolute -inset-8 border border-white/10 rounded-[60px] animate-[spin_8s_linear_infinite_reverse]" />
-                                </>
-                            )}
+                    <div className="flex flex-col lg:flex-row items-start lg:items-center gap-5 relative z-10 w-full">
+                        {/* ── Icon Container ─────────────────────────────────── */}
+                        <div className={`h-14 w-14 sm:h-16 sm:w-16 shrink-0 rounded-[18px] flex items-center justify-center border transition-all duration-500 ${
+                            isCancelled 
+                                ? 'bg-red-500/5 border-red-500/20 text-red-500' 
+                                : status === 'Active'
+                                ? 'bg-orange/10 border-orange/30 text-orange'
+                                : 'bg-white/5 border-white/10 text-orange'
+                        }`}>
+                            {isCancelled ? <Ban size={28} /> : <Clock size={28} />}
                         </div>
 
                         {/* ── Text Content ───────────────────────────────────────── */}
-                        <div className="flex-1 space-y-5">
-                            <div className="flex items-center gap-3">
-                                <div className="h-[2px] w-12 bg-white/40 rounded-full" />
-                                <span className={`text-[13px] font-black uppercase tracking-[0.4em] px-3 py-1 rounded-full font-[family-name:var(--font-outfit)] backdrop-blur-md border ${
-                                    status === 'Active' ? 'bg-green-500/20 text-green-400 border-green-500/30' : 
-                                    status === 'In Transit' ? 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30' :
-                                    isCancelled ? 'bg-red-500/10 text-red-500 border-red-500/20' : 'bg-orange/10 text-orange border-orange/20'
-                                }`}>
-                                    The Warden
-                                </span>
-                            </div>
-
-                            <div className="flex flex-col xl:flex-row xl:items-end gap-4 xl:gap-8 justify-between w-full">
-                                <h2 className={`text-4xl sm:text-6xl font-[family-name:var(--font-outfit)] font-black tracking-tighter leading-[0.9] max-w-xl ${isCancelled ? 'text-white/20 line-through' : 'text-white drop-shadow-lg'}`}>
-                                    {nextClass.module_name}
-                                    <span className={status === 'Active' ? 'text-white' : 'text-orange'}>.</span>
-                                </h2>
+                        <div className="flex-1 space-y-1.5">
+                            <div className="flex flex-col xl:flex-row xl:items-center gap-3 xl:gap-6 justify-between w-full">
+                                <div>
+                                    <div className="flex items-center gap-2 mb-1 text-[11px] font-black uppercase tracking-[0.2em] text-orange/80">
+                                        The Warden
+                                    </div>
+                                    <h2 className={`text-2xl sm:text-3xl font-[family-name:var(--font-outfit)] font-black tracking-tight ${isCancelled ? 'text-white/30 line-through' : 'text-white'}`}>
+                                        {nextClass.module_name}
+                                    </h2>
+                                </div>
 
                                 {/* ── Live Countdown Timer ──────────────────────────── */}
                                 {timeLeft && !isCancelled && (
-                                    <div className="shrink-0 flex items-center gap-3 bg-black/40 border border-white/10 backdrop-blur-xl px-5 py-3 rounded-2xl shadow-xl">
-                                        <Timer className={status === 'Active' ? 'text-orange animate-pulse' : 'text-yellow-500 animate-spin-slow'} size={24} />
+                                    <div className="shrink-0 flex items-center gap-3 bg-white/5 border border-white/10 px-4 py-2 rounded-xl">
+                                        <Timer className={status === 'Active' ? 'text-orange' : 'text-white/40'} size={18} />
                                         <div className="flex flex-col">
-                                            <span className="text-[10px] text-white/50 font-bold uppercase tracking-widest leading-none mb-1">
+                                            <span className="text-[9px] text-white/50 font-bold uppercase tracking-widest leading-none mb-1">
                                                 {status === 'Active' ? 'Ends In' : 'Starts In'}
                                             </span>
-                                            <span className="text-3xl font-[family-name:var(--font-outfit)] font-black tracking-widest text-white leading-none tabular-nums">
+                                            <span className="text-sm font-black tracking-wider text-white tabular-nums leading-none">
                                                 {timeLeft}
                                             </span>
                                         </div>
@@ -222,20 +194,19 @@ export default function NextUpWidget({ schedules, overrides, isRep }: NextUpWidg
                                 )}
                             </div>
 
-                            <div className="flex flex-wrap items-center gap-4 pt-4">
+                            <div className="flex flex-wrap items-center gap-3 pt-2">
                                 {nextClass.course_code && (
-                                    <span className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-orange to-orange-bright text-[14px] font-black text-black uppercase tracking-widest shadow-[0_4px_20px_rgba(249,115,22,0.4)]">
+                                    <span className="px-3 py-1 rounded-md bg-white/10 text-[12px] font-bold text-white/90">
                                         {nextClass.course_code}
                                     </span>
                                 )}
-                                <div className="flex items-center gap-6 p-1.5 bg-white/5 rounded-2xl border border-white/10 backdrop-blur-md">
-                                    <span className={`flex items-center gap-3 text-[15px] font-bold px-5 py-2 rounded-xl bg-white/5 ${status === 'Active' ? 'text-white' : 'text-white/70'}`}>
-                                        <Clock size={20} className={status === 'Active' ? 'text-orange animate-pulse' : 'text-orange'} /> 
+                                <div className="flex items-center gap-4 text-[13px] text-white/60 font-medium">
+                                    <span className="flex items-center gap-1.5">
+                                        <Clock size={14} className={status === 'Active' ? 'text-orange' : 'text-orange/60'} /> 
                                         {nextClass.start_time} - {nextClass.end_time}
                                     </span>
-                                    <div className="w-[1px] h-6 bg-white/20" />
-                                    <span className="flex items-center gap-3 text-[15px] text-white/70 font-bold px-5 py-2">
-                                        <MapPin size={20} className="text-orange" /> {nextClass.venue || "TBA"}
+                                    <span className="flex items-center gap-1.5">
+                                        <MapPin size={14} className="text-orange/60" /> {nextClass.venue || "TBA"}
                                     </span>
                                 </div>
                             </div>
@@ -243,21 +214,20 @@ export default function NextUpWidget({ schedules, overrides, isRep }: NextUpWidg
                     </div>
 
                     {/* ── Actions ───────────────────────────────────────────── */}
-                    <div className="flex flex-col sm:flex-row items-center gap-4 relative z-10 shrink-0 mt-6 sm:mt-0 xl:pl-8">
+                    <div className="flex flex-col sm:flex-row items-center gap-3 relative z-10 shrink-0 mt-4 sm:mt-0 xl:pl-4">
                         {isRep && !isCancelled && status !== 'Free' && (
                             <button 
                                 onClick={handleCancel}
-                                className="w-full sm:w-auto h-16 sm:h-20 px-8 rounded-[24px] border-2 border-red-500/30 bg-red-500/10 text-red-400 text-[14px] font-black uppercase tracking-widest hover:bg-red-500 hover:text-white hover:border-red-500 shadow-lg hover:shadow-[0_0_50px_rgba(239,68,68,0.5)] transition-all active:scale-95 duration-500 group/btn backdrop-blur-md"
+                                className="w-full sm:w-auto h-12 px-5 rounded-xl border border-red-500/20 bg-red-500/5 text-red-400 text-[12px] font-bold tracking-wide hover:bg-red-500/10 transition-colors"
                             >
-                                <span className="flex items-center justify-center gap-3">
-                                    <Ban size={20} className="group-hover/btn:rotate-12 transition-transform" />
-                                    Cancel Class
+                                <span className="flex items-center justify-center gap-2">
+                                    <Ban size={14} />
+                                    Cancel
                                 </span>
                             </button>
                         )}
-                        <button className="relative h-16 w-16 sm:h-24 sm:w-24 rounded-[30px] bg-gradient-to-br from-white to-white/80 flex items-center justify-center text-black hover:scale-110 active:scale-90 transition-all duration-500 shadow-[0_10px_50px_rgba(255,255,255,0.3)] group/arrow">
-                            <div className="absolute inset-0 bg-orange opacity-0 group-hover/arrow:opacity-20 transition-opacity rounded-[30px]" />
-                            <ChevronRight size={40} strokeWidth={3} className="group-hover/arrow:translate-x-1.5 transition-transform" />
+                        <button className="h-12 w-12 rounded-xl bg-orange/10 hover:bg-orange text-orange hover:text-black flex items-center justify-center transition-all">
+                            <ChevronRight size={22} strokeWidth={2.5} />
                         </button>
                     </div>
 

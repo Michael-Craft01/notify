@@ -64,10 +64,10 @@ export default function SettingsModal({ user }: SettingsModalProps) {
 
             {isOpen && mounted && createPortal(
                 <div className="fixed inset-0 z-[300] animate-fade-in">
-                    <div className="absolute inset-0 bg-black/60 backdrop-blur-xl" onClick={() => setIsOpen(false)} />
+                    <div className="absolute inset-0 bg-black/60 backdrop-blur-[64px]" onClick={() => setIsOpen(false)} />
                     
                     <div className="absolute bottom-12 sm:bottom-20 left-1/2 -translate-x-1/2 w-full max-w-[440px] px-4 animate-scale-in">
-                        <div className="relative w-full bg-[#0a0a0a]/90 backdrop-blur-3xl rounded-[32px] border border-white/10 shadow-2xl overflow-hidden">
+                        <div className="relative w-full bg-[#0a0a0a]/90 backdrop-blur-[64px] rounded-[32px] border border-white/10 shadow-2xl overflow-hidden">
                             {/* Header */}
                             <div className="px-5 py-4 flex items-center justify-between border-b border-white/5 bg-white/[0.02]">
                                 <div className="flex items-center gap-3">

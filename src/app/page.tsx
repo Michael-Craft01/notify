@@ -105,6 +105,7 @@ export default async function Home() {
           {/* Actions */}
           <div className="flex items-center gap-3">
             <NotificationToggle />
+            <NotifyAIChat />
             <div className="w-[1px] h-5 bg-[var(--color-border)]" />
             <AddAssignmentModal userId={user.id} />
             <SettingsModal user={{

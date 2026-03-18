@@ -147,7 +147,7 @@ export default function AddAssignmentModal({ userId }: { userId: string }) {
                 <div className="fixed inset-0 z-[300] animate-fade-in">
                     {/* Backdrop */}
                     <div 
-                        className="absolute inset-0 bg-black/60 backdrop-blur-xl" 
+                        className="absolute inset-0 bg-black/60 backdrop-blur-[64px]" 
                         onClick={handleClose} 
                     />
                     
@@ -157,8 +157,8 @@ export default function AddAssignmentModal({ userId }: { userId: string }) {
                             className="w-full rounded-[32px] overflow-hidden shadow-2xl border border-white/10"
                             style={{
                                 background: 'rgba(10,10,10,0.85)',
-                                backdropFilter: 'blur(32px)',
-                                WebkitBackdropFilter: 'blur(32px)',
+                                backdropFilter: 'blur(64px)',
+                                WebkitBackdropFilter: 'blur(64px)',
                             }}
                         >
                             {/* Header */}

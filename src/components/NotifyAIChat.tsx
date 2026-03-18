@@ -120,7 +120,7 @@ export default function NotifyAIChat({ currentAssignments, programName }: { curr
                 <div className="fixed inset-0 z-[300] animate-fade-in">
                     {/* Backdrop */}
                     <div 
-                        className="absolute inset-0 bg-black/40 backdrop-blur-xl" 
+                        className="absolute inset-0 bg-black/60 backdrop-blur-[64px]" 
                         onClick={() => setIsOpen(false)} 
                     />
                     
@@ -130,8 +130,8 @@ export default function NotifyAIChat({ currentAssignments, programName }: { curr
                             className="flex flex-col h-[600px] rounded-[28px] border border-white/10 shadow-2xl overflow-hidden"
                             style={{ 
                                 background: 'rgba(12, 12, 12, 0.85)',
-                                backdropFilter: 'blur(32px)',
-                                WebkitBackdropFilter: 'blur(32px)'
+                                backdropFilter: 'blur(64px)',
+                                WebkitBackdropFilter: 'blur(64px)'
                             }}
                         >
                             {/* Header */}
