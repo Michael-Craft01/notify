@@ -198,14 +198,13 @@ export async function GET(req: NextRequest) {
 
     try {
 
-    // ── 1. WARDEN SCHEDULE ALERTS (10m before & 0m start) ──────────
-    // We check for any lecture starting "now" or in "10 minutes"
-    // To be robust, we allow a 5-minute lookback and 15-minute lookahead.
-    const sastMinus5 = new Date(sastTime.getTime() - 5 * 60 * 1000)
+    // ── 1. WARDEN SCHEDULE ALERTS (10m before & 30m after start) ──────────
+    // We allow a 35-minute lookback and 15-minute lookahead to catch both windows.
+    const sastMinus35 = new Date(sastTime.getTime() - 35 * 60 * 1000)
     const sastPlus15 = new Date(sastTime.getTime() + 15 * 60 * 1000)
     
     // Convert to HH:mm:ss for Postgres TIME comparison
-    const nowMinStr = sastMinus5.toISOString().split('T')[1].slice(0, 8)
+    const nowMinStr = sastMinus35.toISOString().split('T')[1].slice(0, 8)
     const nowMaxStr = sastPlus15.toISOString().split('T')[1].slice(0, 8)
 
     try {
@@ -218,8 +217,7 @@ export async function GET(req: NextRequest) {
 
         if (lectures?.length) {
         for (const lecture of lectures) {
-            // Calculate minute difference for precise vibing
-            // lecture.start_time is "HH:mm:ss"
+            // Calculate minute difference
             const [lH, lM] = lecture.start_time.split(':').map(Number)
             const lectureMinutes = lH * 60 + lM
             const nowMinutes = sastTime.getHours() * 60 + sastTime.getMinutes()
@@ -227,15 +225,16 @@ export async function GET(req: NextRequest) {
 
             let type: 'upcoming' | 'started' | null = null
             
-            // "Commencing" window: -3 to +2 minutes from now
-            // "Upcoming" window: 7 to 13 minutes from now
-            if (diff >= -3 && diff <= 2) {
-                type = 'started'
-            } else if (diff >= 7 && diff <= 13) {
+            // "Upcoming" window: 7 to 13 minutes from now (Trigger @ ~10m before)
+            if (diff >= 7 && diff <= 13) {
                 type = 'upcoming'
+            } 
+            // "Late/Second" window: -33 to -27 minutes from now (Trigger @ ~30m after)
+            else if (diff >= -33 && diff <= -27) {
+                type = 'started'
             }
 
-            if (!type) continue // Skip if it doesn't fall into a clean notification window
+            if (!type) continue // Skip if it doesn't fall into our specific ADHD touchpoint windows
 
             // Check for cancellation
             const { data: override } = await supabase
