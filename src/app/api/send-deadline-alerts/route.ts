@@ -200,11 +200,13 @@ export async function GET(req: NextRequest) {
 
     // ── 1. WARDEN SCHEDULE ALERTS (10m before & 0m start) ──────────
     // We check for any lecture starting "now" or in "10 minutes"
-    // To be robust, we look for anything starting in the next 15 minutes
-    // and filter out anything that was already handled by the previous cron run.
+    // To be robust, we allow a 5-minute lookback and 15-minute lookahead.
+    const sastMinus5 = new Date(sastTime.getTime() - 5 * 60 * 1000)
     const sastPlus15 = new Date(sastTime.getTime() + 15 * 60 * 1000)
-    const nowPlus15Str = sastPlus15.toISOString().split('T')[1].slice(0, 5) + ':00'
-    const nowMinStr = sastTime.toISOString().split('T')[1].slice(0, 5) + ':00'
+    
+    // Convert to HH:mm:ss for Postgres TIME comparison
+    const nowMinStr = sastMinus5.toISOString().split('T')[1].slice(0, 8)
+    const nowMaxStr = sastPlus15.toISOString().split('T')[1].slice(0, 8)
 
     try {
         const { data: lectures } = await supabase
@@ -212,10 +214,29 @@ export async function GET(req: NextRequest) {
             .select('*')
             .eq('day_of_week', currentDay)
             .gte('start_time', nowMinStr)
-            .lte('start_time', nowPlus15Str)
+            .lte('start_time', nowMaxStr)
 
         if (lectures?.length) {
         for (const lecture of lectures) {
+            // Calculate minute difference for precise vibing
+            // lecture.start_time is "HH:mm:ss"
+            const [lH, lM] = lecture.start_time.split(':').map(Number)
+            const lectureMinutes = lH * 60 + lM
+            const nowMinutes = sastTime.getHours() * 60 + sastTime.getMinutes()
+            const diff = lectureMinutes - nowMinutes
+
+            let type: 'upcoming' | 'started' | null = null
+            
+            // "Commencing" window: -3 to +2 minutes from now
+            // "Upcoming" window: 7 to 13 minutes from now
+            if (diff >= -3 && diff <= 2) {
+                type = 'started'
+            } else if (diff >= 7 && diff <= 13) {
+                type = 'upcoming'
+            }
+
+            if (!type) continue // Skip if it doesn't fall into a clean notification window
+
             // Check for cancellation
             const { data: override } = await supabase
                 .from('schedule_overrides')
@@ -234,8 +255,6 @@ export async function GET(req: NextRequest) {
             const scopedUsers = allUsers?.filter(u => u.program_id === lecture.program_id) || []
             
             if (!scopedSubs.length && !scopedUsers.length) continue
-
-            const type = lecture.start_time.startsWith(nowTimeStr) ? 'started' : 'upcoming'
 
             const deliveryPromises = []
 
