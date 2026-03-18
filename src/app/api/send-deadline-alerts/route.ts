@@ -187,9 +187,11 @@ export async function GET(req: NextRequest) {
             )
         `)
 
-    if (subErr || !subs?.length) {
-        return NextResponse.json({ ok: true, sent: 0, reason: 'No subscriptions', subErr })
+    if (subErr) {
+        console.error("[cron] Subscription fetch error:", subErr)
     }
+
+    try {
 
     // ── 1. WARDEN SCHEDULE ALERTS (10m before & 0m start) ──────────
     // We check for any lecture starting "now" or in "10 minutes"
@@ -218,7 +220,8 @@ export async function GET(req: NextRequest) {
 
             if (override?.is_cancelled) continue
 
-            const scopedSubs = subs.filter((s: any) => {
+            const currentSubs = subs || []
+            const scopedSubs = currentSubs.filter((s: any) => {
                 const user = Array.isArray(s.users) ? s.users[0] : s.users
                 return user?.program_id === lecture.program_id
             })
@@ -295,7 +298,11 @@ export async function GET(req: NextRequest) {
 
         for (const assignment of assignments) {
             // Filter push subscriptions
-            const scopedSubs = subs.filter((s: any) => s.users?.program_id === assignment.program_id)
+            const currentSubs = subs || []
+            const scopedSubs = currentSubs.filter((s: any) => {
+                const user = Array.isArray(s.users) ? s.users[0] : s.users
+                return user?.program_id === assignment.program_id
+            })
             // Filter all users for email
             const scopedUsers = allUsers?.filter(u => u.program_id === assignment.program_id) || []
 
@@ -379,8 +386,10 @@ export async function GET(req: NextRequest) {
 
         // Group subs by program for efficiency
         const programMap = new Map<string, any[]>()
-        for (const sub of subs) {
-            const pid = (sub as any).users?.program_id
+        const currentSubs = subs || []
+        for (const sub of currentSubs) {
+            const user = Array.isArray((sub as any).users) ? (sub as any).users[0] : (sub as any).users
+            const pid = user?.program_id
             if (!pid) continue
             if (!programMap.has(pid)) programMap.set(pid, [])
             programMap.get(pid)!.push(sub)
@@ -467,4 +476,12 @@ export async function GET(req: NextRequest) {
 
     console.log(`[cron/adhd] sent=${totalSent} pruned=${totalPruned}`, log)
     return NextResponse.json({ ok: true, sent: totalSent, pruned: totalPruned, log })
+} catch (err: any) {
+    console.error("[cron] Global error:", err)
+    return NextResponse.json({ 
+        ok: false, 
+        error: err.message,
+        log
+    }, { status: 500 })
+}
 }

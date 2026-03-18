@@ -309,4 +309,15 @@ TO authenticated
 USING (
   (SELECT role FROM users WHERE id = auth.uid()) IN ('rep', 'admin')
 );
+-- 10. Briefing Logs (To prevent double sending)
+CREATE TABLE IF NOT EXISTS public.briefing_logs (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  program_id UUID REFERENCES public.programs(id) ON DELETE CASCADE,
+  briefing_type TEXT NOT NULL, -- 'morning' or 'evening'
+  date DATE NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(program_id, briefing_type, date)
+);
 
+ALTER TABLE public.briefing_logs ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Anyone can read briefing logs" ON public.briefing_logs FOR SELECT TO authenticated USING (true);
