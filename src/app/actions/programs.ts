@@ -7,7 +7,7 @@ import { Resend } from 'resend'
 import { WelcomeNudgeEmail } from '@/emails/WelcomeNudge'
 
 async function sendWelcomeEmail(email: string, firstName: string) {
-    const resend = new Resend(process.env.RESEND_API_Key)
+    const resend = new Resend(process.env.RESEND_API_KEY || process.env.RESEND_API_Key || 're_dummy_fallback_for_builds')
     try {
         await resend.emails.send({
             from: 'onboarding@notify.logichq.tech',
