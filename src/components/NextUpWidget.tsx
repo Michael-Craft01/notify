@@ -137,18 +137,17 @@ export default function NextUpWidget({ schedules, overrides, isRep }: NextUpWidg
                     'bg-gradient-to-r from-orange/20 to-transparent'
                 }`} />
                 
-                <div className={`relative flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 p-4 sm:p-5 backdrop-blur-xl border rounded-[19px] shadow-sm transition-colors duration-500 ${
-                    isCancelled ? 'bg-[#1a0f0f]/90 border-red-500/10' :
-                    status === 'Active' ? 'bg-[#1a0f05]/90 border-orange/20' :
-                    status === 'In Transit' ? 'bg-[#1a1505]/90 border-yellow-500/10' :
-                    'bg-[#0a0a0a]/95 border-white/5'
+                <div className={`relative flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 p-4 sm:p-5 backdrop-blur-xl rounded-[19px] shadow-sm transition-colors duration-500 ${
+                    isCancelled ? 'bg-[#1a0f0f]/90' :
+                    status === 'Active' ? 'bg-[#1a0f05]/90' :
+                    status === 'In Transit' ? 'bg-[#1a1505]/90' :
+                    'bg-[#0a0a0a]/95'
                 }`}>
                     
                     {/* ── Status Ribbon ────────────────────────────────────────── */}
-                    <div className="absolute top-0 right-5 px-3 py-1 border-x border-b rounded-b-lg backdrop-blur-md z-20"
+                    <div className="absolute top-0 right-5 px-3 py-1 rounded-b-lg backdrop-blur-md z-20"
                          style={{ 
                              background: isCancelled ? 'rgba(239, 68, 68, 0.15)' : status === 'Active' ? 'rgba(249, 115, 22, 0.2)' : 'rgba(255, 255, 255, 0.05)',
-                             borderColor: isCancelled ? 'rgba(239, 68, 68, 0.1)' : status === 'Active' ? 'rgba(249, 115, 22, 0.1)' : 'rgba(255, 255, 255, 0.05)'
                          }}>
                         <div className="flex items-center gap-1.5 relative z-10">
                             <span className={`h-1.5 w-1.5 rounded-full ${
@@ -168,12 +167,12 @@ export default function NextUpWidget({ schedules, overrides, isRep }: NextUpWidg
 
                     <div className="flex flex-col lg:flex-row items-start lg:items-center gap-4 relative z-10 w-full pt-2 sm:pt-0">
                         {/* ── Icon Container ─────────────────────────────────── */}
-                        <div className={`h-12 w-12 sm:h-14 sm:w-14 shrink-0 rounded-[14px] flex items-center justify-center border transition-all duration-500 ${
+                        <div className={`h-12 w-12 sm:h-14 sm:w-14 shrink-0 rounded-[14px] flex items-center justify-center transition-all duration-500 ${
                             isCancelled 
-                                ? 'bg-red-500/10 border-red-500/20 text-red-500' 
+                                ? 'bg-red-500/10 text-red-500' 
                                 : status === 'Active'
-                                ? 'bg-orange/20 border-orange/40 text-orange shadow-[0_0_15px_rgba(249,115,22,0.3)]'
-                                : 'bg-white/5 border-white/10 text-orange/80'
+                                ? 'bg-orange/20 text-orange shadow-[0_0_15px_rgba(249,115,22,0.3)]'
+                                : 'bg-white/5 text-orange/80'
                         }`}>
                             {isCancelled ? <Ban size={22} /> : status === 'Active' ? <Zap size={24} className="animate-pulse" /> : <Clock size={22} />}
                         </div>
@@ -195,8 +194,8 @@ export default function NextUpWidget({ schedules, overrides, isRep }: NextUpWidg
 
                                 {/* ── Live Countdown Timer ──────────────────────────── */}
                                 {timeLeft && !isCancelled && (
-                                    <div className={`shrink-0 flex items-center gap-2.5 px-3 py-1.5 rounded-lg border backdrop-blur-sm ${
-                                        status === 'Active' ? 'bg-orange/10 border-orange/20' : 'bg-white/5 border-white/5'
+                                    <div className={`shrink-0 flex items-center gap-2.5 px-3 py-1.5 rounded-lg backdrop-blur-sm ${
+                                        status === 'Active' ? 'bg-orange/10' : 'bg-white/5'
                                     }`}>
                                         <Timer className={status === 'Active' ? 'text-orange' : 'text-white/40'} size={14} />
                                         <div className="flex flex-col">
@@ -217,8 +216,8 @@ export default function NextUpWidget({ schedules, overrides, isRep }: NextUpWidg
 
                             <div className="flex flex-wrap items-center gap-2.5 pt-1">
                                 {nextClass.course_code && (
-                                    <span className={`px-2.5 py-1 rounded border text-[10px] font-bold tracking-wide ${
-                                        status === 'Active' ? 'bg-orange/20 border-orange/30 text-orange-bright' : 'bg-white/5 border-white/10 text-white/70'
+                                    <span className={`px-2.5 py-1 rounded text-[10px] font-bold tracking-wide ${
+                                        status === 'Active' ? 'bg-orange/20 text-orange-bright' : 'bg-white/5 text-white/70'
                                     }`}>
                                         {nextClass.course_code}
                                     </span>
@@ -237,7 +236,7 @@ export default function NextUpWidget({ schedules, overrides, isRep }: NextUpWidg
                     </div>
 
                     {/* ── Actions ───────────────────────────────────────────── */}
-                    <div className="flex flex-col sm:flex-row items-center gap-2 relative z-10 shrink-0 sm:pl-4 border-t sm:border-t-0 sm:border-l border-white/5 pt-3 sm:pt-0 mt-2 sm:mt-0">
+                    <div className="flex flex-col sm:flex-row items-center gap-2 relative z-10 shrink-0 sm:pl-4 pt-3 sm:pt-0 mt-2 sm:mt-0">
                         {isRep && !isCancelled && status !== 'Free' && (
                             <button 
                                 onClick={handleCancel}
