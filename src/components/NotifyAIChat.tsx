@@ -148,7 +148,7 @@ export default function NotifyAIChat({ currentAssignments, programName }: { curr
                                         </div>
                                     </div>
                                 </div>
-                                <button onClick={() => setIsOpen(false)} className="p-2 rounded-full hover:bg-white/5 text-white/20 hover:text-white transition-all">
+                                <button onClick={() => setIsOpen(false)} aria-label="Close chat" className="p-2 rounded-full hover:bg-white/5 text-white/20 hover:text-white transition-all">
                                     <X size={18} />
                                 </button>
                             </div>
@@ -216,6 +216,7 @@ export default function NotifyAIChat({ currentAssignments, programName }: { curr
                                     />
                                     <button 
                                         type="submit"
+                                        aria-label="Send message"
                                         disabled={!input.trim() || isPending}
                                         className="absolute right-1.5 top-1/2 -translate-y-1/2 h-9 w-9 rounded-xl bg-orange text-white flex items-center justify-center shadow-lg transition-all hover:scale-105 active:scale-95 disabled:opacity-0 disabled:scale-90"
                                     >

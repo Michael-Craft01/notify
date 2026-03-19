@@ -63,6 +63,7 @@ export default function AssignmentContainer({
                         {searchQuery && (
                             <button 
                                 onClick={() => setSearchQuery('')}
+                                aria-label="Clear search"
                                 className="absolute right-3 top-1/2 -translate-y-1/2 text-white/20 hover:text-white transition-colors"
                             >
                                 <X size={14} />
@@ -74,6 +75,7 @@ export default function AssignmentContainer({
                     <div className="flex items-center p-1 bg-white/5 border border-white/5 rounded-xl">
                         <button
                             onClick={() => setViewMode('list')}
+                            aria-label="List view"
                             className={`p-2 rounded-lg transition-all ${viewMode === 'list' ? 'bg-white/10 text-white' : 'text-white/30 hover:text-white/60'}`}
                             title="List View"
                         >
@@ -81,6 +83,7 @@ export default function AssignmentContainer({
                         </button>
                         <button
                             onClick={() => setViewMode('grid')}
+                            aria-label="Grid view"
                             className={`p-2 rounded-lg transition-all ${viewMode === 'grid' ? 'bg-white/10 text-white' : 'text-white/30 hover:text-white/60'}`}
                             title="Grid View"
                         >
