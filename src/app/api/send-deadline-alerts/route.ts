@@ -271,9 +271,9 @@ export async function GET(req: NextRequest) {
                 deliveryPromises.push((async () => {
                     try {
                         await webpush.sendNotification(row.subscription, payload, {
+                            TTL: 60 * 60, // 1 hour
                             headers: {
-                                'Urgency': 'high',
-                                'TTL': 60 * 60 // 1 hour
+                                'Urgency': 'high'
                             }
                         })
                         totalSent++
@@ -281,6 +281,8 @@ export async function GET(req: NextRequest) {
                         if (err?.statusCode === 410 || err?.statusCode === 404) {
                             await supabase.from('user_subscriptions').delete().eq('id', row.id)
                             totalPruned++
+                        } else {
+                            console.error("[webpush warden] error:", err)
                         }
                     }
                 })())
@@ -363,9 +365,9 @@ export async function GET(req: NextRequest) {
                 deliveryPromises.push((async () => {
                     try {
                         await webpush.sendNotification(row.subscription, payload, {
+                            TTL: 60 * 60, // 1 hour
                             headers: {
-                                'Urgency': (window.urgency === 'high' || (window as any).urgency === 'critical') ? 'high' : 'normal',
-                                'TTL': 60 * 60 // 1 hour
+                                'Urgency': (window.urgency === 'high' || (window as any).urgency === 'critical') ? 'high' : 'normal'
                             }
                         })
                         totalSent++
@@ -373,6 +375,8 @@ export async function GET(req: NextRequest) {
                         if (err?.statusCode === 410 || err?.statusCode === 404) {
                             if (!toDelete.includes(row.id)) toDelete.push(row.id)
                             totalPruned++
+                        } else {
+                            console.error("[webpush assignment] error:", err)
                         }
                     }
                 })())
@@ -480,6 +484,8 @@ export async function GET(req: NextRequest) {
                         if (err?.statusCode === 410 || err?.statusCode === 404) {
                             await supabase.from('user_subscriptions').delete().eq('id', row.id)
                             totalPruned++
+                        } else {
+                            console.error("[webpush briefing] error:", err)
                         }
                     }
                 })())
