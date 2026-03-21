@@ -63,7 +63,8 @@ export default function AssignmentContainer({
                         {searchQuery && (
                             <button 
                                 onClick={() => setSearchQuery('')}
-                                className="absolute right-3 top-1/2 -translate-y-1/2 text-white/20 hover:text-white transition-colors"
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-white/20 hover:text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500/50 rounded-sm"
+                                aria-label="Clear search"
                             >
                                 <X size={14} />
                             </button>
@@ -74,15 +75,19 @@ export default function AssignmentContainer({
                     <div className="flex items-center p-1 bg-white/5 border border-white/5 rounded-xl">
                         <button
                             onClick={() => setViewMode('list')}
-                            className={`p-2 rounded-lg transition-all ${viewMode === 'list' ? 'bg-white/10 text-white' : 'text-white/30 hover:text-white/60'}`}
+                            className={`p-2 rounded-lg transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500/50 ${viewMode === 'list' ? 'bg-white/10 text-white' : 'text-white/30 hover:text-white/60'}`}
                             title="List View"
+                            aria-label="List View"
+                            aria-pressed={viewMode === 'list'}
                         >
                             <List size={16} />
                         </button>
                         <button
                             onClick={() => setViewMode('grid')}
-                            className={`p-2 rounded-lg transition-all ${viewMode === 'grid' ? 'bg-white/10 text-white' : 'text-white/30 hover:text-white/60'}`}
+                            className={`p-2 rounded-lg transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500/50 ${viewMode === 'grid' ? 'bg-white/10 text-white' : 'text-white/30 hover:text-white/60'}`}
                             title="Grid View"
+                            aria-label="Grid View"
+                            aria-pressed={viewMode === 'grid'}
                         >
                             <LayoutGrid size={16} />
                         </button>
