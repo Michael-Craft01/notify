@@ -48,6 +48,7 @@ self.addEventListener('push', (event) => {
         icon: '/icon-192x192.png',
         badge: '/icon-192x192.png',
         vibrate,
+        silent: false,       // Force sound and vibration
         tag: url,            // Collapse duplicate notifications for same task
         renotify: true,      // Re-notify even if same tag
         requireInteraction: urgency === 'critical',
