@@ -198,6 +198,42 @@ export async function GET(req: NextRequest) {
 
     try {
 
+    // ── 0. AUTO-ARCHIVE OVERDUE ASSIGNMENTS ──────────────────────────────
+    // Assignments past due by >24h are moved to archived_assignments (receipt),
+    // then deleted from the live assignments table.
+    try {
+        const cutoff = new Date(now - 24 * 60 * 60 * 1000).toISOString()
+        const { data: overdue } = await supabase
+            .from('assignments')
+            .select('*')
+            .lt('due_date', cutoff)
+
+        if (overdue?.length) {
+            // Insert into archive table (receipt)
+            const archived = overdue.map(a => ({
+                original_id: a.id,
+                program_id: a.program_id,
+                title: a.title,
+                description: a.description,
+                due_date: a.due_date,
+                task_type: a.task_type,
+                resource_url: a.resource_url,
+                created_by: a.created_by,
+                created_at: a.created_at,
+                archived_at: new Date().toISOString(),
+            }))
+            await supabase.from('archived_assignments').insert(archived)
+
+            // Delete from live table
+            const ids = overdue.map(a => a.id)
+            await supabase.from('assignments').delete().in('id', ids)
+            log.push(`[archive] Moved ${overdue.length} overdue assignment(s) to archive`)
+        }
+    } catch (e: any) {
+        log.push(`[archive error] ${e.message}`)
+        console.error('Archive error:', e)
+    }
+
     // ── 1. WARDEN SCHEDULE ALERTS (10m before & 30m after start) ──────────
     // We allow a 35-minute lookback and 15-minute lookahead to catch both windows.
     const sastMinus35 = new Date(sastTime.getTime() - 35 * 60 * 1000)

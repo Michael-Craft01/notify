@@ -64,8 +64,38 @@ export async function askNotifyAI(
         return { error: 'AI unavailable: API key not configured.' }
     }
 
+    const now = new Date()
+    const todayStr = now.toLocaleDateString('en-ZA', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
+    const todayISO = now.toISOString().split('T')[0]
+
     const model = genAI.getGenerativeModel({ model: AI_MODEL })
-    const prompt = `LOCKED MODE: You are Assistant for ${programName}. Assignments: ${JSON.stringify(currentAssignments)}. History: ${JSON.stringify(history)}. User: ${message}. Return ONLY JSON {"intent": "...", "actionData": {...}, "message": "..."}`
+    const assignmentsSummary = currentAssignments.map(a => `[ID:${a.id}] "${a.title}" due:${a.due_date?.slice(0,10)} type:${a.task_type || 'task'}`).join('\n')
+
+    const prompt = `You are NotifyAI, an action-taking assistant for ${programName}.
+TODAY: ${todayStr} (ISO: ${todayISO}). Use this for ALL date calculations — "tomorrow", "Thursday", "next week", etc.
+
+CURRENT ASSIGNMENTS (use these IDs for updates/deletes):
+${assignmentsSummary}
+
+CONVERSATION HISTORY:
+${JSON.stringify(history)}
+
+USER SAID: "${message}"
+
+You MUST return ONLY a JSON object. No explanation. No markdown. Raw JSON only.
+Intent MUST be exactly one of: create | update | delete | chat
+
+RULES:
+- "create": user wants to add something new → actionData: {title, due_date (ISO), task_type, description}
+- "update": user wants to change an existing task → actionData MUST include the assignment id from the list above + fields to change
+- "delete": user wants to remove a task → actionData: {id}
+- "chat": anything else, questions, clarifications
+- NEVER use intent names like "add_task", "acknowledge", "correct_date" — only the 4 above
+- If the user says a test/assignment exists, CREATE it unless they say it's already in the list
+- Match the right assignment ID when updating — pick the closest title match
+- message: a short, friendly confirmation of what you did or are asking
+
+Return format: {"intent": "create|update|delete|chat", "actionData": {...}, "message": "..."}`
 
     const attempt = async () => {
         const result = await model.generateContent(prompt)

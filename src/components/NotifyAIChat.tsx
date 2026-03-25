@@ -58,10 +58,18 @@ export default function NotifyAIChat({ currentAssignments, programName }: { curr
                 return
             }
 
+            // Normalise any rogue intent names the AI might return into canonical ones
+            const intentAliases: Record<string, string> = {
+                add_task: 'create', add: 'create', new: 'create', create_task: 'create',
+                update_task: 'update', edit: 'update', correct_date: 'update', modify: 'update', acknowledge_test: 'create',
+                remove: 'delete', delete_task: 'delete', remove_task: 'delete',
+            }
+            const intent = intentAliases[res.intent] ?? res.intent
+
             // Handle tool execution if intent requires it
             let finalMessage = res.message || "Done!"
             
-            if (res.intent === 'create' && res.actionData) {
+            if (intent === 'create' && res.actionData) {
                 const fd = new FormData()
                 Object.entries(res.actionData).forEach(([k, v]) => fd.append(k, v as string))
                 const createRes = await createAssignment(fd)
@@ -72,7 +80,7 @@ export default function NotifyAIChat({ currentAssignments, programName }: { curr
                     finalMessage = `✅ **Task Created!** ${res.message || ''}`
                 }
             } 
-            else if (res.intent === 'update' && res.actionData?.id) {
+            else if (intent === 'update' && res.actionData?.id) {
                 const fd = new FormData()
                 Object.entries(res.actionData).forEach(([k, v]) => {
                     if (k !== 'id') fd.append(k, v as string)
@@ -85,7 +93,7 @@ export default function NotifyAIChat({ currentAssignments, programName }: { curr
                     finalMessage = `✅ **Task Updated!** ${res.message || ''}`
                 }
             }
-            else if (res.intent === 'delete' && res.actionData?.id) {
+            else if (intent === 'delete' && res.actionData?.id) {
                 const delRes = await deleteAssignment(res.actionData.id)
                 if (delRes.error) {
                     finalMessage = `⚠️ Delete Failed: ${delRes.error}`
