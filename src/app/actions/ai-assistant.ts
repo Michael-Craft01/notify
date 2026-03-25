@@ -86,7 +86,7 @@ You MUST return ONLY a JSON object. No explanation. No markdown. Raw JSON only.
 Intent MUST be exactly one of: create | update | delete | chat
 
 RULES:
-- "create": user wants to add something new → actionData: {title, due_date (ISO), task_type, description}
+- "create": user wants to add something new → actionData: {title, due_date (ISO datetime with time e.g. "2026-03-26T23:59:00.000Z"), task_type ("assignment"|"quiz"|"online_test"|"physical_test"), description}
 - "update": user wants to change an existing task → actionData MUST include the assignment id from the list above + fields to change
 - "delete": user wants to remove a task → actionData: {id}
 - "chat": anything else, questions, clarifications

@@ -7,7 +7,7 @@ import { createClient } from '@/utils/supabase/server'
 
 // Validation Schema — includes new task_type, resource_url, location
 const CreateAssignmentSchema = z.object({
-    course_code: z.string().min(2, "Course code is too short").max(20),
+    course_code: z.string().min(2, "Course code is too short").max(20).optional().default('MISC'),
     title: z.string().min(3, "Title must be at least 3 characters").max(100),
     description: z.string().max(500).optional(),
     due_date: z.string().datetime(),

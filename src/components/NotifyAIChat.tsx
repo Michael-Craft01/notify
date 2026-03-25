@@ -71,7 +71,9 @@ export default function NotifyAIChat({ currentAssignments, programName }: { curr
             
             if (intent === 'create' && res.actionData) {
                 const fd = new FormData()
-                Object.entries(res.actionData).forEach(([k, v]) => fd.append(k, v as string))
+                Object.entries(res.actionData).forEach(([k, v]) => {
+                    if (v !== null && v !== undefined) fd.append(k, v as string)
+                })
                 const createRes = await createAssignment(fd)
                 if (createRes.error) {
                     finalMessage = `⚠️ Creation Failed: ${createRes.error}`
