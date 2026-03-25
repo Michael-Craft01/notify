@@ -41,6 +41,16 @@ export default function NotificationToggle() {
                 const sub = await reg.pushManager.getSubscription()
                 console.log('[NotificationToggle] Existing sub:', !!sub)
                 setIsSubscribed(!!sub)
+
+                // Silently re-save subscription on every load to keep DB endpoint fresh.
+                // iOS/Android can silently rotate push endpoints — this prevents stale entries.
+                if (sub) {
+                    const subData = JSON.parse(JSON.stringify(sub))
+                    subData.origin = window.location.origin
+                    saveSubscription(subData, true).catch(() => {
+                        // Non-critical: ignore errors here, user is still subscribed locally
+                    })
+                }
             } catch (err) {
                 console.warn('[NotificationToggle] Init warning/error:', err)
             } finally {

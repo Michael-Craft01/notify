@@ -478,7 +478,10 @@ export async function GET(req: NextRequest) {
                 })
                 deliveryPromises.push((async () => {
                     try {
-                        await webpush.sendNotification(row.subscription, payload)
+                        await webpush.sendNotification(row.subscription, payload, {
+                            TTL: 4 * 60 * 60, // Hold for 4 hours — briefings are still relevant if device was briefly offline
+                            headers: { 'Urgency': 'normal' }
+                        })
                         totalSent++
                     } catch (err: any) {
                         if (err?.statusCode === 410 || err?.statusCode === 404) {

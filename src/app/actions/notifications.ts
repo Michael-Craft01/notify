@@ -48,7 +48,7 @@ async function getAuthContext() {
     return { supabase, writeClient, user, isDevUser }
 }
 
-export async function saveSubscription(subscription: any) {
+export async function saveSubscription(subscription: any, silent = false) {
     const { writeClient, user } = await getAuthContext()
     if (!user) {
         console.error('[notifications] saveSubscription: No authenticated user found.')
@@ -114,7 +114,7 @@ export async function saveSubscription(subscription: any) {
         }
     }
 
-    revalidatePath('/')
+    if (!silent) revalidatePath('/')
     return { success: true, saved: savedData }
 }
 
