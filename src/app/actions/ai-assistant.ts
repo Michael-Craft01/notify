@@ -4,8 +4,8 @@ import { GoogleGenerativeAI } from "@google/generative-ai"
 
 // Use the new Gemini_API_Key provided by the user
 const genAI = new GoogleGenerativeAI(process.env.Gemini_API_Key || process.env.GOOGLE_AI_API_KEY || "")
-const AI_MODEL = "gemini-2.0-flash-lite"
-const VISION_MODEL = "gemini-2.0-flash-lite"
+const AI_MODEL = "gemma-3-27b-it"      // text-only: chat & form enhancement (higher quota)
+const VISION_MODEL = "gemini-1.5-flash" // vision: timetable & assignment image extraction
 
 export async function extractAssignmentAction(formData: FormData) {
     const file = formData.get('file') as File
@@ -60,15 +60,35 @@ export async function askNotifyAI(
     history: { role: 'user' | 'ai', content: string }[] = [],
     programName: string = "class"
 ) {
-    try {
-        const model = genAI.getGenerativeModel({ model: AI_MODEL })
-        const prompt = `LOCKED MODE: You are Assistant for ${programName}. Assignments: ${JSON.stringify(currentAssignments)}. History: ${JSON.stringify(history)}. User: ${message}. Return ONLY JSON {"intent": "...", "actionData": {...}, "message": "..."}`
+    if (!process.env.Gemini_API_Key && !process.env.GOOGLE_AI_API_KEY) {
+        return { error: 'AI unavailable: API key not configured.' }
+    }
+
+    const model = genAI.getGenerativeModel({ model: AI_MODEL })
+    const prompt = `LOCKED MODE: You are Assistant for ${programName}. Assignments: ${JSON.stringify(currentAssignments)}. History: ${JSON.stringify(history)}. User: ${message}. Return ONLY JSON {"intent": "...", "actionData": {...}, "message": "..."}`
+
+    const attempt = async () => {
         const result = await model.generateContent(prompt)
         const jsonMatch = result.response.text().match(/\{[\s\S]*\}/)
-        if (!jsonMatch) return { error: "Try again." }
+        if (!jsonMatch) return { error: "Couldn't parse response. Try again." }
         return { success: true, ...JSON.parse(jsonMatch[0]) }
+    }
+
+    try {
+        return await attempt()
     } catch (error: any) {
-        return { error: 'NotifyAI rate-limited.' }
+        const is429 = error?.status === 429 || error?.message?.includes('429')
+        if (is429) {
+            // One automatic retry after 3 seconds
+            await new Promise(r => setTimeout(r, 3000))
+            try {
+                return await attempt()
+            } catch {
+                return { error: 'AI is busy right now. Wait a moment and try again.' }
+            }
+        }
+        console.error('[NotifyAI] error:', error?.message)
+        return { error: 'AI request failed. Check connection and try again.' }
     }
 }
 
