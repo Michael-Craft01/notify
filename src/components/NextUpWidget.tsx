@@ -250,7 +250,7 @@ export default function NextUpWidget({ schedules, overrides, isRep }: NextUpWidg
                         )}
                         <button className={`h-10 w-10 sm:h-12 sm:w-12 rounded-xl flex items-center justify-center transition-all ${
                             status === 'Active' ? 'bg-orange hover:bg-orange-bright text-white shadow-[0_0_15px_rgba(249,115,22,0.4)]' : 'bg-white/5 hover:bg-orange/10 text-white/40 hover:text-orange'
-                        }`}>
+                        }`} aria-label="View class details">
                             <ChevronRight size={20} strokeWidth={2.5} />
                         </button>
                     </div>

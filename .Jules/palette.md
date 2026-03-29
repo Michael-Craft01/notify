@@ -1,0 +1,3 @@
+## 2024-03-29 - Missing aria-labels on icon-only buttons
+**Learning:** Found an accessibility issue pattern specific to this app's components: icon-only buttons (like those in `SettingsModal.tsx`, `AssignmentCard.tsx`, and `NextUpWidget.tsx`) frequently lacked `aria-label`s, making them invisible or unclear to screen readers.
+**Action:** Always verify new or modified icon-only buttons contain appropriate `aria-label`s that describe their functionality to ensure better accessibility moving forward.
