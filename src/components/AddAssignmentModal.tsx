@@ -167,6 +167,7 @@ export default function AddAssignmentModal({ userId }: { userId: string }) {
                             >
                                 {/* Step back */}
                                 <button
+                                    aria-label="Go back"
                                     onClick={() => step > 0 ? setStep((step - 1) as Step) : handleClose()}
                                     className="btn-ghost h-7 w-7 rounded-lg flex items-center justify-center"
                                 >
@@ -198,7 +199,7 @@ export default function AddAssignmentModal({ userId }: { userId: string }) {
                                     ))}
                                 </div>
 
-                                <button onClick={handleClose} className="btn-ghost h-8 w-8 rounded-xl flex items-center justify-center bg-white/5 hover:bg-white/10">
+                                <button aria-label="Close" onClick={handleClose} className="btn-ghost h-8 w-8 rounded-xl flex items-center justify-center bg-white/5 hover:bg-white/10">
                                     <X size={15} />
                                 </button>
                             </div>
@@ -241,6 +242,7 @@ export default function AddAssignmentModal({ userId }: { userId: string }) {
                                             </div>
 
                                             <label
+                                                htmlFor="aiImport"
                                                 className="flex items-center gap-3 p-3 rounded-xl border border-dashed border-white/10 bg-white/[0.02] cursor-pointer transition-all hover:border-orange/40"
                                             >
                                                 <div className="h-7 w-7 rounded-lg flex items-center justify-center bg-orange/10 shrink-0">
@@ -254,7 +256,7 @@ export default function AddAssignmentModal({ userId }: { userId: string }) {
                                                     <p className="text-[10px] text-white/30">Upload PDF or image to auto-fill</p>
                                                 </div>
                                                 <ChevronRight size={13} className="text-white/20" />
-                                                <input type="file" accept="image/*,application/pdf" onChange={handleFileScan} className="sr-only" disabled={isExtracting} />
+                                                <input id="aiImport" type="file" accept="image/*,application/pdf" onChange={handleFileScan} className="sr-only" disabled={isExtracting} />
                                             </label>
 
                                             {error && <p className="text-[11px] pt-1 text-red-500">{error}</p>}
@@ -281,7 +283,7 @@ export default function AddAssignmentModal({ userId }: { userId: string }) {
 
                                             <div>
                                                 <div className="flex items-center justify-between mb-1">
-                                                    <label className="text-[10px] font-bold uppercase tracking-[0.1em] text-white/40">Course Code</label>
+                                                    <label htmlFor="courseCode" className="text-[10px] font-bold uppercase tracking-[0.1em] text-white/40">Course Code</label>
                                                     <AITinyButton
                                                         onClick={async () => {
                                                             const r = await enhanceFormAction({ course_code: courseCode, title })
@@ -294,6 +296,7 @@ export default function AddAssignmentModal({ userId }: { userId: string }) {
                                                     />
                                                 </div>
                                                 <input
+                                                    id="courseCode"
                                                     type="text"
                                                     value={courseCode}
                                                     onChange={e => setCourseCode(e.target.value.toUpperCase())}
@@ -304,7 +307,7 @@ export default function AddAssignmentModal({ userId }: { userId: string }) {
 
                                             <div>
                                                 <div className="flex items-center justify-between mb-1">
-                                                    <label className="text-[10px] font-bold uppercase tracking-[0.1em] text-white/40">Title</label>
+                                                    <label htmlFor="title" className="text-[10px] font-bold uppercase tracking-[0.1em] text-white/40">Title</label>
                                                     <AITinyButton
                                                         onClick={async () => {
                                                             const r = await enhanceFormAction({ course_code: courseCode, title, description })
@@ -317,6 +320,7 @@ export default function AddAssignmentModal({ userId }: { userId: string }) {
                                                     />
                                                 </div>
                                                 <input
+                                                    id="title"
                                                     type="text"
                                                     value={title}
                                                     onChange={e => setTitle(e.target.value)}
@@ -326,10 +330,11 @@ export default function AddAssignmentModal({ userId }: { userId: string }) {
                                             </div>
 
                                             <div>
-                                                <label className="block text-[10px] font-bold uppercase tracking-[0.1em] mb-1 text-white/40">
+                                                <label htmlFor="dueDate" className="block text-[10px] font-bold uppercase tracking-[0.1em] mb-1 text-white/40">
                                                     <span className="flex items-center gap-1"><Calendar size={10} /> Due Date & Time</span>
                                                 </label>
                                                 <input
+                                                    id="dueDate"
                                                     type="datetime-local"
                                                     value={dueDate}
                                                     onChange={e => setDueDate(e.target.value)}
@@ -340,10 +345,11 @@ export default function AddAssignmentModal({ userId }: { userId: string }) {
 
                                             {needsUrl && (
                                                 <div className="animate-fade-in">
-                                                    <label className="block text-[10px] font-bold uppercase tracking-[0.1em] mb-1 text-white/40">
+                                                    <label htmlFor="resourceUrl" className="block text-[10px] font-bold uppercase tracking-[0.1em] mb-1 text-white/40">
                                                         <span className="flex items-center gap-1"><Link2 size={10} /> Access Link</span>
                                                     </label>
                                                     <input
+                                                        id="resourceUrl"
                                                         type="url"
                                                         value={resourceUrl}
                                                         onChange={e => setResourceUrl(e.target.value)}
@@ -355,10 +361,11 @@ export default function AddAssignmentModal({ userId }: { userId: string }) {
 
                                             {needsLocation && (
                                                 <div className="animate-fade-in">
-                                                    <label className="block text-[10px] font-bold uppercase tracking-[0.1em] mb-1 text-white/40">
+                                                    <label htmlFor="location" className="block text-[10px] font-bold uppercase tracking-[0.1em] mb-1 text-white/40">
                                                         <span className="flex items-center gap-1"><MapPin size={10} /> Campus Location</span>
                                                     </label>
                                                     <input
+                                                        id="location"
                                                         type="text"
                                                         value={location}
                                                         onChange={e => setLocation(e.target.value)}
@@ -369,10 +376,11 @@ export default function AddAssignmentModal({ userId }: { userId: string }) {
                                             )}
 
                                             <div>
-                                                <label className="block text-[10px] font-bold uppercase tracking-[0.1em] mb-1 text-white/40">
+                                                <label htmlFor="description" className="block text-[10px] font-bold uppercase tracking-[0.1em] mb-1 text-white/40">
                                                     Notes
                                                 </label>
                                                 <textarea
+                                                    id="description"
                                                     value={description}
                                                     onChange={e => setDescription(e.target.value)}
                                                     placeholder="Any requirements or notes..."

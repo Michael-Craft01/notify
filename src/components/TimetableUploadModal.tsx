@@ -79,7 +79,7 @@ export default function TimetableUploadModal() {
                 const startTime = timeMatch[1].replace('.', ':')
                 const endTime = timeMatch[2].replace('.', ':')
                 
-                let moduleInfo = line.replace(timeMatch[0], '').trim()
+                const moduleInfo = line.replace(timeMatch[0], '').trim()
                 const codeMatch = moduleInfo.match(/[A-Z]{2,4}\s*\d{3,4}/i)
                 const courseCode = codeMatch ? codeMatch[0] : null
                 const moduleName = moduleInfo.replace(courseCode || '', '').trim() || "Untitled Module"
@@ -179,7 +179,7 @@ export default function TimetableUploadModal() {
                                 </h3>
                                 <p className="text-xs text-white/40 mt-0.5">Upload a photo or paste text to automate reminders</p>
                             </div>
-                            <button onClick={() => setIsOpen(false)} className="h-8 w-8 rounded-full bg-white/5 flex items-center justify-center hover:bg-white/10 transition-colors">
+                            <button aria-label="Close" onClick={() => setIsOpen(false)} className="h-8 w-8 rounded-full bg-white/5 flex items-center justify-center hover:bg-white/10 transition-colors">
                                 <X size={18} />
                             </button>
                         </div>
@@ -226,9 +226,9 @@ export default function TimetableUploadModal() {
                                                     </div>
                                                     <h4 className="text-white font-bold mb-1">Scan Timetable Photo</h4>
                                                     <p className="text-xs text-white/30 mb-6 font-medium font-inter">Instant high-accuracy OCR</p>
-                                                    <label className="btn-primary flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-black cursor-pointer uppercase tracking-widest hover:scale-[1.05] transition-transform">
+                                                    <label htmlFor="scanPhoto" className="btn-primary flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-black cursor-pointer uppercase tracking-widest hover:scale-[1.05] transition-transform">
                                                         <span>Select Photo</span>
-                                                        <input type="file" className="hidden" accept="image/*,application/pdf" onChange={handleFileChange} />
+                                                        <input id="scanPhoto" type="file" className="hidden" accept="image/*,application/pdf" onChange={handleFileChange} />
                                                     </label>
                                                 </>
                                             )}
@@ -240,7 +240,9 @@ export default function TimetableUploadModal() {
                                                     <strong>Manual Entry:</strong> Paste text from your portal if you don't have a photo.
                                                 </p>
                                             </div>
+                                            <label htmlFor="paste-textarea" className="sr-only">Paste timetable text</label>
                                             <textarea 
+                                                id="paste-textarea"
                                                 value={pastedText}
                                                 onChange={(e) => setPastedText(e.target.value)}
                                                 placeholder="Paste your timetable text here..."
@@ -302,6 +304,7 @@ export default function TimetableUploadModal() {
                                                 </div>
 
                                                 <button 
+                                                    aria-label="Remove lecture"
                                                     onClick={() => removeLecture(i)}
                                                     className="h-8 w-8 rounded-lg flex items-center justify-center hover:bg-red-500/10 text-white/10 hover:text-red-500 transition-all"
                                                 >
