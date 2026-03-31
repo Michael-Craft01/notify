@@ -120,7 +120,7 @@ export default function NotifyAIChat({ currentAssignments, programName }: { curr
             <button
                 onClick={() => setIsOpen(!isOpen)}
                 className={`btn-ghost h-9 w-9 rounded-xl flex items-center justify-center transition-all ${isOpen ? 'bg-orange/10 text-orange shadow-[0_0_15px_rgba(249,115,22,0.3)]' : 'bg-white/5 text-white/40 hover:text-white'}`}
-                title="NotifyAI Chat"
+                aria-label="Toggle NotifyAI Chat"
             >
                 <Sparkles size={16} fill={isOpen ? 'currentColor' : 'none'} className={isPending ? 'animate-pulse' : ''} />
             </button>
@@ -158,7 +158,7 @@ export default function NotifyAIChat({ currentAssignments, programName }: { curr
                                         </div>
                                     </div>
                                 </div>
-                                <button onClick={() => setIsOpen(false)} className="p-2 rounded-full hover:bg-white/5 text-white/20 hover:text-white transition-all">
+                                <button onClick={() => setIsOpen(false)} className="p-2 rounded-full hover:bg-white/5 text-white/20 hover:text-white transition-all" aria-label="Close chat">
                                     <X size={18} />
                                 </button>
                             </div>
@@ -228,6 +228,7 @@ export default function NotifyAIChat({ currentAssignments, programName }: { curr
                                         type="submit"
                                         disabled={!input.trim() || isPending}
                                         className="absolute right-1.5 top-1/2 -translate-y-1/2 h-9 w-9 rounded-xl bg-orange text-white flex items-center justify-center shadow-lg transition-all hover:scale-105 active:scale-95 disabled:opacity-0 disabled:scale-90"
+                                        aria-label="Send message"
                                     >
                                         <Send size={15} />
                                     </button>

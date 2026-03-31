@@ -75,14 +75,14 @@ export default function AssignmentContainer({
                         <button
                             onClick={() => setViewMode('list')}
                             className={`p-2 rounded-lg transition-all ${viewMode === 'list' ? 'bg-white/10 text-white' : 'text-white/30 hover:text-white/60'}`}
-                            title="List View"
+                            aria-label="List View"
                         >
                             <List size={16} />
                         </button>
                         <button
                             onClick={() => setViewMode('grid')}
                             className={`p-2 rounded-lg transition-all ${viewMode === 'grid' ? 'bg-white/10 text-white' : 'text-white/30 hover:text-white/60'}`}
-                            title="Grid View"
+                            aria-label="Grid View"
                         >
                             <LayoutGrid size={16} />
                         </button>
