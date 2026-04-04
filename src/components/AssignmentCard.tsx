@@ -124,16 +124,18 @@ export default function AssignmentCard({
                     
                     <div className="flex items-center gap-2">
                         {isCreator && !isSlim && (
-                            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity bg-white/5 p-1 rounded-lg mr-1">
+                            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity bg-white/5 p-1 rounded-lg mr-1">
                                 <button
                                     onClick={(e) => { e.stopPropagation(); /* TODO: Edit */ }}
                                     className="p-1 px-1.5 rounded-md hover:bg-white/10 text-white/40 hover:text-white transition-all"
+                                    aria-label="Edit task"
                                 >
                                     <Edit2 size={12} />
                                 </button>
                                 <button
                                     onClick={(e) => { e.stopPropagation(); handleDelete() }}
                                     className="p-1 px-1.5 rounded-md hover:bg-red-500/20 text-white/40 hover:text-red-400 transition-all"
+                                    aria-label="Delete task"
                                 >
                                     <Trash2 size={12} />
                                 </button>
@@ -198,6 +200,7 @@ export default function AssignmentCard({
                             onClick={() => setExpanded(!expanded)}
                             className={`btn-ghost ${isSlim ? 'p-1.5' : 'p-2'} rounded-lg text-white/30 hover:text-white transition-all transform active:scale-95`}
                             title={expanded ? 'Hide Details' : 'Show Details'}
+                            aria-label={expanded ? 'Hide Details' : 'Show Details'}
                         >
                             {expanded ? <ChevronUp size={isSlim ? 16 : 20} /> : <ChevronDown size={isSlim ? 16 : 20} />}
                         </button>
