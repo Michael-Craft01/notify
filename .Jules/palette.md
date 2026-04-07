@@ -1,0 +1,3 @@
+## 2026-04-07 - Interactive Element Visibility & ARIA Labels
+**Learning:** Container components that reveal child interactive elements (like Edit/Delete buttons) only on hover (`group-hover:opacity-100`) make those actions invisible to keyboard users who tab through the interface. Additionally, icon-only buttons need `aria-label` attributes to be understandable by screen readers.
+**Action:** Always pair hover-based visibility classes (e.g., `group-hover:opacity-100`) with focus-based visibility classes (e.g., `focus-within:opacity-100`) on the parent container. Also, actively verify and add `aria-label` attributes to any icon-only interactive elements during UI/UX reviews.
