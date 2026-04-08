@@ -64,6 +64,7 @@ export default function AssignmentContainer({
                             <button 
                                 onClick={() => setSearchQuery('')}
                                 className="absolute right-3 top-1/2 -translate-y-1/2 text-white/20 hover:text-white transition-colors"
+                                aria-label="Clear search"
                             >
                                 <X size={14} />
                             </button>
@@ -76,6 +77,8 @@ export default function AssignmentContainer({
                             onClick={() => setViewMode('list')}
                             className={`p-2 rounded-lg transition-all ${viewMode === 'list' ? 'bg-white/10 text-white' : 'text-white/30 hover:text-white/60'}`}
                             title="List View"
+                            aria-label="List view"
+                            aria-pressed={viewMode === 'list'}
                         >
                             <List size={16} />
                         </button>
@@ -83,6 +86,8 @@ export default function AssignmentContainer({
                             onClick={() => setViewMode('grid')}
                             className={`p-2 rounded-lg transition-all ${viewMode === 'grid' ? 'bg-white/10 text-white' : 'text-white/30 hover:text-white/60'}`}
                             title="Grid View"
+                            aria-label="Grid view"
+                            aria-pressed={viewMode === 'grid'}
                         >
                             <LayoutGrid size={16} />
                         </button>
