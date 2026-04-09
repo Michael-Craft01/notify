@@ -58,6 +58,7 @@ export default function SettingsModal({ user }: SettingsModalProps) {
                 onClick={() => setIsOpen(true)}
                 className="h-[34px] w-[34px] rounded-full border border-white/10 bg-white/5 flex items-center justify-center text-[11px] font-extrabold tracking-[0.04em] text-white/40 hover:bg-orange/10 hover:border-orange/30 hover:text-orange transition-all cursor-pointer overflow-hidden shadow-sm hover:shadow-[0_0_10px_rgba(249,115,22,0.2)]"
                 title="Account Settings"
+                aria-label="Account Settings"
             >
                 {user.full_name?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) || user.email[0].toUpperCase()}
             </button>
@@ -76,7 +77,7 @@ export default function SettingsModal({ user }: SettingsModalProps) {
                                     </div>
                                     <h2 className="text-sm font-black uppercase tracking-widest text-white">Settings</h2>
                                 </div>
-                                <button onClick={() => setIsOpen(false)} className="p-2 rounded-full hover:bg-white/5 text-white/20 hover:text-white transition-all">
+                                <button onClick={() => setIsOpen(false)} aria-label="Close Settings" className="p-2 rounded-full hover:bg-white/5 text-white/20 hover:text-white transition-all">
                                     <X size={18} />
                                 </button>
                             </div>
