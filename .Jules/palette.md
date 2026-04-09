@@ -1,0 +1,3 @@
+## 2024-04-03 - Interactive Elements Accessibility (Focus and ARIA)
+**Learning:** `group-hover:opacity-100` must consistently be paired with `focus-within:opacity-100` to prevent hidden interactive elements from remaining invisible when receiving keyboard focus. Furthermore, focus rings (`focus-visible:ring-2`) and `aria-label`s should be consistently added to icon-only interactive elements across the application to ensure better keyboard and screen-reader accessibility.
+**Action:** Always include `focus-within:opacity-100` alongside hover classes, and add descriptive `aria-label`s + focus styles (`focus-visible:ring-2 focus-visible:outline-none`) to icon buttons.
