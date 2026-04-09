@@ -158,7 +158,7 @@ export default function NotifyAIChat({ currentAssignments, programName }: { curr
                                         </div>
                                     </div>
                                 </div>
-                                <button onClick={() => setIsOpen(false)} className="p-2 rounded-full hover:bg-white/5 text-white/20 hover:text-white transition-all">
+                                <button aria-label="Close chat" onClick={() => setIsOpen(false)} className="p-2 rounded-full hover:bg-white/5 text-white/20 hover:text-white transition-all">
                                     <X size={18} />
                                 </button>
                             </div>

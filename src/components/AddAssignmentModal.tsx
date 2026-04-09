@@ -167,6 +167,7 @@ export default function AddAssignmentModal({ userId }: { userId: string }) {
                             >
                                 {/* Step back */}
                                 <button
+                                    aria-label="Go back"
                                     onClick={() => step > 0 ? setStep((step - 1) as Step) : handleClose()}
                                     className="btn-ghost h-7 w-7 rounded-lg flex items-center justify-center"
                                 >
@@ -198,7 +199,7 @@ export default function AddAssignmentModal({ userId }: { userId: string }) {
                                     ))}
                                 </div>
 
-                                <button onClick={handleClose} className="btn-ghost h-8 w-8 rounded-xl flex items-center justify-center bg-white/5 hover:bg-white/10">
+                                <button aria-label="Close modal" onClick={handleClose} className="btn-ghost h-8 w-8 rounded-xl flex items-center justify-center bg-white/5 hover:bg-white/10">
                                     <X size={15} />
                                 </button>
                             </div>
