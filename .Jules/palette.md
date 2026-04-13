@@ -1,0 +1,3 @@
+## 2025-01-20 - Keyboard Navigation for Hover-Hidden Controls
+**Learning:** Hover-based visibility classes (like `group-hover:opacity-100` in AssignmentCard) hide elements visually but also effectively disable keyboard access if the container doesn't become visible when child elements receive focus. This creates a severe accessibility barrier for keyboard-only or screen reader users navigating interactively.
+**Action:** Always combine `focus-within:opacity-100` alongside hover-based visibility classes for containers with interactive elements. This ensures actions remain visible and usable when users tab into them, while still providing a clean default UI. Also, consistently use `aria-label`s on icon-only buttons.
