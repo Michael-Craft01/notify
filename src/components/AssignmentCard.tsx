@@ -127,13 +127,15 @@ export default function AssignmentCard({
                             <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity bg-white/5 p-1 rounded-lg mr-1">
                                 <button
                                     onClick={(e) => { e.stopPropagation(); /* TODO: Edit */ }}
-                                    className="p-1 px-1.5 rounded-md hover:bg-white/10 text-white/40 hover:text-white transition-all"
+                                    className="p-1 px-1.5 rounded-md hover:bg-white/10 text-white/40 hover:text-white transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500/50"
+                                    aria-label="Edit task"
                                 >
                                     <Edit2 size={12} />
                                 </button>
                                 <button
                                     onClick={(e) => { e.stopPropagation(); handleDelete() }}
-                                    className="p-1 px-1.5 rounded-md hover:bg-red-500/20 text-white/40 hover:text-red-400 transition-all"
+                                    className="p-1 px-1.5 rounded-md hover:bg-red-500/20 text-white/40 hover:text-red-400 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/50"
+                                    aria-label="Delete task"
                                 >
                                     <Trash2 size={12} />
                                 </button>
@@ -196,8 +198,10 @@ export default function AssignmentCard({
                         )}
                         <button
                             onClick={() => setExpanded(!expanded)}
-                            className={`btn-ghost ${isSlim ? 'p-1.5' : 'p-2'} rounded-lg text-white/30 hover:text-white transition-all transform active:scale-95`}
+                            className={`btn-ghost ${isSlim ? 'p-1.5' : 'p-2'} rounded-lg text-white/30 hover:text-white transition-all transform active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500/50`}
                             title={expanded ? 'Hide Details' : 'Show Details'}
+                            aria-expanded={expanded}
+                            aria-label={expanded ? 'Hide Details' : 'Show Details'}
                         >
                             {expanded ? <ChevronUp size={isSlim ? 16 : 20} /> : <ChevronDown size={isSlim ? 16 : 20} />}
                         </button>
