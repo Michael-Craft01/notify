@@ -179,7 +179,7 @@ export default function TimetableUploadModal() {
                                 </h3>
                                 <p className="text-xs text-white/40 mt-0.5">Upload a photo or paste text to automate reminders</p>
                             </div>
-                            <button onClick={() => setIsOpen(false)} className="h-8 w-8 rounded-full bg-white/5 flex items-center justify-center hover:bg-white/10 transition-colors">
+                            <button onClick={() => setIsOpen(false)} aria-label="Close modal" className="h-8 w-8 rounded-full bg-white/5 flex items-center justify-center hover:bg-white/10 transition-colors">
                                 <X size={18} />
                             </button>
                         </div>
@@ -303,6 +303,7 @@ export default function TimetableUploadModal() {
 
                                                 <button 
                                                     onClick={() => removeLecture(i)}
+                                                    aria-label="Remove lecture"
                                                     className="h-8 w-8 rounded-lg flex items-center justify-center hover:bg-red-500/10 text-white/10 hover:text-red-500 transition-all"
                                                 >
                                                     <Trash2 size={14} />
