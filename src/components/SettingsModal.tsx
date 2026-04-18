@@ -76,7 +76,7 @@ export default function SettingsModal({ user }: SettingsModalProps) {
                                     </div>
                                     <h2 className="text-sm font-black uppercase tracking-widest text-white">Settings</h2>
                                 </div>
-                                <button onClick={() => setIsOpen(false)} className="p-2 rounded-full hover:bg-white/5 text-white/20 hover:text-white transition-all">
+                                <button aria-label="Close settings" onClick={() => setIsOpen(false)} className="p-2 rounded-full hover:bg-white/5 text-white/20 hover:text-white transition-all">
                                     <X size={18} />
                                 </button>
                             </div>
