@@ -302,6 +302,7 @@ export default function TimetableUploadModal() {
                                                 </div>
 
                                                 <button 
+                                                    aria-label="Remove lecture"
                                                     onClick={() => removeLecture(i)}
                                                     className="h-8 w-8 rounded-lg flex items-center justify-center hover:bg-red-500/10 text-white/10 hover:text-red-500 transition-all"
                                                 >
