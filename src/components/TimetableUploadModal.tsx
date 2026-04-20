@@ -79,7 +79,7 @@ export default function TimetableUploadModal() {
                 const startTime = timeMatch[1].replace('.', ':')
                 const endTime = timeMatch[2].replace('.', ':')
                 
-                let moduleInfo = line.replace(timeMatch[0], '').trim()
+                const moduleInfo = line.replace(timeMatch[0], '').trim()
                 const codeMatch = moduleInfo.match(/[A-Z]{2,4}\s*\d{3,4}/i)
                 const courseCode = codeMatch ? codeMatch[0] : null
                 const moduleName = moduleInfo.replace(courseCode || '', '').trim() || "Untitled Module"
