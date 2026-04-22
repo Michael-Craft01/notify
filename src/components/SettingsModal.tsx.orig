@@ -54,7 +54,7 @@ export default function SettingsModal({ user }: SettingsModalProps) {
 
     return (
         <div className="relative">
-            <button 
+            <button
                 onClick={() => setIsOpen(true)}
                 className="h-[34px] w-[34px] rounded-full border border-white/10 bg-white/5 flex items-center justify-center text-[11px] font-extrabold tracking-[0.04em] text-white/40 hover:bg-orange/10 hover:border-orange/30 hover:text-orange transition-all cursor-pointer overflow-hidden shadow-sm hover:shadow-[0_0_10px_rgba(249,115,22,0.2)]"
                 title="Account Settings"
@@ -65,7 +65,7 @@ export default function SettingsModal({ user }: SettingsModalProps) {
             {isOpen && mounted && createPortal(
                 <div className="fixed inset-0 z-[300] animate-fade-in">
                     <div className="absolute inset-0 bg-black/60 backdrop-blur-[64px]" onClick={() => setIsOpen(false)} />
-                    
+
                     <div className="absolute bottom-12 sm:bottom-20 left-1/2 -translate-x-1/2 w-full max-w-[440px] px-4 animate-scale-in">
                         <div className="relative w-full bg-[#0a0a0a]/90 backdrop-blur-[64px] rounded-[32px] border border-white/10 shadow-2xl overflow-hidden">
                             {/* Header */}
@@ -76,11 +76,7 @@ export default function SettingsModal({ user }: SettingsModalProps) {
                                     </div>
                                     <h2 className="text-sm font-black uppercase tracking-widest text-white">Settings</h2>
                                 </div>
-                                <button
-                                    onClick={() => setIsOpen(false)}
-                                    className="p-2 rounded-full hover:bg-white/5 text-white/20 hover:text-white transition-all"
-                                    aria-label="Close settings"
-                                >
+                                <button onClick={() => setIsOpen(false)} className="p-2 rounded-full hover:bg-white/5 text-white/20 hover:text-white transition-all">
                                     <X size={18} />
                                 </button>
                             </div>
@@ -90,12 +86,12 @@ export default function SettingsModal({ user }: SettingsModalProps) {
                                     {/* Profile Section */}
                                     <div className="space-y-4">
                                         <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30 ml-1">Profile</p>
-                                        
+
                                         <div className="space-y-1.5">
                                             <label className="text-[11px] font-bold text-white/50 ml-1 uppercase tracking-wider">Full Name</label>
                                             <div className="relative group">
                                                 <User className="absolute left-4 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-orange transition-colors" size={16} />
-                                                <input 
+                                                <input
                                                     className="w-full h-11 bg-white/5 border border-white/10 rounded-xl pl-12 pr-4 text-[13px] text-white focus:border-orange/30 outline-none transition-all"
                                                     value={formData.full_name}
                                                     onChange={e => setFormData({ ...formData, full_name: e.target.value })}
@@ -109,7 +105,7 @@ export default function SettingsModal({ user }: SettingsModalProps) {
                                     {/* Preferences Section */}
                                     <div className="space-y-4">
                                         <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30 ml-1">Preferences</p>
-                                        
+
                                         <div className="flex items-center justify-between p-4 rounded-2xl bg-white/[0.03] border border-white/10 shadow-sm">
                                             <div className="flex items-center gap-3">
                                                 <div className="p-2 rounded-xl bg-gradient-to-br from-blue-500/20 to-blue-600/10 text-blue-400">
@@ -130,7 +126,7 @@ export default function SettingsModal({ user }: SettingsModalProps) {
 
                             {/* Footer Actions */}
                             <div className="p-5 border-t border-white/5 bg-white/[0.01] flex flex-col gap-2">
-                                <button 
+                                <button
                                     disabled={isPending}
                                     onClick={handleSubmit}
                                     className="w-full h-11 bg-orange text-white rounded-xl text-[12px] font-black uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg shadow-orange/20 transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50"
@@ -142,7 +138,7 @@ export default function SettingsModal({ user }: SettingsModalProps) {
                                         </>
                                     )}
                                 </button>
-                                <button 
+                                <button
                                     type="button"
                                     onClick={handleLogout}
                                     disabled={isLoggingOut}

@@ -1,8 +1,8 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { 
-    CheckCircle2, ChevronDown, ChevronUp, Loader2, Link2, 
+import {
+    CheckCircle2, ChevronDown, ChevronUp, Loader2, Link2,
     MapPin, FileText, ClipboardList, Monitor, Edit2, Trash2,
     Calendar, Play
 } from 'lucide-react'
@@ -37,23 +37,23 @@ type AssignmentCardProps = {
     variant?: 'full' | 'slim'
 }
 
-export default function AssignmentCard({ 
-    assignment, 
-    pulse, 
-    currentUserId, 
-    userStatus: init, 
-    variant = 'full' 
+export default function AssignmentCard({
+    assignment,
+    pulse,
+    currentUserId,
+    userStatus: init,
+    variant = 'full'
 }: AssignmentCardProps) {
     const [status, setStatus] = useState<ProgressStatus>(init)
     const [expanded, setExpanded] = useState(false)
     const [isPending, startTransition] = useTransition()
-    
+
     const isSlim = variant === 'slim'
     const isCreator = assignment.created_by === currentUserId
     const due = new Date(assignment.due_date)
     const hoursLeft = (due.getTime() - Date.now()) / 3600000
     const isOverdue = hoursLeft <= 0 && status !== 'finished'
-    
+
     const timeLabel = (() => {
         if (isOverdue) return `${Math.abs(Math.ceil(hoursLeft / 24))}d overdue`
         if (hoursLeft < 1) return `${Math.floor(hoursLeft * 60)}m left`
@@ -100,9 +100,9 @@ export default function AssignmentCard({
                 : 'var(--color-border)'
 
     return (
-        <div 
+        <div
             className={`card animate-fade-up w-full ${isSlim ? 'p-3' : 'p-5'} flex flex-col ${isSlim ? 'gap-1.5' : 'gap-3'} transition-all duration-300 relative group overflow-hidden`}
-            style={{ 
+            style={{
                 borderColor,
                 background: `linear-gradient(145deg, var(--color-surface) 0%, ${statusHighlight} 100%)`
             }}
@@ -121,21 +121,19 @@ export default function AssignmentCard({
                             {assignment.course_code}
                         </div>
                     </div>
-                    
+
                     <div className="flex items-center gap-2">
                         {isCreator && !isSlim && (
                             <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity bg-white/5 p-1 rounded-lg mr-1">
                                 <button
                                     onClick={(e) => { e.stopPropagation(); /* TODO: Edit */ }}
                                     className="p-1 px-1.5 rounded-md hover:bg-white/10 text-white/40 hover:text-white transition-all"
-                                    aria-label="Edit assignment"
                                 >
                                     <Edit2 size={12} />
                                 </button>
                                 <button
                                     onClick={(e) => { e.stopPropagation(); handleDelete() }}
                                     className="p-1 px-1.5 rounded-md hover:bg-red-500/20 text-white/40 hover:text-red-400 transition-all"
-                                    aria-label="Delete assignment"
                                 >
                                     <Trash2 size={12} />
                                 </button>
@@ -200,8 +198,6 @@ export default function AssignmentCard({
                             onClick={() => setExpanded(!expanded)}
                             className={`btn-ghost ${isSlim ? 'p-1.5' : 'p-2'} rounded-lg text-white/30 hover:text-white transition-all transform active:scale-95`}
                             title={expanded ? 'Hide Details' : 'Show Details'}
-                            aria-label={expanded ? 'Hide Details' : 'Show Details'}
-                            aria-expanded={expanded}
                         >
                             {expanded ? <ChevronUp size={isSlim ? 16 : 20} /> : <ChevronDown size={isSlim ? 16 : 20} />}
                         </button>
@@ -216,16 +212,16 @@ export default function AssignmentCard({
                             {assignment.description}
                         </p>
                     )}
-                    
+
                     <div className="flex flex-col gap-2">
                         {assignment.resource_url && (
-                            <a 
-                                href={assignment.resource_url} 
-                                target="_blank" 
-                                rel="noopener noreferrer" 
+                            <a
+                                href={assignment.resource_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
                                 className={`flex items-center gap-2 ${isSlim ? 'text-[12px]' : 'text-sm'} text-orange hover:text-orange-bright transition-colors font-medium break-all`}
                             >
-                                <Link2 size={12} /> 
+                                <Link2 size={12} />
                                 {assignment.resource_url}
                             </a>
                         )}
@@ -254,13 +250,13 @@ export default function AssignmentCard({
                                         <span className="text-white/80 font-bold">{Math.round(pulse.involvement_percentage)}%</span>
                                     </div>
                                     <div className="progress-bar h-[3px]">
-                                        <div 
-                                            className="progress-fill" 
-                                            style={{ 
+                                        <div
+                                            className="progress-fill"
+                                            style={{
                                                 width: `${pulse.involvement_percentage}%`,
                                                 background: 'linear-gradient(90deg, rgba(255,255,255,0.1), rgba(255,255,255,0.4))',
                                                 boxShadow: 'none'
-                                            }} 
+                                            }}
                                         />
                                     </div>
                                 </div>
@@ -271,9 +267,9 @@ export default function AssignmentCard({
                                         <span className="text-orange font-bold">{Math.round(pulse.finished_percentage)}%</span>
                                     </div>
                                     <div className="progress-bar h-[3px]">
-                                        <div 
-                                            className="progress-fill" 
-                                            style={{ width: `${pulse.finished_percentage}%` }} 
+                                        <div
+                                            className="progress-fill"
+                                            style={{ width: `${pulse.finished_percentage}%` }}
                                         />
                                     </div>
                                 </div>

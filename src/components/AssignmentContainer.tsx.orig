@@ -19,11 +19,11 @@ const TASK_TYPES = [
     { id: 'physical_test', label: 'Physical' },
 ]
 
-export default function AssignmentContainer({ 
-    title, 
-    count, 
-    assignments, 
-    currentUserId 
+export default function AssignmentContainer({
+    title,
+    count,
+    assignments,
+    currentUserId
 }: AssignmentContainerProps) {
     const [viewMode, setViewMode] = useState<'list' | 'grid'>('grid')
     const [searchQuery, setSearchQuery] = useState('')
@@ -31,12 +31,12 @@ export default function AssignmentContainer({
 
     const filteredAssignments = useMemo(() => {
         return assignments.filter(a => {
-            const matchesSearch = 
-                a.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
+            const matchesSearch =
+                a.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
                 a.course_code.toLowerCase().includes(searchQuery.toLowerCase())
-            
+
             const matchesFilter = activeFilter === 'all' || a.task_type === activeFilter
-            
+
             return matchesSearch && matchesFilter
         })
     }, [assignments, searchQuery, activeFilter])
@@ -48,12 +48,12 @@ export default function AssignmentContainer({
                     <h2 className="text-xl font-[family-name:var(--font-outfit)] font-black text-white leading-tight uppercase tracking-tight">{title}</h2>
                     <p className="text-[13px] font-bold text-white/30 uppercase tracking-[0.1em]">{filteredAssignments.length} of {count} visible</p>
                 </div>
-                
+
                 <div className="flex flex-wrap items-center gap-2">
                     {/* Search Bar */}
                     <div className="relative group flex-1 md:flex-none md:min-w-[240px]">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-orange transition-colors" size={14} />
-                        <input 
+                        <input
                             type="text"
                             placeholder="Search course or title..."
                             value={searchQuery}
@@ -61,10 +61,9 @@ export default function AssignmentContainer({
                             className="w-full bg-white/[0.03] border border-white/5 rounded-xl pl-9 pr-4 py-2 text-[13px] text-white/80 placeholder:text-white/20 outline-none focus:border-orange/30 focus:bg-white/[0.05] transition-all"
                         />
                         {searchQuery && (
-                            <button 
+                            <button
                                 onClick={() => setSearchQuery('')}
                                 className="absolute right-3 top-1/2 -translate-y-1/2 text-white/20 hover:text-white transition-colors"
-                                aria-label="Clear search"
                             >
                                 <X size={14} />
                             </button>
@@ -77,8 +76,6 @@ export default function AssignmentContainer({
                             onClick={() => setViewMode('list')}
                             className={`p-2 rounded-lg transition-all ${viewMode === 'list' ? 'bg-white/10 text-white' : 'text-white/30 hover:text-white/60'}`}
                             title="List View"
-                            aria-label="List View"
-                            aria-pressed={viewMode === 'list'}
                         >
                             <List size={16} />
                         </button>
@@ -86,8 +83,6 @@ export default function AssignmentContainer({
                             onClick={() => setViewMode('grid')}
                             className={`p-2 rounded-lg transition-all ${viewMode === 'grid' ? 'bg-white/10 text-white' : 'text-white/30 hover:text-white/60'}`}
                             title="Grid View"
-                            aria-label="Grid View"
-                            aria-pressed={viewMode === 'grid'}
                         >
                             <LayoutGrid size={16} />
                         </button>
@@ -102,8 +97,8 @@ export default function AssignmentContainer({
                         key={type.id}
                         onClick={() => setActiveFilter(type.id)}
                         className={`flex-shrink-0 px-4 py-1.5 rounded-full text-[11px] font-black uppercase tracking-wider transition-all border ${
-                            activeFilter === type.id 
-                                ? 'bg-orange/10 border-orange/40 text-orange' 
+                            activeFilter === type.id
+                                ? 'bg-orange/10 border-orange/40 text-orange'
                                 : 'bg-white/5 border-white/5 text-white/30 hover:bg-white/10 hover:border-white/10'
                         }`}
                     >
@@ -114,17 +109,17 @@ export default function AssignmentContainer({
 
             {filteredAssignments.length > 0 ? (
                 <div className={
-                    viewMode === 'grid' 
-                        ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4" 
+                    viewMode === 'grid'
+                        ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"
                         : "flex flex-col gap-4"
                 }>
                     {filteredAssignments.map((a) => (
-                        <AssignmentCard 
-                            key={a.id} 
-                            assignment={a} 
-                            pulse={a.pulse} 
-                            currentUserId={currentUserId} 
-                            userStatus={a.myProgress || (title === 'Completed' ? 'finished' : 'not_started')} 
+                        <AssignmentCard
+                            key={a.id}
+                            assignment={a}
+                            pulse={a.pulse}
+                            currentUserId={currentUserId}
+                            userStatus={a.myProgress || (title === 'Completed' ? 'finished' : 'not_started')}
                             variant={viewMode === 'grid' ? 'slim' : 'full'}
                         />
                     ))}
