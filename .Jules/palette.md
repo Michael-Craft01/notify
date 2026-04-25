@@ -1,0 +1,3 @@
+## 2024-04-25 - [A11y] View Toggle ARIA States
+**Learning:** Icon-only state-based toggles (like list vs. grid view switchers) often lack screen reader feedback indicating their current active state. While `aria-label` provides the name, `aria-pressed` is crucial for indicating which view is currently selected. Wrapping them in a container with `role="group"` and an `aria-label` (e.g., "View mode") groups them logically for screen reader navigation.
+**Action:** Always verify that multi-state toggle groups use `role="group"` on the container and `aria-pressed` on the individual toggle buttons to reflect their active status.
