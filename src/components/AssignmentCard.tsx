@@ -127,13 +127,15 @@ export default function AssignmentCard({
                             <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity bg-white/5 p-1 rounded-lg mr-1">
                                 <button
                                     onClick={(e) => { e.stopPropagation(); /* TODO: Edit */ }}
-                                    className="p-1 px-1.5 rounded-md hover:bg-white/10 text-white/40 hover:text-white transition-all"
+                                    className="p-1 px-1.5 rounded-md hover:bg-white/10 text-white/40 hover:text-white transition-all focus-visible:ring-2 focus-visible:ring-orange/50"
+                                    aria-label="Edit assignment"
                                 >
                                     <Edit2 size={12} />
                                 </button>
                                 <button
                                     onClick={(e) => { e.stopPropagation(); handleDelete() }}
-                                    className="p-1 px-1.5 rounded-md hover:bg-red-500/20 text-white/40 hover:text-red-400 transition-all"
+                                    className="p-1 px-1.5 rounded-md hover:bg-red-500/20 text-white/40 hover:text-red-400 transition-all focus-visible:ring-2 focus-visible:ring-red-400/50"
+                                    aria-label="Delete assignment"
                                 >
                                     <Trash2 size={12} />
                                 </button>
@@ -177,10 +179,12 @@ export default function AssignmentCard({
                         <button
                             onClick={() => handleStatusUpdate(status === 'not_started' ? 'in_progress' : 'finished')}
                             disabled={isPending}
-                            className={`btn-primary rounded-lg ${isSlim ? 'px-3 py-1 text-[11px]' : 'px-5 py-2 text-sm'} shadow-sm`}
+                            className={`btn-primary rounded-lg ${isSlim ? 'px-3 py-1 text-[11px]' : 'px-5 py-2 text-sm'} shadow-sm disabled:cursor-wait`}
+                            aria-live="polite"
                         >
-                            {isPending ? <Loader2 size={isSlim ? 12 : 16} className="animate-spin" /> :
+                            {isPending ? <Loader2 size={isSlim ? 12 : 16} className="animate-spin" aria-hidden="true" /> :
                                 status === 'not_started' ? 'Begin' : 'Done'}
+                            {isPending && <span className="sr-only">Updating status</span>}
                         </button>
                     ) : (
                         <div className={`flex items-center gap-1.5 ${isSlim ? 'px-2 py-1 text-[10px]' : 'px-3 py-1.5 text-[13px]'} bg-white/5 border border-white/10 rounded-lg text-white/40 font-bold`}>
@@ -196,10 +200,12 @@ export default function AssignmentCard({
                         )}
                         <button
                             onClick={() => setExpanded(!expanded)}
-                            className={`btn-ghost ${isSlim ? 'p-1.5' : 'p-2'} rounded-lg text-white/30 hover:text-white transition-all transform active:scale-95`}
+                            className={`btn-ghost ${isSlim ? 'p-1.5' : 'p-2'} rounded-lg text-white/30 hover:text-white transition-all transform active:scale-95 focus-visible:ring-2 focus-visible:ring-white/20 outline-none`}
                             title={expanded ? 'Hide Details' : 'Show Details'}
+                            aria-expanded={expanded}
+                            aria-label={expanded ? 'Hide Details' : 'Show Details'}
                         >
-                            {expanded ? <ChevronUp size={isSlim ? 16 : 20} /> : <ChevronDown size={isSlim ? 16 : 20} />}
+                            {expanded ? <ChevronUp size={isSlim ? 16 : 20} aria-hidden="true" /> : <ChevronDown size={isSlim ? 16 : 20} aria-hidden="true" />}
                         </button>
                     </div>
                 </div>
