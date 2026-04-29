@@ -128,12 +128,14 @@ export default function AssignmentCard({
                                 <button
                                     onClick={(e) => { e.stopPropagation(); /* TODO: Edit */ }}
                                     className="p-1 px-1.5 rounded-md hover:bg-white/10 text-white/40 hover:text-white transition-all"
+                                    aria-label="Edit assignment"
                                 >
                                     <Edit2 size={12} />
                                 </button>
                                 <button
                                     onClick={(e) => { e.stopPropagation(); handleDelete() }}
                                     className="p-1 px-1.5 rounded-md hover:bg-red-500/20 text-white/40 hover:text-red-400 transition-all"
+                                    aria-label="Delete assignment"
                                 >
                                     <Trash2 size={12} />
                                 </button>
