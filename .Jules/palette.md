@@ -1,0 +1,3 @@
+## 2024-05-05 - Add ARIA Labels and Keyboard Focus to AssignmentCard Actions
+**Learning:** Found multiple icon-only buttons in `AssignmentCard` (Edit, Delete, Expand/Collapse) lacking `aria-label`s. The edit/delete container only becomes visible on hover (`group-hover:opacity-100`), making it inaccessible via keyboard. This pattern is likely present in other card-based components.
+**Action:** Always include `focus-within:opacity-100` alongside hover-based opacity for container elements with actions. Always provide descriptive `aria-label` and `aria-expanded` attributes for icon-only toggles and actions. Added `focus-visible:ring-2` with `focus-visible:ring-white/50` or `focus-visible:ring-red-400` to make focus states visible in dark mode.
