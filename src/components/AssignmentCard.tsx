@@ -124,16 +124,18 @@ export default function AssignmentCard({
                     
                     <div className="flex items-center gap-2">
                         {isCreator && !isSlim && (
-                            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity bg-white/5 p-1 rounded-lg mr-1">
+                            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity bg-white/5 p-1 rounded-lg mr-1">
                                 <button
+                                    aria-label="Edit assignment"
                                     onClick={(e) => { e.stopPropagation(); /* TODO: Edit */ }}
-                                    className="p-1 px-1.5 rounded-md hover:bg-white/10 text-white/40 hover:text-white transition-all"
+                                    className="p-1 px-1.5 rounded-md hover:bg-white/10 text-white/40 hover:text-white transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
                                 >
                                     <Edit2 size={12} />
                                 </button>
                                 <button
+                                    aria-label="Delete assignment"
                                     onClick={(e) => { e.stopPropagation(); handleDelete() }}
-                                    className="p-1 px-1.5 rounded-md hover:bg-red-500/20 text-white/40 hover:text-red-400 transition-all"
+                                    className="p-1 px-1.5 rounded-md hover:bg-red-500/20 text-white/40 hover:text-red-400 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400"
                                 >
                                     <Trash2 size={12} />
                                 </button>
@@ -196,7 +198,9 @@ export default function AssignmentCard({
                         )}
                         <button
                             onClick={() => setExpanded(!expanded)}
-                            className={`btn-ghost ${isSlim ? 'p-1.5' : 'p-2'} rounded-lg text-white/30 hover:text-white transition-all transform active:scale-95`}
+                            aria-expanded={expanded}
+                            aria-label={expanded ? 'Hide Details' : 'Show Details'}
+                            className={`btn-ghost ${isSlim ? 'p-1.5' : 'p-2'} rounded-lg text-white/30 hover:text-white transition-all transform active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50`}
                             title={expanded ? 'Hide Details' : 'Show Details'}
                         >
                             {expanded ? <ChevronUp size={isSlim ? 16 : 20} /> : <ChevronDown size={isSlim ? 16 : 20} />}
